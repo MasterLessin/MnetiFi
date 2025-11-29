@@ -1,0 +1,137 @@
+<project_definition>
+    <meta>
+        <name>MnetiFi_SaaS_Platform</name>
+        <role>Senior Full-Stack Architect & UI/UX Designer</role>
+        <objective>
+            Build the MnetiFi multi-tenant Wi-Fi billing system (SaaS) for ISPs with a "Vaultic" Glassmorphism aesthetic.
+            Integrate M-Pesa (Daraja), SMS, and RADIUS (MikroTik).
+        </objective>
+        <priority>Resilience (Payment Polling), Mobile Performance, and High-End Visuals.</priority>
+    </meta>
+
+    <design_system>
+        <style_guide>
+            <aesthetic>Glassmorphism (Frosted Glass, Depth, Blur)</aesthetic>
+            <inspiration>Vaultic.framer.website</inspiration>
+            <font>Inter or Plus Jakarta Sans</font>
+        </style_guide>
+        
+        <palette mode="dark">
+            <color name="background_mesh">
+                Deep Navy (#0f172a) with floating radial gradients:
+                - Neon Purple (#7c3aed)
+                - Cyan (#06b6d4)
+                - Magenta (#ec4899)
+            </color>
+            <color name="glass_surface">rgba(255, 255, 255, 0.05)</color>
+            <color name="glass_border_top">rgba(255, 255, 255, 0.2)</color>
+            <color name="glass_border_bot">rgba(255, 255, 255, 0.05)</color>
+            <color name="text_primary">#FFFFFF</color>
+            <color name="text_secondary">#94a3b8</color>
+            <color name="accent_primary">Gradient: Cyan (#06b6d4) to Blue (#3b82f6)</color>
+            <color name="accent_mpesa">#4BB617 (Keep branding, adapt shape)</color>
+        </palette>
+
+        <css_rules>
+            <rule name="glass_panel">
+                backdrop-filter: blur(16px) saturate(180%);
+                border-radius: 24px;
+                box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            </rule>
+            <rule name="mobile_fallback">
+                @supports not (backdrop-filter: blur(16px)) { background: rgba(15, 23, 42, 0.95); }
+            </rule>
+        </css_rules>
+    </design_system>
+
+    <tech_stack>
+        <frontend>
+            <framework>React (Next.js 14 App Router)</framework>
+            <styling>Tailwind CSS</styling>
+            <animation>Framer Motion (for smooth modal transitions)</animation>
+        </frontend>
+        <backend>
+            <runtime>Node.js (TypeScript)</runtime>
+            <framework>NestJS or Express</framework>
+            <queue>BullMQ (Redis) for payment polling</queue>
+        </backend>
+        <database>
+            <primary>PostgreSQL 15+</primary>
+            <orm>Prisma</orm>
+            <radius_integration>freeradius-postgresql (rlm_sql)</radius_integration>
+        </database>
+        <devops>
+            <container>Docker Compose</container>
+        </devops>
+    </tech_stack>
+
+    <database_schema>
+        <table name="Tenant">
+            <field>id (UUID), name, subdomain</field>
+            <field>branding_config (JSON: logo, colors)</field>
+            <field>mpesa_keys (Encrypted)</field>
+        </table>
+        <table name="Hotspot">
+            <field>id, tenant_id, nas_ip (Inet), secret</field>
+            <field>location_name</field>
+        </table>
+        <table name="Plan">
+            <field>id, name, price, duration_seconds</field>
+            <field>upload_limit, download_limit</field>
+        </table>
+        <table name="Transaction">
+            <field>id, user_phone, amount, mpesa_receipt</field>
+            <field>checkout_request_id, status (PENDING, COMPLETED, FAILED)</field>
+        </table>
+        <note>
+            Must include Views/Triggers to map 'Plans' and 'Users' to standard FreeRADIUS tables (radcheck, radreply, radgroupreply).
+        </note>
+    </database_schema>
+
+    <core_features>
+        <feature name="Payment_Resilience">
+            <logic>
+                1. User initiates STK Push.
+                2. Server creates Transaction (PENDING).
+                3. Server listens for Webhook.
+                4. CRITICAL: Worker immediately schedules a check (polling) after 20 seconds.
+                5. If Webhook fails, Worker calls Daraja 'QueryTransactionStatus'.
+                6. On success -> Update DB -> Trigger RADIUS CoA.
+            </logic>
+        </feature>
+
+        <feature name="Captive_Portal_UI">
+            <requirements>
+                - Mobile-first Glassmorphism card, branded with **MnetiFi** or Tenant Name.
+                - Inputs must look "recessed" (darker opacity).
+                - Must include "Walled Garden" instruction logic (allow safaricom.com).
+                - Integration with MikroTik HTML login form variables (username, password, dst).
+            </requirements>
+        </feature>
+
+        <feature name="Radius_Logic">
+            <requirements>
+                - Use 'Simultaneous-Use = 1' to prevent ghost sessions.
+                - Send Rate-Limit attributes (Mikrotik-Rate-Limit) dynamically from Plan settings.
+                - Support CoA (Change of Authorization) to disconnect/reconnect users upon payment.
+            </requirements>
+        </feature>
+    </core_features>
+
+    <implementation_steps>
+        <step order="1">Setup Docker services (Postgres, Redis, FreeRADIUS).</step>
+        <step order="2">Initialize Prisma schema with Multi-tenant logic.</step>
+        <step order="3">Create Global CSS/Tailwind config for Glassmorphism mesh gradients.</step>
+        <step order="4">Build Backend API for M-Pesa (STK + Polling).</step>
+        <step order="5">Build Frontend Captive Portal (React), ensuring **MnetiFi** branding is prominent.</step>
+    </implementation_steps>
+
+    <instructions_for_ai>
+        When generating code:
+        1. Always use TypeScript interfaces for strict typing.
+        2. In React components, separate layout (Glass containers) from logic.
+        3. Ensure the 'mesh-bg' class is applied to the root layout.
+        4. Do not use plain colors; use RGBA with low opacity for the glass effect.
+        5. Use **MnetiFi** as the default SaaS brand name in all generated UI placeholders and documentation.
+    </instructions_for_ai>
+</project_definition>
