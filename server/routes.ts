@@ -333,7 +333,7 @@ export async function registerRoutes(
     try {
       const data = insertWalledGardenSchema.parse({
         ...req.body,
-        tenantId: DEFAULT_TENANT_ID,
+        tenantId: defaultTenantId,
       });
       const walledGarden = await storage.createWalledGarden(data);
       res.status(201).json(walledGarden);
@@ -363,9 +363,10 @@ export async function registerRoutes(
 }
 
 // Initialize default tenant with sample data
-async function initializeDefaultTenant() {
+async function initializeDefaultTenant(): Promise<string> {
   try {
-    let tenant = await storage.getTenant(DEFAULT_TENANT_ID);
+    // Try to find demo tenant by subdomain
+    let tenant = await storage.getTenantBySubdomain("demo");
     
     if (!tenant) {
       // Create default tenant
@@ -374,8 +375,6 @@ async function initializeDefaultTenant() {
         subdomain: "demo",
       });
       
-      // Update the tenant ID since it was auto-generated
-      // We need to use the actual ID for consistency
       console.log("Created default tenant:", tenant.id);
     }
 
@@ -458,7 +457,10 @@ async function initializeDefaultTenant() {
 
       console.log("Created sample walled garden entries");
     }
+
+    return tenant.id;
   } catch (error) {
     console.error("Error initializing default tenant:", error);
+    throw error;
   }
 }
