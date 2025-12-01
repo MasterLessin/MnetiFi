@@ -5,7 +5,7 @@ MnetiFi is a multi-tenant Wi-Fi hotspot billing system designed for ISPs with M-
 
 ## Project Status
 - **Current Phase**: MVP Development
-- **Last Updated**: November 29, 2025
+- **Last Updated**: December 1, 2025
 
 ## Architecture
 
@@ -22,6 +22,10 @@ MnetiFi is a multi-tenant Wi-Fi hotspot billing system designed for ISPs with M-
 4. **Transaction Tracking** - Real-time payment status monitoring
 5. **Walled Garden** - Configure pre-auth accessible domains
 6. **M-Pesa Integration** - STK Push payment initiation (simulated)
+7. **WiFi Users** - Manage Hotspot, PPPoE, and Static IP customer accounts
+8. **Support Tickets** - Track customer support requests with priority levels
+9. **Reconciliation Reports** - Match M-Pesa transactions with system records
+10. **Expiring Users Widget** - Dashboard widget showing users expiring in 5 days
 
 ## Project Structure
 ```
@@ -41,12 +45,18 @@ MnetiFi is a multi-tenant Wi-Fi hotspot billing system designed for ISPs with M-
 
 ## API Endpoints
 - `GET/PATCH /api/tenant` - Tenant settings
-- `GET /api/dashboard/stats` - Dashboard statistics
+- `GET /api/dashboard/stats` - Dashboard statistics (includes expiringUsers)
 - `GET/POST/PATCH/DELETE /api/plans` - Plan CRUD
 - `GET/POST/PATCH/DELETE /api/hotspots` - Hotspot CRUD
 - `GET/POST /api/transactions` - Transaction management
 - `POST /api/transactions/initiate` - Start M-Pesa payment
 - `GET/POST/DELETE /api/walled-gardens` - Walled garden config
+- `GET/POST/PATCH/DELETE /api/wifi-users` - WiFi user CRUD with admin actions
+- `POST /api/wifi-users/:id/recharge` - Manual recharge user
+- `POST /api/wifi-users/:id/suspend` - Suspend user
+- `POST /api/wifi-users/:id/activate` - Activate user
+- `GET/POST/PATCH /api/tickets` - Support ticket management
+- `POST /api/tickets/:id/close` - Close ticket with resolution
 
 ## Design System
 - **Primary Color**: Cyan (#06b6d4) to Blue (#3b82f6) gradient
@@ -63,8 +73,17 @@ MnetiFi is a multi-tenant Wi-Fi hotspot billing system designed for ISPs with M-
 ## Routes
 - `/` - Captive Portal (public)
 - `/dashboard` - Admin Dashboard
+- `/dashboard/wifi-users` - WiFi Users Management
 - `/dashboard/plans` - Plan Management
 - `/dashboard/hotspots` - Hotspot Management
 - `/dashboard/transactions` - Transaction History
+- `/dashboard/tickets` - Support Tickets
+- `/dashboard/reconciliation` - Reconciliation Reports
 - `/dashboard/walled-garden` - Walled Garden Config
 - `/dashboard/settings` - Tenant Settings
+
+## Upcoming Features
+- MikroTik RouterOS API integration
+- FreeRADIUS integration for network access control
+- BullMQ for payment polling and background jobs
+- Customer SMS/Email notifications
