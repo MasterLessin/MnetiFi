@@ -350,3 +350,58 @@ export const TransactionStatus = {
 } as const;
 
 export type TransactionStatusType = typeof TransactionStatus[keyof typeof TransactionStatus];
+
+// Job status for background queue
+export const JobStatus = {
+  PENDING: "PENDING",
+  PROCESSING: "PROCESSING",
+  COMPLETED: "COMPLETED",
+  FAILED: "FAILED",
+  RETRY: "RETRY",
+} as const;
+export type JobStatusType = typeof JobStatus[keyof typeof JobStatus];
+
+// Job types
+export const JobType = {
+  PAYMENT_STATUS_CHECK: "PAYMENT_STATUS_CHECK",
+  USER_EXPIRY_CHECK: "USER_EXPIRY_CHECK",
+  RECONCILIATION: "RECONCILIATION",
+  SMS_NOTIFICATION: "SMS_NOTIFICATION",
+  EMAIL_NOTIFICATION: "EMAIL_NOTIFICATION",
+} as const;
+export type JobTypeValue = typeof JobType[keyof typeof JobType];
+
+// Background Jobs - Database-backed job queue for resilience
+export const jobs = pgTable("jobs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").references(() => tenants.id),
+  type: text("type").notNull(), // PAYMENT_STATUS_CHECK, USER_EXPIRY_CHECK, etc.
+  payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
+  status: text("status").notNull().default("PENDING"), // PENDING, PROCESSING, COMPLETED, FAILED, RETRY
+  priority: integer("priority").default(0), // Higher = more urgent
+  attempts: integer("attempts").default(0),
+  maxAttempts: integer("max_attempts").default(3),
+  lastError: text("last_error"),
+  scheduledFor: timestamp("scheduled_for").defaultNow(),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const jobsRelations = relations(jobs, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [jobs.tenantId],
+    references: [tenants.id],
+  }),
+}));
+
+export const insertJobSchema = createInsertSchema(jobs).omit({
+  id: true,
+  attempts: true,
+  startedAt: true,
+  completedAt: true,
+  createdAt: true,
+});
+
+export type Job = typeof jobs.$inferSelect;
+export type InsertJob = z.infer<typeof insertJobSchema>;

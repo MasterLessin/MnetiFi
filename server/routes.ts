@@ -9,8 +9,12 @@ import {
   insertTenantSchema,
   insertWifiUserSchema,
   insertTicketSchema,
+  ReconciliationStatus,
+  TransactionStatus,
 } from "@shared/schema";
 import { z } from "zod";
+import { jobQueue } from "./services/job-queue";
+import { paymentWorker } from "./services/payment-worker";
 
 // Default tenant ID for demo (in production, this would come from auth/subdomain)
 let defaultTenantId: string = "";
@@ -22,6 +26,10 @@ export async function registerRoutes(
   
   // Initialize default tenant if not exists
   defaultTenantId = await initializeDefaultTenant();
+
+  // Start the payment worker for background job processing
+  paymentWorker.start();
+  console.log("[Server] Payment worker started");
 
   // ============== TENANT ROUTES ==============
   
@@ -224,10 +232,10 @@ export async function registerRoutes(
     }
   });
 
-  // Initiate payment (STK Push simulation)
+  // Initiate payment (STK Push with resilient job queue)
   app.post("/api/transactions/initiate", async (req, res) => {
     try {
-      const { planId, phone } = req.body;
+      const { planId, phone, macAddress, nasIp } = req.body;
       
       if (!planId || !phone) {
         return res.status(400).json({ error: "Plan ID and phone number are required" });
@@ -238,7 +246,6 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Plan not found" });
       }
 
-      // Create transaction with PENDING status
       const checkoutRequestId = `ws_CO_${Date.now()}_${Math.random().toString(36).substring(7)}`;
       const merchantRequestId = `MR_${Date.now()}`;
 
@@ -249,24 +256,21 @@ export async function registerRoutes(
         amount: plan.price,
         checkoutRequestId,
         merchantRequestId,
-        status: "PENDING",
+        status: TransactionStatus.PENDING,
+        reconciliationStatus: ReconciliationStatus.PENDING,
         statusDescription: "Awaiting M-Pesa confirmation",
+        macAddress: macAddress || null,
+        nasIp: nasIp || null,
       });
 
-      // In production, this would call M-Pesa STK Push API
-      // For demo, we'll simulate a successful payment after a delay
-      setTimeout(async () => {
-        try {
-          const receiptNumber = `QK${Date.now().toString().slice(-10)}`;
-          await storage.updateTransaction(transaction.id, {
-            status: "COMPLETED",
-            mpesaReceiptNumber: receiptNumber,
-            statusDescription: "Payment received successfully",
-          });
-        } catch (error) {
-          console.error("Error simulating payment completion:", error);
-        }
-      }, 5000); // Simulate 5 second payment processing
+      await jobQueue.schedulePaymentCheck(
+        defaultTenantId,
+        transaction.id,
+        checkoutRequestId,
+        10
+      );
+
+      console.log(`[Payment] Initiated STK Push for ${phone}, scheduled status check job`);
 
       res.status(201).json(transaction);
     } catch (error) {
