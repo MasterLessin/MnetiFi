@@ -90,7 +90,7 @@ export async function registerRoutes(
     try {
       const data = insertPlanSchema.parse({
         ...req.body,
-        tenantId: DEFAULT_TENANT_ID,
+        tenantId: defaultTenantId,
       });
       const plan = await storage.createPlan(data);
       res.status(201).json(plan);
@@ -133,7 +133,7 @@ export async function registerRoutes(
   
   app.get("/api/hotspots", async (req, res) => {
     try {
-      const hotspots = await storage.getHotspots(DEFAULT_TENANT_ID);
+      const hotspots = await storage.getHotspots(defaultTenantId);
       res.json(hotspots);
     } catch (error) {
       console.error("Error fetching hotspots:", error);
@@ -158,7 +158,7 @@ export async function registerRoutes(
     try {
       const data = insertHotspotSchema.parse({
         ...req.body,
-        tenantId: DEFAULT_TENANT_ID,
+        tenantId: defaultTenantId,
       });
       const hotspot = await storage.createHotspot(data);
       res.status(201).json(hotspot);
@@ -201,7 +201,7 @@ export async function registerRoutes(
   
   app.get("/api/transactions", async (req, res) => {
     try {
-      const transactions = await storage.getTransactions(DEFAULT_TENANT_ID);
+      const transactions = await storage.getTransactions(defaultTenantId);
       res.json(transactions);
     } catch (error) {
       console.error("Error fetching transactions:", error);
@@ -241,7 +241,7 @@ export async function registerRoutes(
       const merchantRequestId = `MR_${Date.now()}`;
 
       const transaction = await storage.createTransaction({
-        tenantId: DEFAULT_TENANT_ID,
+        tenantId: defaultTenantId,
         planId,
         userPhone: phone,
         amount: plan.price,
@@ -321,7 +321,7 @@ export async function registerRoutes(
   
   app.get("/api/walled-gardens", async (req, res) => {
     try {
-      const walledGardens = await storage.getWalledGardens(DEFAULT_TENANT_ID);
+      const walledGardens = await storage.getWalledGardens(defaultTenantId);
       res.json(walledGardens);
     } catch (error) {
       console.error("Error fetching walled gardens:", error);
