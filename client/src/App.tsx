@@ -10,6 +10,8 @@ import PlansPage from "@/pages/plans";
 import HotspotsPage from "@/pages/hotspots";
 import TransactionsPage from "@/pages/transactions";
 import WalledGardenPage from "@/pages/walled-garden-page";
+import WifiUsersPage from "@/pages/wifi-users";
+import TicketsPage from "@/pages/tickets";
 import SettingsPage from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 
@@ -53,6 +55,20 @@ function Router() {
         {() => (
           <DashboardLayout>
             <WalledGardenPage />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path="/dashboard/wifi-users">
+        {() => (
+          <DashboardLayout>
+            <WifiUsersPage />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path="/dashboard/tickets">
+        {() => (
+          <DashboardLayout>
+            <TicketsPage />
           </DashboardLayout>
         )}
       </Route>

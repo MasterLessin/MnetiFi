@@ -8,6 +8,8 @@ import {
   Settings,
   LogOut,
   ChevronRight,
+  Users,
+  Ticket,
 } from "lucide-react";
 import {
   Sidebar,
@@ -31,6 +33,11 @@ const menuItems = [
     icon: LayoutDashboard,
   },
   {
+    title: "WiFi Users",
+    url: "/dashboard/wifi-users",
+    icon: Users,
+  },
+  {
     title: "Plans",
     url: "/dashboard/plans",
     icon: CreditCard,
@@ -44,6 +51,11 @@ const menuItems = [
     title: "Transactions",
     url: "/dashboard/transactions",
     icon: Receipt,
+  },
+  {
+    title: "Tickets",
+    url: "/dashboard/tickets",
+    icon: Ticket,
   },
   {
     title: "Walled Garden",

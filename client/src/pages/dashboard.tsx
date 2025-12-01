@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
+import { Link } from "wouter";
 import {
   DollarSign,
   Users,
@@ -9,11 +10,18 @@ import {
   CheckCircle,
   XCircle,
   Clock,
+  AlertTriangle,
+  Ticket,
+  Phone,
+  Calendar,
 } from "lucide-react";
 import { MetricCard, MetricCardSkeleton } from "@/components/metric-card";
 import { TransactionList, TransactionListSkeleton } from "@/components/transaction-list";
 import { GlassPanel } from "@/components/glass-panel";
-import type { Transaction, Plan } from "@shared/schema";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import type { Transaction, Plan, WifiUser } from "@shared/schema";
+import { format, formatDistanceToNow } from "date-fns";
 
 interface DashboardStats {
   totalRevenue: number;
@@ -22,6 +30,9 @@ interface DashboardStats {
   pendingTransactions: number;
   failedTransactions: number;
   activeHotspots: number;
+  activeWifiUsers: number;
+  openTickets: number;
+  expiringUsers: WifiUser[];
   recentTransactions: Transaction[];
 }
 
@@ -59,9 +70,11 @@ export default function Dashboard() {
       </div>
 
       {/* Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
         {statsLoading ? (
           <>
+            <MetricCardSkeleton />
+            <MetricCardSkeleton />
             <MetricCardSkeleton />
             <MetricCardSkeleton />
             <MetricCardSkeleton />
@@ -75,6 +88,12 @@ export default function Dashboard() {
               icon={<DollarSign size={24} />}
               trend={{ value: 12, label: "vs last week" }}
               gradient="primary"
+            />
+            <MetricCard
+              title="Active Users"
+              value={stats?.activeWifiUsers || 0}
+              icon={<Users size={24} />}
+              gradient="accent"
             />
             <MetricCard
               title="Transactions"
@@ -91,12 +110,16 @@ export default function Dashboard() {
                   : "0%"
               }
               icon={<TrendingUp size={24} />}
-              gradient="accent"
             />
             <MetricCard
               title="Active Hotspots"
               value={stats?.activeHotspots || 0}
               icon={<Wifi size={24} />}
+            />
+            <MetricCard
+              title="Open Tickets"
+              value={stats?.openTickets || 0}
+              icon={<Ticket size={24} />}
             />
           </>
         )}

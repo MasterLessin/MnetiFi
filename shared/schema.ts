@@ -4,6 +4,58 @@ import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Account types for WiFi users
+export const AccountType = {
+  HOTSPOT: "HOTSPOT",
+  PPPOE: "PPPOE",
+  STATIC: "STATIC",
+} as const;
+export type AccountTypeValue = typeof AccountType[keyof typeof AccountType];
+
+// Ticket status
+export const TicketStatus = {
+  OPEN: "OPEN",
+  IN_PROGRESS: "IN_PROGRESS",
+  RESOLVED: "RESOLVED",
+  CLOSED: "CLOSED",
+} as const;
+export type TicketStatusValue = typeof TicketStatus[keyof typeof TicketStatus];
+
+// Ticket priority
+export const TicketPriority = {
+  LOW: "LOW",
+  MEDIUM: "MEDIUM",
+  HIGH: "HIGH",
+  URGENT: "URGENT",
+} as const;
+export type TicketPriorityValue = typeof TicketPriority[keyof typeof TicketPriority];
+
+// SaaS billing status for tenant
+export const SaaSBillingStatus = {
+  ACTIVE: "ACTIVE",
+  TRIAL: "TRIAL",
+  SUSPENDED: "SUSPENDED",
+  BLOCKED: "BLOCKED",
+} as const;
+export type SaaSBillingStatusValue = typeof SaaSBillingStatus[keyof typeof SaaSBillingStatus];
+
+// WiFi User status
+export const WifiUserStatus = {
+  ACTIVE: "ACTIVE",
+  SUSPENDED: "SUSPENDED",
+  EXPIRED: "EXPIRED",
+} as const;
+export type WifiUserStatusValue = typeof WifiUserStatus[keyof typeof WifiUserStatus];
+
+// Reconciliation status for transactions
+export const ReconciliationStatus = {
+  MATCHED: "MATCHED",
+  UNMATCHED: "UNMATCHED",
+  MANUAL_REVIEW: "MANUAL_REVIEW",
+  PENDING: "PENDING",
+} as const;
+export type ReconciliationStatusValue = typeof ReconciliationStatus[keyof typeof ReconciliationStatus];
+
 // Tenant - Multi-tenant SaaS organization
 export const tenants = pgTable("tenants", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -18,6 +70,7 @@ export const tenants = pgTable("tenants", {
   mpesaPasskey: text("mpesa_passkey"),
   mpesaConsumerKey: text("mpesa_consumer_key"),
   mpesaConsumerSecret: text("mpesa_consumer_secret"),
+  saasBillingStatus: text("saas_billing_status").default("ACTIVE"),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -27,6 +80,8 @@ export const tenantsRelations = relations(tenants, ({ many }) => ({
   plans: many(plans),
   transactions: many(transactions),
   walledGardens: many(walledGardens),
+  wifiUsers: many(wifiUsers),
+  tickets: many(tickets),
 }));
 
 // Hotspot - NAS device locations
@@ -37,6 +92,10 @@ export const hotspots = pgTable("hotspots", {
   secret: text("secret").notNull(),
   locationName: text("location_name").notNull(),
   description: text("description"),
+  routerApiIp: text("router_api_ip"),
+  routerApiUser: text("router_api_user"),
+  routerApiPass: text("router_api_pass"),
+  routerApiPort: integer("router_api_port").default(8728),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -58,6 +117,10 @@ export const plans = pgTable("plans", {
   durationSeconds: integer("duration_seconds").notNull(),
   uploadLimit: text("upload_limit"), // e.g., "2M" for MikroTik
   downloadLimit: text("download_limit"), // e.g., "5M" for MikroTik
+  burstRateUp: text("burst_rate_up"), // e.g., "4M" burst upload
+  burstRateDown: text("burst_rate_down"), // e.g., "10M" burst download
+  burstThreshold: text("burst_threshold"), // e.g., "1M"
+  burstTime: integer("burst_time"), // in seconds
   simultaneousUse: integer("simultaneous_use").default(1),
   isActive: boolean("is_active").default(true),
   sortOrder: integer("sort_order").default(0),
@@ -77,12 +140,14 @@ export const transactions = pgTable("transactions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   tenantId: varchar("tenant_id").notNull().references(() => tenants.id),
   planId: varchar("plan_id").references(() => plans.id),
+  wifiUserId: varchar("wifi_user_id"),
   userPhone: text("user_phone").notNull(),
   amount: integer("amount").notNull(),
   mpesaReceiptNumber: text("mpesa_receipt_number"),
   checkoutRequestId: text("checkout_request_id"),
   merchantRequestId: text("merchant_request_id"),
   status: text("status").notNull().default("PENDING"), // PENDING, COMPLETED, FAILED
+  reconciliationStatus: text("reconciliation_status").default("PENDING"), // MATCHED, UNMATCHED, MANUAL_REVIEW, PENDING
   statusDescription: text("status_description"),
   macAddress: text("mac_address"),
   nasIp: text("nas_ip"),
@@ -139,6 +204,74 @@ export const usersRelations = relations(users, ({ one }) => ({
   }),
 }));
 
+// WifiUser - End customers who use the WiFi service
+export const wifiUsers = pgTable("wifi_users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id),
+  phoneNumber: text("phone_number").notNull(),
+  email: text("email"),
+  fullName: text("full_name"),
+  accountType: text("account_type").notNull().default("HOTSPOT"), // HOTSPOT, PPPOE, STATIC
+  currentPlanId: varchar("current_plan_id").references(() => plans.id),
+  currentHotspotId: varchar("current_hotspot_id").references(() => hotspots.id),
+  expiryTime: timestamp("expiry_time"),
+  macAddress: text("mac_address"),
+  ipAddress: text("ip_address"),
+  username: text("username"),
+  password: text("password"),
+  status: text("status").notNull().default("ACTIVE"), // ACTIVE, SUSPENDED, EXPIRED
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const wifiUsersRelations = relations(wifiUsers, ({ one, many }) => ({
+  tenant: one(tenants, {
+    fields: [wifiUsers.tenantId],
+    references: [tenants.id],
+  }),
+  currentPlan: one(plans, {
+    fields: [wifiUsers.currentPlanId],
+    references: [plans.id],
+  }),
+  currentHotspot: one(hotspots, {
+    fields: [wifiUsers.currentHotspotId],
+    references: [hotspots.id],
+  }),
+  tickets: many(tickets),
+}));
+
+// Ticket - Support tickets for customer issues
+export const tickets = pgTable("tickets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id),
+  wifiUserId: varchar("wifi_user_id").references(() => wifiUsers.id),
+  subject: text("subject").notNull(),
+  issueDetails: text("issue_details").notNull(),
+  status: text("status").notNull().default("OPEN"), // OPEN, IN_PROGRESS, RESOLVED, CLOSED
+  priority: text("priority").notNull().default("MEDIUM"), // LOW, MEDIUM, HIGH, URGENT
+  resolutionNotes: text("resolution_notes"),
+  assignedTo: varchar("assigned_to").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  closedAt: timestamp("closed_at"),
+});
+
+export const ticketsRelations = relations(tickets, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [tickets.tenantId],
+    references: [tenants.id],
+  }),
+  wifiUser: one(wifiUsers, {
+    fields: [tickets.wifiUserId],
+    references: [wifiUsers.id],
+  }),
+  assignee: one(users, {
+    fields: [tickets.assignedTo],
+    references: [users.id],
+  }),
+}));
+
 // Insert Schemas
 export const insertTenantSchema = createInsertSchema(tenants).omit({
   id: true,
@@ -171,6 +304,19 @@ export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
 });
 
+export const insertWifiUserSchema = createInsertSchema(wifiUsers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertTicketSchema = createInsertSchema(tickets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  closedAt: true,
+});
+
 // Types
 export type Tenant = typeof tenants.$inferSelect;
 export type InsertTenant = z.infer<typeof insertTenantSchema>;
@@ -189,6 +335,12 @@ export type InsertWalledGarden = z.infer<typeof insertWalledGardenSchema>;
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+
+export type WifiUser = typeof wifiUsers.$inferSelect;
+export type InsertWifiUser = z.infer<typeof insertWifiUserSchema>;
+
+export type Ticket = typeof tickets.$inferSelect;
+export type InsertTicket = z.infer<typeof insertTicketSchema>;
 
 // Transaction status enum for type safety
 export const TransactionStatus = {

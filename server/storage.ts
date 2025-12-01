@@ -1,14 +1,16 @@
 import { 
-  tenants, hotspots, plans, transactions, walledGardens, users,
+  tenants, hotspots, plans, transactions, walledGardens, users, wifiUsers, tickets,
   type Tenant, type InsertTenant,
   type Hotspot, type InsertHotspot,
   type Plan, type InsertPlan,
   type Transaction, type InsertTransaction,
   type WalledGarden, type InsertWalledGarden,
   type User, type InsertUser,
+  type WifiUser, type InsertWifiUser,
+  type Ticket, type InsertTicket,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, gte, lte, sql } from "drizzle-orm";
 
 export interface IStorage {
   // Tenant operations
@@ -51,6 +53,24 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
 
+  // WiFi User operations
+  getWifiUsers(tenantId: string): Promise<WifiUser[]>;
+  getWifiUser(id: string): Promise<WifiUser | undefined>;
+  getWifiUserByPhone(tenantId: string, phoneNumber: string): Promise<WifiUser | undefined>;
+  createWifiUser(wifiUser: InsertWifiUser): Promise<WifiUser>;
+  updateWifiUser(id: string, data: Partial<InsertWifiUser>): Promise<WifiUser | undefined>;
+  deleteWifiUser(id: string): Promise<boolean>;
+  getExpiringWifiUsers(tenantId: string, daysAhead: number): Promise<WifiUser[]>;
+  
+  // Ticket operations
+  getTickets(tenantId: string): Promise<Ticket[]>;
+  getTicket(id: string): Promise<Ticket | undefined>;
+  getTicketsByWifiUser(wifiUserId: string): Promise<Ticket[]>;
+  getOpenTickets(tenantId: string): Promise<Ticket[]>;
+  createTicket(ticket: InsertTicket): Promise<Ticket>;
+  updateTicket(id: string, data: Partial<InsertTicket>): Promise<Ticket | undefined>;
+  closeTicket(id: string, resolutionNotes: string): Promise<Ticket | undefined>;
+
   // Dashboard stats
   getDashboardStats(tenantId: string): Promise<{
     totalRevenue: number;
@@ -59,6 +79,9 @@ export interface IStorage {
     pendingTransactions: number;
     failedTransactions: number;
     activeHotspots: number;
+    activeWifiUsers: number;
+    openTickets: number;
+    expiringUsers: WifiUser[];
     recentTransactions: Transaction[];
   }>;
 }
@@ -215,12 +238,121 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
+  // WiFi User operations
+  async getWifiUsers(tenantId: string): Promise<WifiUser[]> {
+    return db.select().from(wifiUsers)
+      .where(eq(wifiUsers.tenantId, tenantId))
+      .orderBy(desc(wifiUsers.createdAt));
+  }
+
+  async getWifiUser(id: string): Promise<WifiUser | undefined> {
+    const [wifiUser] = await db.select().from(wifiUsers).where(eq(wifiUsers.id, id));
+    return wifiUser || undefined;
+  }
+
+  async getWifiUserByPhone(tenantId: string, phoneNumber: string): Promise<WifiUser | undefined> {
+    const [wifiUser] = await db.select().from(wifiUsers)
+      .where(and(eq(wifiUsers.tenantId, tenantId), eq(wifiUsers.phoneNumber, phoneNumber)));
+    return wifiUser || undefined;
+  }
+
+  async createWifiUser(wifiUser: InsertWifiUser): Promise<WifiUser> {
+    const [created] = await db.insert(wifiUsers).values(wifiUser).returning();
+    return created;
+  }
+
+  async updateWifiUser(id: string, data: Partial<InsertWifiUser>): Promise<WifiUser | undefined> {
+    const [updated] = await db.update(wifiUsers)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(wifiUsers.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteWifiUser(id: string): Promise<boolean> {
+    const result = await db.delete(wifiUsers).where(eq(wifiUsers.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async getExpiringWifiUsers(tenantId: string, daysAhead: number): Promise<WifiUser[]> {
+    const now = new Date();
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + daysAhead);
+    
+    return db.select().from(wifiUsers)
+      .where(and(
+        eq(wifiUsers.tenantId, tenantId),
+        eq(wifiUsers.status, "ACTIVE"),
+        gte(wifiUsers.expiryTime, now),
+        lte(wifiUsers.expiryTime, futureDate)
+      ))
+      .orderBy(wifiUsers.expiryTime);
+  }
+
+  // Ticket operations
+  async getTickets(tenantId: string): Promise<Ticket[]> {
+    return db.select().from(tickets)
+      .where(eq(tickets.tenantId, tenantId))
+      .orderBy(desc(tickets.createdAt));
+  }
+
+  async getTicket(id: string): Promise<Ticket | undefined> {
+    const [ticket] = await db.select().from(tickets).where(eq(tickets.id, id));
+    return ticket || undefined;
+  }
+
+  async getTicketsByWifiUser(wifiUserId: string): Promise<Ticket[]> {
+    return db.select().from(tickets)
+      .where(eq(tickets.wifiUserId, wifiUserId))
+      .orderBy(desc(tickets.createdAt));
+  }
+
+  async getOpenTickets(tenantId: string): Promise<Ticket[]> {
+    return db.select().from(tickets)
+      .where(and(
+        eq(tickets.tenantId, tenantId),
+        sql`${tickets.status} IN ('OPEN', 'IN_PROGRESS')`
+      ))
+      .orderBy(desc(tickets.createdAt));
+  }
+
+  async createTicket(ticket: InsertTicket): Promise<Ticket> {
+    const [created] = await db.insert(tickets).values(ticket).returning();
+    return created;
+  }
+
+  async updateTicket(id: string, data: Partial<InsertTicket>): Promise<Ticket | undefined> {
+    const [updated] = await db.update(tickets)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(tickets.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async closeTicket(id: string, resolutionNotes: string): Promise<Ticket | undefined> {
+    const [updated] = await db.update(tickets)
+      .set({ 
+        status: "CLOSED", 
+        resolutionNotes, 
+        closedAt: new Date(),
+        updatedAt: new Date() 
+      })
+      .where(eq(tickets.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
   // Dashboard stats
   async getDashboardStats(tenantId: string) {
     const allTransactions = await this.getTransactions(tenantId);
     const activeHotspotsList = await db.select().from(hotspots)
       .where(and(eq(hotspots.tenantId, tenantId), eq(hotspots.isActive, true)));
     const recentTransactionsList = await this.getRecentTransactions(tenantId, 5);
+    
+    const activeWifiUsersList = await db.select().from(wifiUsers)
+      .where(and(eq(wifiUsers.tenantId, tenantId), eq(wifiUsers.status, "ACTIVE")));
+    const openTicketsList = await this.getOpenTickets(tenantId);
+    const expiringUsersList = await this.getExpiringWifiUsers(tenantId, 5);
 
     const successfulTransactions = allTransactions.filter(t => t.status === "COMPLETED");
     const pendingTransactions = allTransactions.filter(t => t.status === "PENDING");
@@ -235,6 +367,9 @@ export class DatabaseStorage implements IStorage {
       pendingTransactions: pendingTransactions.length,
       failedTransactions: failedTransactions.length,
       activeHotspots: activeHotspotsList.length,
+      activeWifiUsers: activeWifiUsersList.length,
+      openTickets: openTicketsList.length,
+      expiringUsers: expiringUsersList,
       recentTransactions: recentTransactionsList,
     };
   }
