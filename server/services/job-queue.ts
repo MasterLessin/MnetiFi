@@ -60,25 +60,63 @@ export class JobQueue {
   async getNextJob(): Promise<Job | null> {
     const now = new Date();
     
-    const [job] = await db
+    const result = await db.execute(sql`
+      UPDATE jobs
+      SET 
+        status = ${JobStatus.PROCESSING},
+        started_at = ${now},
+        attempts = COALESCE(attempts, 0) + 1
+      WHERE id = (
+        SELECT id FROM jobs
+        WHERE (status = ${JobStatus.PENDING} OR status = ${JobStatus.RETRY})
+          AND scheduled_for <= ${now}
+        ORDER BY priority DESC, scheduled_for ASC
+        LIMIT 1
+        FOR UPDATE SKIP LOCKED
+      )
+      RETURNING *
+    `);
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    const row = result.rows[0] as any;
+    return {
+      id: row.id,
+      tenantId: row.tenant_id,
+      type: row.type,
+      payload: row.payload,
+      status: row.status,
+      priority: row.priority,
+      attempts: row.attempts,
+      maxAttempts: row.max_attempts,
+      scheduledFor: row.scheduled_for ? new Date(row.scheduled_for) : null,
+      startedAt: row.started_at ? new Date(row.started_at) : null,
+      completedAt: row.completed_at ? new Date(row.completed_at) : null,
+      lastError: row.last_error,
+      createdAt: row.created_at ? new Date(row.created_at) : null,
+    };
+  }
+
+  async resetStuckJobs(timeoutMinutes: number = 15): Promise<number> {
+    const timeout = new Date(Date.now() - timeoutMinutes * 60 * 1000);
+    
+    const result = await db
       .update(jobs)
       .set({
-        status: JobStatus.PROCESSING,
-        startedAt: now,
-        attempts: sql`${jobs.attempts} + 1`,
+        status: JobStatus.RETRY,
+        lastError: 'Job stuck in processing - automatically reset',
       })
       .where(
         and(
-          or(
-            eq(jobs.status, JobStatus.PENDING),
-            eq(jobs.status, JobStatus.RETRY)
-          ),
-          lte(jobs.scheduledFor, now)
+          eq(jobs.status, JobStatus.PROCESSING),
+          lte(jobs.startedAt, timeout)
         )
       )
       .returning();
-
-    return job || null;
+    
+    return result.length;
   }
 
   async markCompleted(jobId: string): Promise<void> {

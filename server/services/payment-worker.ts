@@ -7,7 +7,9 @@ import type { Job, Tenant } from "@shared/schema";
 export class PaymentWorker {
   private isRunning = false;
   private pollInterval: ReturnType<typeof setInterval> | null = null;
+  private stuckJobInterval: ReturnType<typeof setInterval> | null = null;
   private readonly POLL_INTERVAL_MS = 5000;
+  private readonly STUCK_CHECK_INTERVAL_MS = 60000;
 
   start(): void {
     if (this.isRunning) {
@@ -22,13 +24,32 @@ export class PaymentWorker {
       await this.processNextJob();
     }, this.POLL_INTERVAL_MS);
 
+    this.stuckJobInterval = setInterval(async () => {
+      await this.resetStuckJobs();
+    }, this.STUCK_CHECK_INTERVAL_MS);
+
     this.processNextJob();
+  }
+
+  private async resetStuckJobs(): Promise<void> {
+    try {
+      const count = await jobQueue.resetStuckJobs(15);
+      if (count > 0) {
+        console.log(`[PaymentWorker] Reset ${count} stuck jobs`);
+      }
+    } catch (error) {
+      console.error("[PaymentWorker] Error resetting stuck jobs:", error);
+    }
   }
 
   stop(): void {
     if (this.pollInterval) {
       clearInterval(this.pollInterval);
       this.pollInterval = null;
+    }
+    if (this.stuckJobInterval) {
+      clearInterval(this.stuckJobInterval);
+      this.stuckJobInterval = null;
     }
     this.isRunning = false;
     console.log("[PaymentWorker] Stopped");
