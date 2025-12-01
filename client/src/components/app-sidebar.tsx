@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Users,
   Ticket,
+  FileCheck,
 } from "lucide-react";
 import {
   Sidebar,
@@ -56,6 +57,11 @@ const menuItems = [
     title: "Tickets",
     url: "/dashboard/tickets",
     icon: Ticket,
+  },
+  {
+    title: "Reconciliation",
+    url: "/dashboard/reconciliation",
+    icon: FileCheck,
   },
   {
     title: "Walled Garden",

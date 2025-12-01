@@ -99,12 +99,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTenant(tenant: InsertTenant): Promise<Tenant> {
-    const [created] = await db.insert(tenants).values(tenant).returning();
+    const [created] = await db.insert(tenants).values(tenant as any).returning();
     return created;
   }
 
   async updateTenant(id: string, data: Partial<InsertTenant>): Promise<Tenant | undefined> {
-    const [updated] = await db.update(tenants).set(data).where(eq(tenants.id, id)).returning();
+    const [updated] = await db.update(tenants).set(data as any).where(eq(tenants.id, id)).returning();
     return updated || undefined;
   }
 

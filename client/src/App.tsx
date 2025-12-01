@@ -12,6 +12,7 @@ import TransactionsPage from "@/pages/transactions";
 import WalledGardenPage from "@/pages/walled-garden-page";
 import WifiUsersPage from "@/pages/wifi-users";
 import TicketsPage from "@/pages/tickets";
+import ReconciliationPage from "@/pages/reconciliation";
 import SettingsPage from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 
@@ -69,6 +70,13 @@ function Router() {
         {() => (
           <DashboardLayout>
             <TicketsPage />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path="/dashboard/reconciliation">
+        {() => (
+          <DashboardLayout>
+            <ReconciliationPage />
           </DashboardLayout>
         )}
       </Route>
