@@ -4,7 +4,7 @@
 MnetiFi is a multi-tenant Wi-Fi hotspot billing system designed for ISPs with M-Pesa (Safaricom Daraja) integration. The platform features a premium "Vaultic" Glassmorphism design aesthetic with animated mesh gradient backgrounds.
 
 ## Project Status
-- **Current Phase**: MVP Development
+- **Current Phase**: Phase 1 Complete - Payment Resilience
 - **Last Updated**: December 1, 2025
 
 ## Architecture
@@ -12,8 +12,9 @@ MnetiFi is a multi-tenant Wi-Fi hotspot billing system designed for ISPs with M-
 ### Tech Stack
 - **Frontend**: React + TypeScript, Tailwind CSS, Framer Motion, Shadcn UI
 - **Backend**: Express.js + TypeScript
-- **Database**: PostgreSQL with Drizzle ORM
+- **Database**: Supabase PostgreSQL with Drizzle ORM
 - **Styling**: Glassmorphism design with animated mesh gradients
+- **Background Jobs**: Database-backed job queue (Replit-compatible alternative to Redis/BullMQ)
 
 ### Key Features
 1. **Captive Portal** - Mobile-first glassmorphic login/payment interface
@@ -68,7 +69,15 @@ MnetiFi is a multi-tenant Wi-Fi hotspot billing system designed for ISPs with M-
 ## Default Demo Data
 - Demo tenant with sample plans (30min, 1hr, Daily, Weekly)
 - Pre-configured walled garden for M-Pesa domains
-- Simulated payment flow (5 second delay)
+- Resilient payment flow with job queue and retry logic
+
+## Payment Resilience Architecture (Phase 1)
+- **Job Queue**: Database-backed queue with atomic job claiming (FOR UPDATE SKIP LOCKED)
+- **Payment Worker**: Polls every 5 seconds, processes jobs sequentially
+- **Retry Logic**: Exponential backoff (2^attempts * 10 seconds), max 5 attempts
+- **Stuck Job Detection**: Automatic reset of jobs stuck in PROCESSING > 15 minutes
+- **Automatic User Activation**: Creates/updates WiFi user after successful payment
+- **Reconciliation Status**: Tracks PENDING/MATCHED/UNMATCHED for each transaction
 
 ## Routes
 - `/` - Captive Portal (public)
