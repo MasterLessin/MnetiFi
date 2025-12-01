@@ -373,6 +373,176 @@ export class DatabaseStorage implements IStorage {
       recentTransactions: recentTransactionsList,
     };
   }
+
+  // Reconciliation Report
+  async getReconciliationReport(tenantId: string, startDate?: Date, endDate?: Date) {
+    let query = db.select().from(transactions)
+      .where(eq(transactions.tenantId, tenantId));
+    
+    const allTransactions = await query.orderBy(desc(transactions.createdAt));
+    
+    const filtered = allTransactions.filter(t => {
+      if (!t.createdAt) return true;
+      const txDate = new Date(t.createdAt);
+      if (startDate && txDate < startDate) return false;
+      if (endDate && txDate > endDate) return false;
+      return true;
+    });
+
+    const matched = filtered.filter(t => t.reconciliationStatus === "MATCHED");
+    const unmatched = filtered.filter(t => t.reconciliationStatus === "UNMATCHED");
+    const manualReview = filtered.filter(t => t.reconciliationStatus === "MANUAL_REVIEW");
+    const pending = filtered.filter(t => t.reconciliationStatus === "PENDING");
+
+    return {
+      summary: {
+        total: filtered.length,
+        matched: matched.length,
+        unmatched: unmatched.length,
+        manualReview: manualReview.length,
+        pending: pending.length,
+        matchedAmount: matched.reduce((sum, t) => sum + t.amount, 0),
+        unmatchedAmount: unmatched.reduce((sum, t) => sum + t.amount, 0),
+      },
+      transactions: {
+        matched,
+        unmatched,
+        manualReview,
+        pending,
+      },
+    };
+  }
+
+  // Financial Report
+  async getFinancialReport(tenantId: string, startDate?: Date, endDate?: Date) {
+    const allTransactions = await this.getTransactions(tenantId);
+    
+    const filtered = allTransactions.filter(t => {
+      if (!t.createdAt) return true;
+      const txDate = new Date(t.createdAt);
+      if (startDate && txDate < startDate) return false;
+      if (endDate && txDate > endDate) return false;
+      return true;
+    });
+
+    const completed = filtered.filter(t => t.status === "COMPLETED");
+    const failed = filtered.filter(t => t.status === "FAILED");
+    const pending = filtered.filter(t => t.status === "PENDING");
+
+    const dailyRevenue: Record<string, number> = {};
+    const planRevenue: Record<string, { name: string; amount: number; count: number }> = {};
+
+    for (const tx of completed) {
+      const date = tx.createdAt ? new Date(tx.createdAt).toISOString().split("T")[0] : "unknown";
+      dailyRevenue[date] = (dailyRevenue[date] || 0) + tx.amount;
+      
+      if (tx.planId) {
+        if (!planRevenue[tx.planId]) {
+          planRevenue[tx.planId] = { name: tx.planId, amount: 0, count: 0 };
+        }
+        planRevenue[tx.planId].amount += tx.amount;
+        planRevenue[tx.planId].count += 1;
+      }
+    }
+
+    return {
+      summary: {
+        totalRevenue: completed.reduce((sum, t) => sum + t.amount, 0),
+        totalTransactions: filtered.length,
+        successfulTransactions: completed.length,
+        failedTransactions: failed.length,
+        pendingTransactions: pending.length,
+        averageTransactionValue: completed.length > 0 
+          ? Math.round(completed.reduce((sum, t) => sum + t.amount, 0) / completed.length)
+          : 0,
+      },
+      dailyRevenue: Object.entries(dailyRevenue)
+        .map(([date, amount]) => ({ date, amount }))
+        .sort((a, b) => a.date.localeCompare(b.date)),
+      planRevenue: Object.values(planRevenue)
+        .sort((a, b) => b.amount - a.amount),
+    };
+  }
+
+  // User Activity Report
+  async getUserActivityReport(tenantId: string) {
+    const allUsers = await this.getWifiUsers(tenantId);
+    const now = new Date();
+    
+    const active = allUsers.filter(u => u.status === "ACTIVE");
+    const expired = allUsers.filter(u => u.status === "EXPIRED");
+    const suspended = allUsers.filter(u => u.status === "SUSPENDED");
+    
+    const expiringIn24h = allUsers.filter(u => {
+      if (!u.expiryTime || u.status !== "ACTIVE") return false;
+      const expiry = new Date(u.expiryTime);
+      const diff = expiry.getTime() - now.getTime();
+      return diff > 0 && diff <= 24 * 60 * 60 * 1000;
+    });
+
+    const expiringIn48h = allUsers.filter(u => {
+      if (!u.expiryTime || u.status !== "ACTIVE") return false;
+      const expiry = new Date(u.expiryTime);
+      const diff = expiry.getTime() - now.getTime();
+      return diff > 24 * 60 * 60 * 1000 && diff <= 48 * 60 * 60 * 1000;
+    });
+
+    const expiringIn5Days = allUsers.filter(u => {
+      if (!u.expiryTime || u.status !== "ACTIVE") return false;
+      const expiry = new Date(u.expiryTime);
+      const diff = expiry.getTime() - now.getTime();
+      return diff > 0 && diff <= 5 * 24 * 60 * 60 * 1000;
+    });
+
+    const byAccountType = {
+      hotspot: allUsers.filter(u => u.accountType === "HOTSPOT").length,
+      pppoe: allUsers.filter(u => u.accountType === "PPPOE").length,
+      static: allUsers.filter(u => u.accountType === "STATIC").length,
+    };
+
+    return {
+      summary: {
+        total: allUsers.length,
+        active: active.length,
+        expired: expired.length,
+        suspended: suspended.length,
+        expiringIn24h: expiringIn24h.length,
+        expiringIn48h: expiringIn48h.length,
+        expiringIn5Days: expiringIn5Days.length,
+      },
+      byAccountType,
+      expiringUsers: {
+        next24h: expiringIn24h,
+        next48h: expiringIn48h,
+        next5Days: expiringIn5Days,
+      },
+    };
+  }
+
+  // Transactions by date range
+  async getTransactionsByDateRange(tenantId: string, startDate: Date, endDate: Date): Promise<Transaction[]> {
+    return db.select().from(transactions)
+      .where(and(
+        eq(transactions.tenantId, tenantId),
+        gte(transactions.createdAt, startDate),
+        lte(transactions.createdAt, endDate)
+      ))
+      .orderBy(desc(transactions.createdAt));
+  }
+
+  // Get all tenants (for SaaS admin)
+  async getAllTenants(): Promise<Tenant[]> {
+    return db.select().from(tenants);
+  }
+
+  // Update tenant SaaS billing status
+  async updateTenantBillingStatus(id: string, status: string): Promise<Tenant | undefined> {
+    const [updated] = await db.update(tenants)
+      .set({ saasBillingStatus: status })
+      .where(eq(tenants.id, id))
+      .returning();
+    return updated || undefined;
+  }
 }
 
 export const storage = new DatabaseStorage();

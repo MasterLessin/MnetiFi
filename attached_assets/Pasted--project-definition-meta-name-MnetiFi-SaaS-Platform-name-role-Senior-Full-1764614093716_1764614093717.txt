@@ -1,0 +1,217 @@
+<project_definition>
+    <meta>
+        <name>MnetiFi_SaaS_Platform</name>
+        <role>Senior Full-Stack Architect & UI/UX Designer</role>
+        <objective>
+            Build the MnetiFi multi-tenant Wi-Fi billing system (SaaS) for ISPs with a "Vaultic" Glassmorphism aesthetic.
+            Integrate M-Pesa (Daraja), SMS, and RADIUS (MikroTik) with advanced operational features.
+        </objective>
+        <priority>Resilience (Payment Polling), Advanced Automation (API/VPN), and Billing Integrity.</priority>
+    </meta>
+
+    <design_system>
+        <style_guide>
+            <aesthetic>Glassmorphism (Frosted Glass, Depth, Blur)</aesthetic>
+            <inspiration>Vaultic.framer.website</inspiration>
+            <font>Inter or Plus Jakarta Sans</font>
+        </style_guide>
+        
+        <palette mode="dark">
+            <color name="background_mesh">
+                Deep Navy (#0f172a) with floating radial gradients:
+                - Neon Purple (#7c3aed)
+                - Cyan (#06b6d4)
+                - Magenta (#ec4899)
+            </color>
+            <color name="glass_surface">rgba(255, 255, 255, 0.05)</color>
+            <color name="glass_border_top">rgba(255, 255, 255, 0.2)</color>
+            <color name="glass_border_bot">rgba(255, 255, 255, 0.05)</color>
+            <color name="text_primary">#FFFFFF</color>
+            <color name="text_secondary">#94a3b8</color>
+            <color name="accent_primary">Gradient: Cyan (#06b6d4) to Blue (#3b82f6)</color>
+            <color name="accent_mpesa">#4BB617 (Keep branding, adapt shape)</color>
+        </palette>
+
+        <css_rules>
+            <rule name="glass_panel">
+                backdrop-filter: blur(16px) saturate(180%);
+                border-radius: 24px;
+                box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            </rule>
+            <rule name="mobile_fallback">
+                @supports not (backdrop-filter: blur(16px)) { background: rgba(15, 23, 42, 0.95); }
+            </rule>
+        </css_rules>
+    </design_system>
+
+    <tech_stack>
+        <frontend>
+            <framework>React (Next.js 14 App Router)</framework>
+            <styling>Tailwind CSS</styling>
+            <animation>Framer Motion (for smooth modal transitions)</animation>
+        </frontend>
+        <backend>
+            <runtime>Node.js (TypeScript)</runtime>
+            <framework>NestJS or Express</framework>
+            <queue>BullMQ (Redis) for payment polling</queue>
+        </backend>
+        <database>
+            <primary>PostgreSQL 15+</primary>
+            <orm>Prisma</orm>
+            <radius_integration>freeradius-postgresql (rlm_sql)</radius_integration>
+        </database>
+        <devops>
+            <container>Docker Compose</container>
+        </devops>
+    </tech_stack>
+
+    <database_schema>
+        <table name="Tenant">
+            <field>id (UUID), name, subdomain</field>
+            <field>branding_config (JSON: logo, colors)</field>
+            <field>mpesa_keys (Encrypted)</field>
+            <field>saas_billing_status (ACTIVE, BLOCKED) - For billing the ISP</field>
+        </table>
+        <table name="Hotspot">
+            <field>id, tenant_id, nas_ip (Inet), secret</field>
+            <field>location_name</field>
+            <field>router_api_ip, router_api_user, router_api_pass (Encrypted)</field>
+        </table>
+        <table name="WifiUser">
+            <field>id (UUID), tenant_id, phone_number (Unique), email, full_name</field>
+            <field>account_type (HOTSPOT, PPOE, STATIC)</field>
+            <field>current_plan_id, expiry_time (Exact TIMESTAMP)</field>
+        </table>
+        <table name="Plan">
+            <field>id, name, price, duration_seconds</field>
+            <field>upload_limit, download_limit</field>
+            <field>burst_rate_up, burst_rate_down, burst_threshold</field>
+        </table>
+        <table name="Transaction">
+            <field>id, user_phone, amount, mpesa_receipt</field>
+            <field>checkout_request_id, status (PENDING, COMPLETED, FAILED)</field>
+            <field>reconciliation_status (MATCHED, UNMATCHED, MANUAL_REVIEW)</field>
+        </table>
+        <table name="Ticket">
+            <field>id, tenant_id, user_id, status (OPEN, CLOSED), issue_details, resolution_notes</field>
+        </table>
+        <note>
+            Must include Views/Triggers to map 'Plans' and 'Users' to standard FreeRADIUS tables (radcheck, radreply, radgroupreply, radacct).
+        </note>
+    </database_schema>
+
+    <advanced_integration>
+        <feature name="Dual_Network_Integration">
+            <logic>
+                - **Primary Method:** RADIUS for AAA (Authentication, Authorization, Accounting).
+                - **Secondary Method:** MikroTik RouterOS API (Node-mikrotik-api client) for direct management, configuration changes, and non-session tasks.
+            </logic>
+        </feature>
+        <feature name="Router_VPN_Tunneling">
+            <requirements>
+                - System must generate **WireGuard/OpenVPN configuration files** for each Hotspot (NAS) during setup.
+                - Central server acts as VPN endpoint to ensure secure connectivity even if NAS devices lack public static IPs.
+            </requirements>
+        </feature>
+        <feature name="PPPoE_Static_Support">
+            <requirements>
+                - Support creating and managing users with `account_type: PPOE` and `account_type: STATIC`.
+                - RADIUS must send **Framed-Protocol** (for PPPoE) and **Framed-IP-Address** (for Static) attributes.
+                - Dedicated pool management API for assigning static IPs.
+            </requirements>
+        </feature>
+    </advanced_integration>
+
+    <core_features>
+        <feature name="Payment_Resilience">
+            <logic>
+                1. User initiates STK Push.
+                2. Server creates Transaction (PENDING).
+                3. Server listens for Webhook.
+                4. CRITICAL: Worker immediately schedules a check (polling) after 20 seconds.
+                5. If Webhook fails, Worker calls Daraja 'QueryTransactionStatus'.
+                6. On success -> Update DB -> Trigger RADIUS CoA.
+            </logic>
+        </feature>
+
+        <feature name="Captive_Portal_UI">
+            <requirements>
+                - Mobile-first Glassmorphism card, branded with **MnetiFi** or Tenant Name.
+                - Inputs must look "recessed" (darker opacity).
+                - Must include "Walled Garden" instruction logic (allow safaricom.com).
+                - Integration with MikroTik HTML login form variables (username, password, dst).
+            </requirements>
+        </feature>
+
+        <feature name="Radius_Logic">
+            <requirements>
+                - Use 'Simultaneous-Use = 1' to prevent ghost sessions.
+                - Send Rate-Limit attributes (Mikrotik-Rate-Limit) dynamically from Plan settings.
+                - Support CoA (Change of Authorization) to disconnect/reconnect users upon payment.
+                - **Bursting Logic:** RADIUS must also send **Mikrotik-Rate-Limit** burst parameters (`burst-limit/burst-threshold/burst-time`).
+            </requirements>
+        </feature>
+
+        <feature name="Customer_Communication">
+            <requirements>
+                - **SMS:** Automatic notifications (Expiry, Recharge Confirmation, OTP).
+                - **WhatsApp:** Plan for **WhatsApp Business API** integration for automated payment notifications and account status requests (simple Bot).
+                - **Email:** Automated invoice sending.
+            </requirements>
+        </feature>
+
+        <feature name="Admin_Manual_Actions">
+            <requirements>
+                - API endpoint to **Manual Recharge/Edit Account** (admin overrides).
+                - API endpoint to **Change Router** (move user from NAS A to NAS B).
+                - API endpoint to **Manually Suspend/Activate** a user via MikroTik API (for non-RADIUS troubleshooting).
+            </requirements>
+        </feature>
+    </core_features>
+
+    <billing_automation>
+        <feature name="Time_Based_Expiry">
+            <requirements>
+                - Expiry must be calculated to the **exact minute/second** of the duration, not end-of-day.
+                - RADIUS accounting must accurately terminate session at `expiry_time`.
+            </requirements>
+        </feature>
+        <feature name="Advanced_Reporting">
+            <requirements>
+                - **Financial:** M-Pesa Logs, Reconciliation Reports (Matched/Unmatched transactions).
+                - **Performance:** Daily/Period Reports (Hotspot, PPPoE, Voucher usage).
+                - **Proactive Alerts:** Dashboard widget for **Next 5-Day Expiry Report** (to prompt ISP outreach).
+            </requirements>
+        </feature>
+        <feature name="Internal_Ticketing">
+            <requirements>
+                - Simple internal system to log and track customer **queries/issues**.
+                - Admin view to assign, update status (OPEN/CLOSED), and add resolution notes.
+            </requirements>
+        </feature>
+        <feature name="SaaS_Billing_Enforcement">
+            <requirements>
+                - System must track ISP's monthly payment status to MnetiFi.
+                - If ISP subscription is `BLOCKED`, the system must use the MikroTik API to **temporarily disable or redirect all traffic** from that Tenant's Hotspots.
+            </requirements>
+        </feature>
+    </billing_automation>
+
+    <implementation_steps>
+        <step order="1">Setup Docker services (Postgres, Redis, FreeRADIUS, **VPN Server**).</step>
+        <step order="2">Initialize Prisma schema with Multi-tenant logic, **User/Ticket tables, and Bursting fields**.</step>
+        <step order="3">Create Global CSS/Tailwind config for Glassmorphism mesh gradients.</step>
+        <step order="4">Build Backend API for M-Pesa (STK + Polling) and **MikroTik RouterOS API wrapper**.</step>
+        <step order="5">Build Frontend Captive Portal and **Admin Dashboard** with new reporting/ticketing views.</step>
+    </implementation_steps>
+
+    <instructions_for_ai>
+        When generating code:
+        1. Always use TypeScript interfaces for strict typing.
+        2. In React components, separate layout (Glass containers) from logic.
+        3. Ensure the 'mesh-bg' class is applied to the root layout.
+        4. Do not use plain colors; use RGBA with low opacity for the glass effect.
+        5. Use **MnetiFi** as the default SaaS brand name in all generated UI placeholders and documentation.
+        6. **Prioritize the MikroTik API for administrative tasks (suspend, change router, burst config) and RADIUS for session initiation/accounting.**
+    </instructions_for_ai>
+</project_definition>

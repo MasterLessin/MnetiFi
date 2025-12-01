@@ -615,6 +615,241 @@ export async function registerRoutes(
     }
   });
 
+  // ============== REPORTS ROUTES ==============
+  
+  app.get("/api/reports/reconciliation", async (req, res) => {
+    try {
+      const { startDate, endDate } = req.query;
+      const start = startDate ? new Date(startDate as string) : undefined;
+      const end = endDate ? new Date(endDate as string) : undefined;
+      
+      const report = await storage.getReconciliationReport(defaultTenantId, start, end);
+      res.json(report);
+    } catch (error) {
+      console.error("Error generating reconciliation report:", error);
+      res.status(500).json({ error: "Failed to generate reconciliation report" });
+    }
+  });
+
+  app.get("/api/reports/financial", async (req, res) => {
+    try {
+      const { startDate, endDate } = req.query;
+      const start = startDate ? new Date(startDate as string) : undefined;
+      const end = endDate ? new Date(endDate as string) : undefined;
+      
+      const report = await storage.getFinancialReport(defaultTenantId, start, end);
+      res.json(report);
+    } catch (error) {
+      console.error("Error generating financial report:", error);
+      res.status(500).json({ error: "Failed to generate financial report" });
+    }
+  });
+
+  app.get("/api/reports/user-activity", async (req, res) => {
+    try {
+      const report = await storage.getUserActivityReport(defaultTenantId);
+      res.json(report);
+    } catch (error) {
+      console.error("Error generating user activity report:", error);
+      res.status(500).json({ error: "Failed to generate user activity report" });
+    }
+  });
+
+  app.get("/api/reports/expiring-users", async (req, res) => {
+    try {
+      const days = parseInt(req.query.days as string) || 5;
+      const expiringUsers = await storage.getExpiringWifiUsers(defaultTenantId, days);
+      res.json({
+        count: expiringUsers.length,
+        users: expiringUsers,
+      });
+    } catch (error) {
+      console.error("Error fetching expiring users:", error);
+      res.status(500).json({ error: "Failed to fetch expiring users" });
+    }
+  });
+
+  // ============== MIKROTIK ROUTER MANAGEMENT ROUTES ==============
+  
+  app.post("/api/hotspots/:id/test-connection", async (req, res) => {
+    try {
+      const hotspot = await storage.getHotspot(req.params.id);
+      if (!hotspot) {
+        return res.status(404).json({ error: "Hotspot not found" });
+      }
+
+      const { MikrotikService } = await import("./services/mikrotik");
+      const mikrotik = new MikrotikService(hotspot);
+      const result = await mikrotik.testConnection();
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error testing connection:", error);
+      res.status(500).json({ error: "Failed to test connection" });
+    }
+  });
+
+  app.get("/api/hotspots/:id/active-sessions", async (req, res) => {
+    try {
+      const hotspot = await storage.getHotspot(req.params.id);
+      if (!hotspot) {
+        return res.status(404).json({ error: "Hotspot not found" });
+      }
+
+      const { MikrotikService } = await import("./services/mikrotik");
+      const mikrotik = new MikrotikService(hotspot);
+      const result = await mikrotik.getActiveSessions();
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching active sessions:", error);
+      res.status(500).json({ error: "Failed to fetch active sessions" });
+    }
+  });
+
+  app.post("/api/hotspots/:id/disconnect-user", async (req, res) => {
+    try {
+      const { username } = req.body;
+      if (!username) {
+        return res.status(400).json({ error: "Username is required" });
+      }
+
+      const hotspot = await storage.getHotspot(req.params.id);
+      if (!hotspot) {
+        return res.status(404).json({ error: "Hotspot not found" });
+      }
+
+      const { MikrotikService } = await import("./services/mikrotik");
+      const mikrotik = new MikrotikService(hotspot);
+      const result = await mikrotik.disconnectUser(username);
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error disconnecting user:", error);
+      res.status(500).json({ error: "Failed to disconnect user" });
+    }
+  });
+
+  // ============== SAAS BILLING ENFORCEMENT ROUTES ==============
+  
+  app.get("/api/admin/tenants", async (req, res) => {
+    try {
+      const allTenants = await storage.getAllTenants();
+      res.json(allTenants);
+    } catch (error) {
+      console.error("Error fetching tenants:", error);
+      res.status(500).json({ error: "Failed to fetch tenants" });
+    }
+  });
+
+  app.post("/api/admin/tenants/:id/billing-status", async (req, res) => {
+    try {
+      const { status } = req.body;
+      if (!["ACTIVE", "TRIAL", "SUSPENDED", "BLOCKED"].includes(status)) {
+        return res.status(400).json({ error: "Invalid billing status" });
+      }
+
+      const tenant = await storage.updateTenantBillingStatus(req.params.id, status);
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant not found" });
+      }
+
+      if (status === "BLOCKED") {
+        console.log(`[SaaS] Tenant ${tenant.name} has been BLOCKED - should disable hotspots`);
+      }
+
+      res.json(tenant);
+    } catch (error) {
+      console.error("Error updating tenant billing status:", error);
+      res.status(500).json({ error: "Failed to update billing status" });
+    }
+  });
+
+  app.post("/api/admin/tenants/:id/block-traffic", async (req, res) => {
+    try {
+      const tenant = await storage.getTenant(req.params.id);
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant not found" });
+      }
+
+      const hotspotsList = await storage.getHotspots(req.params.id);
+      const results = [];
+
+      const { MikrotikService } = await import("./services/mikrotik");
+      
+      for (const hotspot of hotspotsList) {
+        try {
+          const mikrotik = new MikrotikService(hotspot);
+          const result = await mikrotik.blockTenantTraffic("ISP subscription suspended");
+          results.push({ hotspot: hotspot.locationName, ...result });
+        } catch (e) {
+          results.push({ hotspot: hotspot.locationName, success: false, error: String(e) });
+        }
+      }
+
+      await storage.updateTenantBillingStatus(req.params.id, "BLOCKED");
+      
+      res.json({ tenant: tenant.name, blocked: true, results });
+    } catch (error) {
+      console.error("Error blocking tenant traffic:", error);
+      res.status(500).json({ error: "Failed to block tenant traffic" });
+    }
+  });
+
+  app.post("/api/admin/tenants/:id/unblock-traffic", async (req, res) => {
+    try {
+      const tenant = await storage.getTenant(req.params.id);
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant not found" });
+      }
+
+      const hotspotsList = await storage.getHotspots(req.params.id);
+      const results = [];
+
+      const { MikrotikService } = await import("./services/mikrotik");
+      
+      for (const hotspot of hotspotsList) {
+        try {
+          const mikrotik = new MikrotikService(hotspot);
+          const result = await mikrotik.unblockTenantTraffic();
+          results.push({ hotspot: hotspot.locationName, ...result });
+        } catch (e) {
+          results.push({ hotspot: hotspot.locationName, success: false, error: String(e) });
+        }
+      }
+
+      await storage.updateTenantBillingStatus(req.params.id, "ACTIVE");
+      
+      res.json({ tenant: tenant.name, blocked: false, results });
+    } catch (error) {
+      console.error("Error unblocking tenant traffic:", error);
+      res.status(500).json({ error: "Failed to unblock tenant traffic" });
+    }
+  });
+
+  // ============== JOB QUEUE STATUS ROUTES ==============
+  
+  app.get("/api/jobs/pending", async (req, res) => {
+    try {
+      const pendingJobs = await jobQueue.getPendingJobs(defaultTenantId);
+      res.json(pendingJobs);
+    } catch (error) {
+      console.error("Error fetching pending jobs:", error);
+      res.status(500).json({ error: "Failed to fetch pending jobs" });
+    }
+  });
+
+  app.get("/api/jobs/recent", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      const recentJobs = await jobQueue.getRecentJobs(limit);
+      res.json(recentJobs);
+    } catch (error) {
+      console.error("Error fetching recent jobs:", error);
+      res.status(500).json({ error: "Failed to fetch recent jobs" });
+    }
+  });
+
   return httpServer;
 }
 
