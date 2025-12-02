@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: mnetifi-server
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: "cd server && npm install && npm run build"
+    startCommand: "cd server && npm run start"
+    envVars:
+      - key: NODE_ENV
+        value: production
