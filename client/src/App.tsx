@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { DashboardLayout } from "@/layouts/dashboard-layout";
 import CaptivePortal from "@/pages/captive-portal";
+import LoginPage from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import PlansPage from "@/pages/plans";
 import HotspotsPage from "@/pages/hotspots";
@@ -22,6 +23,9 @@ function Router() {
       {/* Captive Portal - Public facing */}
       <Route path="/" component={CaptivePortal} />
       <Route path="/portal" component={CaptivePortal} />
+      
+      {/* Login Page */}
+      <Route path="/login" component={LoginPage} />
 
       {/* Dashboard Routes - Admin area */}
       <Route path="/dashboard">

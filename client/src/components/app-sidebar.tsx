@@ -27,6 +27,10 @@ import {
 import { MnetiFiLogo } from "./mnetifi-logo";
 import { cn } from "@/lib/utils";
 
+interface AppSidebarProps {
+  onLogout?: () => void;
+}
+
 const menuItems = [
   {
     title: "Dashboard",
@@ -78,7 +82,7 @@ const settingsItems = [
   },
 ];
 
-export function AppSidebar() {
+export function AppSidebar({ onLogout }: AppSidebarProps) {
   const [location] = useLocation();
 
   return (
@@ -161,6 +165,7 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
+              onClick={onLogout}
               className="w-full text-muted-foreground hover:text-destructive transition-colors"
               data-testid="nav-logout"
             >

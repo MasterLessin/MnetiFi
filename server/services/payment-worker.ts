@@ -8,8 +8,10 @@ export class PaymentWorker {
   private isRunning = false;
   private pollInterval: ReturnType<typeof setInterval> | null = null;
   private stuckJobInterval: ReturnType<typeof setInterval> | null = null;
+  private expiryCheckInterval: ReturnType<typeof setInterval> | null = null;
   private readonly POLL_INTERVAL_MS = 5000;
   private readonly STUCK_CHECK_INTERVAL_MS = 60000;
+  private readonly EXPIRY_CHECK_INTERVAL_MS = 30000;
 
   start(): void {
     if (this.isRunning) {
@@ -28,7 +30,12 @@ export class PaymentWorker {
       await this.resetStuckJobs();
     }, this.STUCK_CHECK_INTERVAL_MS);
 
+    this.expiryCheckInterval = setInterval(async () => {
+      await this.checkAndMarkExpiredUsers();
+    }, this.EXPIRY_CHECK_INTERVAL_MS);
+
     this.processNextJob();
+    this.checkAndMarkExpiredUsers();
   }
 
   private async resetStuckJobs(): Promise<void> {
@@ -51,8 +58,28 @@ export class PaymentWorker {
       clearInterval(this.stuckJobInterval);
       this.stuckJobInterval = null;
     }
+    if (this.expiryCheckInterval) {
+      clearInterval(this.expiryCheckInterval);
+      this.expiryCheckInterval = null;
+    }
     this.isRunning = false;
     console.log("[PaymentWorker] Stopped");
+  }
+
+  private async checkAndMarkExpiredUsers(): Promise<void> {
+    try {
+      const expiredCount = await storage.markExpiredUsers();
+      if (expiredCount > 0) {
+        console.log(`[PaymentWorker] Marked ${expiredCount} users as expired`);
+      }
+      
+      const staleTxCount = await storage.markStaleTransactionsAsFailed();
+      if (staleTxCount > 0) {
+        console.log(`[PaymentWorker] Marked ${staleTxCount} stale transactions as failed`);
+      }
+    } catch (error) {
+      console.error("[PaymentWorker] Error checking expired users:", error);
+    }
   }
 
   private async processNextJob(): Promise<void> {
@@ -115,21 +142,30 @@ export class PaymentWorker {
       }
 
       if (!tenant.mpesaConsumerKey || !tenant.mpesaConsumerSecret) {
-        console.log(`[PaymentWorker] No M-Pesa credentials configured - simulating success for demo`);
+        console.log(`[PaymentWorker] No M-Pesa credentials configured - simulating payment for demo`);
         
         const attempts = job.attempts ?? 0;
         if (attempts >= 2) {
-          const receiptNumber = `SIM${Date.now()}`;
-          await storage.updateTransaction(transactionId, {
-            status: TransactionStatus.COMPLETED,
-            mpesaReceiptNumber: receiptNumber,
-            reconciliationStatus: ReconciliationStatus.MATCHED,
-            statusDescription: "Payment confirmed (simulated)",
-          });
-
-          await this.activateUserAfterPayment(transaction.tenantId, transaction);
+          const shouldFail = Math.random() < 0.1;
           
-          console.log(`[PaymentWorker] Transaction ${transactionId} completed (simulated)`);
+          if (shouldFail) {
+            await storage.updateTransaction(transactionId, {
+              status: TransactionStatus.FAILED,
+              reconciliationStatus: ReconciliationStatus.UNMATCHED,
+              statusDescription: "Payment cancelled by user (simulated)",
+            });
+            console.log(`[PaymentWorker] Transaction ${transactionId} failed (simulated)`);
+          } else {
+            const receiptNumber = `SIM${Date.now()}`;
+            await storage.updateTransaction(transactionId, {
+              status: TransactionStatus.COMPLETED,
+              mpesaReceiptNumber: receiptNumber,
+              reconciliationStatus: ReconciliationStatus.MATCHED,
+              statusDescription: "Payment confirmed (simulated)",
+            });
+            await this.activateUserAfterPayment(transaction.tenantId, transaction);
+            console.log(`[PaymentWorker] Transaction ${transactionId} completed (simulated)`);
+          }
           await jobQueue.markCompleted(job.id);
         } else {
           await jobQueue.markFailed(job.id, "Waiting for payment confirmation...");

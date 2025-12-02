@@ -84,6 +84,12 @@ export interface IStorage {
     expiringUsers: WifiUser[];
     recentTransactions: Transaction[];
   }>;
+
+  // Mark all expired users
+  markExpiredUsers(): Promise<number>;
+  
+  // Mark stale pending transactions as failed
+  markStaleTransactionsAsFailed(): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -542,6 +548,38 @@ export class DatabaseStorage implements IStorage {
       .where(eq(tenants.id, id))
       .returning();
     return updated || undefined;
+  }
+
+  // Mark all expired users as EXPIRED status
+  async markExpiredUsers(): Promise<number> {
+    const now = new Date();
+    const result = await db.update(wifiUsers)
+      .set({ status: "EXPIRED", updatedAt: now })
+      .where(and(
+        eq(wifiUsers.status, "ACTIVE"),
+        lte(wifiUsers.expiryTime, now)
+      ))
+      .returning();
+    return result.length;
+  }
+
+  // Mark stale pending transactions as failed (older than 5 minutes)
+  async markStaleTransactionsAsFailed(): Promise<number> {
+    const now = new Date();
+    const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+    const result = await db.update(transactions)
+      .set({ 
+        status: "FAILED", 
+        statusDescription: "Transaction timed out",
+        reconciliationStatus: "UNMATCHED",
+        updatedAt: now 
+      })
+      .where(and(
+        eq(transactions.status, "PENDING"),
+        lte(transactions.createdAt, fiveMinutesAgo)
+      ))
+      .returning();
+    return result.length;
   }
 }
 
