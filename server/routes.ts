@@ -24,6 +24,11 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
   
+  // Health check endpoint for Render.com
+  app.get("/api/health", (req, res) => {
+    res.status(200).json({ status: "healthy", timestamp: new Date().toISOString() });
+  });
+
   // Initialize default tenant if not exists
   defaultTenantId = await initializeDefaultTenant();
 
