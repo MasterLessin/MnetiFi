@@ -1,0 +1,110 @@
+2025-12-02T15:33:04.826898729Z ==> Cloning from https://github.com/MasterLessin/MnetiFi
+2025-12-02T15:33:07.319901758Z ==> Checking out commit 88956d104e5c3ecab49a072818a95f092bf80a5d in branch main
+2025-12-02T15:33:13.937653787Z ==> Requesting Node.js version >=20.0.0
+2025-12-02T15:33:14.192563768Z ==> Using Node.js version 25.2.1 via /opt/render/project/src/package.json
+2025-12-02T15:33:14.220407452Z ==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+2025-12-02T15:33:16.995838883Z ==> Running build command 'npm install && npm run build'...
+2025-12-02T15:33:27.475576167Z 
+2025-12-02T15:33:27.475603658Z added 478 packages, and audited 479 packages in 10s
+2025-12-02T15:33:27.475616109Z 
+2025-12-02T15:33:27.475728135Z 64 packages are looking for funding
+2025-12-02T15:33:27.475825701Z   run `npm fund` for details
+2025-12-02T15:33:27.492294439Z 
+2025-12-02T15:33:27.49230527Z 9 vulnerabilities (3 low, 5 moderate, 1 high)
+2025-12-02T15:33:27.49230883Z 
+2025-12-02T15:33:27.49231225Z To address issues that do not require attention, run:
+2025-12-02T15:33:27.492315211Z   npm audit fix
+2025-12-02T15:33:27.492318031Z 
+2025-12-02T15:33:27.492320861Z To address all issues (including breaking changes), run:
+2025-12-02T15:33:27.492325821Z   npm audit fix --force
+2025-12-02T15:33:27.492328601Z 
+2025-12-02T15:33:27.492331881Z Run `npm audit` for details.
+2025-12-02T15:33:27.681377188Z 
+2025-12-02T15:33:27.68140102Z > mnetifi-wifi-billing@1.0.0 build
+2025-12-02T15:33:27.68140616Z > npx tsx script/build.ts
+2025-12-02T15:33:27.681409761Z 
+2025-12-02T15:33:28.774498761Z building client...
+2025-12-02T15:33:28.832553875Z vite v5.4.20 building for production...
+2025-12-02T15:33:29.017484995Z transforming...
+2025-12-02T15:33:30.029014719Z 
+2025-12-02T15:33:30.029046461Z A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+2025-12-02T15:33:33.059307332Z ✓ 2381 modules transformed.
+2025-12-02T15:33:33.351196531Z rendering chunks...
+2025-12-02T15:33:33.359701171Z computing gzip size...
+2025-12-02T15:33:33.377358008Z ../dist/public/index.html                   1.36 kB │ gzip:   0.63 kB
+2025-12-02T15:33:33.377374229Z ../dist/public/assets/index-CqNwynu3.css   80.40 kB │ gzip:  13.65 kB
+2025-12-02T15:33:33.377431322Z ../dist/public/assets/index-VTIyqp05.js   616.59 kB │ gzip: 184.02 kB
+2025-12-02T15:33:33.377490605Z 
+2025-12-02T15:33:33.377499356Z (!) Some chunks are larger than 500 kB after minification. Consider:
+2025-12-02T15:33:33.377502996Z - Using dynamic import() to code-split the application
+2025-12-02T15:33:33.377506637Z - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+2025-12-02T15:33:33.377509607Z - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+2025-12-02T15:33:33.377728059Z ✓ built in 4.39s
+2025-12-02T15:33:33.377833465Z building server...
+2025-12-02T15:33:33.532566296Z 
+2025-12-02T15:33:33.532591898Z   dist/index.cjs  1016.6kb
+2025-12-02T15:33:33.532608669Z 
+2025-12-02T15:33:33.532614929Z ⚡ Done in 142ms
+2025-12-02T15:33:36.071763066Z ==> Uploading build...
+2025-12-02T15:33:44.407623715Z ==> Uploaded in 5.1s. Compression took 3.3s
+2025-12-02T15:33:44.439293839Z ==> Build successful 🎉
+2025-12-02T15:33:54.938651065Z ==> Deploying...
+2025-12-02T15:34:14.610267619Z ==> Running 'node dist/index.js'
+2025-12-02T15:34:14.817372875Z node:internal/modules/cjs/loader:1423
+2025-12-02T15:34:14.817399326Z   throw err;
+2025-12-02T15:34:14.817402226Z   ^
+2025-12-02T15:34:14.817404796Z 
+2025-12-02T15:34:14.817408126Z Error: Cannot find module '/opt/render/project/src/dist/index.js'
+2025-12-02T15:34:14.817410666Z     at Module._resolveFilename (node:internal/modules/cjs/loader:1420:15)
+2025-12-02T15:34:14.817413176Z     at defaultResolveImpl (node:internal/modules/cjs/loader:1058:19)
+2025-12-02T15:34:14.817415626Z     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1063:22)
+2025-12-02T15:34:14.817418546Z     at Module._load (node:internal/modules/cjs/loader:1226:37)
+2025-12-02T15:34:14.817420846Z     at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+2025-12-02T15:34:14.817423336Z     at wrapModuleLoad (node:internal/modules/cjs/loader:245:24)
+2025-12-02T15:34:14.817426226Z     at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+2025-12-02T15:34:14.817428616Z     at node:internal/main/run_main_module:33:47 {
+2025-12-02T15:34:14.817431816Z   code: 'MODULE_NOT_FOUND',
+2025-12-02T15:34:14.817435266Z   requireStack: []
+2025-12-02T15:34:14.817438187Z }
+2025-12-02T15:34:14.817440796Z 
+2025-12-02T15:34:14.817443496Z Node.js v25.2.1
+2025-12-02T15:34:21.387491651Z ==> Exited with status 1
+2025-12-02T15:34:21.403530509Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+2025-12-02T15:34:24.799691187Z ==> Running 'node dist/index.js'
+2025-12-02T15:34:25.090147071Z node:internal/modules/cjs/loader:1423
+2025-12-02T15:34:25.090164582Z   throw err;
+2025-12-02T15:34:25.090168582Z   ^
+2025-12-02T15:34:25.090172152Z 
+2025-12-02T15:34:25.090176452Z Error: Cannot find module '/opt/render/project/src/dist/index.js'
+2025-12-02T15:34:25.090179832Z     at Module._resolveFilename (node:internal/modules/cjs/loader:1420:15)
+2025-12-02T15:34:25.090183163Z     at defaultResolveImpl (node:internal/modules/cjs/loader:1058:19)
+2025-12-02T15:34:25.090186712Z     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1063:22)
+2025-12-02T15:34:25.090191023Z     at Module._load (node:internal/modules/cjs/loader:1226:37)
+2025-12-02T15:34:25.090194653Z     at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+2025-12-02T15:34:25.090198073Z     at wrapModuleLoad (node:internal/modules/cjs/loader:245:24)
+2025-12-02T15:34:25.090202243Z     at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+2025-12-02T15:34:25.090205403Z     at node:internal/main/run_main_module:33:47 {
+2025-12-02T15:34:25.090208793Z   code: 'MODULE_NOT_FOUND',
+2025-12-02T15:34:25.090212833Z   requireStack: []
+2025-12-02T15:34:25.090216263Z }
+2025-12-02T15:34:25.090219033Z 
+2025-12-02T15:34:25.090222053Z Node.js v25.2.1
+2025-12-02T15:34:41.371928215Z ==> Running 'node dist/index.js'
+2025-12-02T15:34:41.662585247Z node:internal/modules/cjs/loader:1423
+2025-12-02T15:34:41.662603907Z   throw err;
+2025-12-02T15:34:41.662607797Z   ^
+2025-12-02T15:34:41.662610657Z 
+2025-12-02T15:34:41.662614517Z Error: Cannot find module '/opt/render/project/src/dist/index.js'
+2025-12-02T15:34:41.662617497Z     at Module._resolveFilename (node:internal/modules/cjs/loader:1420:15)
+2025-12-02T15:34:41.662620308Z     at defaultResolveImpl (node:internal/modules/cjs/loader:1058:19)
+2025-12-02T15:34:41.662623108Z     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1063:22)
+2025-12-02T15:34:41.662629998Z     at Module._load (node:internal/modules/cjs/loader:1226:37)
+2025-12-02T15:34:41.662634578Z     at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+2025-12-02T15:34:41.662638948Z     at wrapModuleLoad (node:internal/modules/cjs/loader:245:24)
+2025-12-02T15:34:41.662643488Z     at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+2025-12-02T15:34:41.662648518Z     at node:internal/main/run_main_module:33:47 {
+2025-12-02T15:34:41.662653648Z   code: 'MODULE_NOT_FOUND',
+2025-12-02T15:34:41.662658718Z   requireStack: []
+2025-12-02T15:34:41.662663209Z }
+2025-12-02T15:34:41.662667478Z 
+2025-12-02T15:34:41.662672239Z Node.js v25.2.1

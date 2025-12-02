@@ -1,0 +1,43 @@
+2025-12-02T15:29:38.029094779Z ==> Cloning from https://github.com/MasterLessin/MnetiFi
+2025-12-02T15:29:38.773045207Z ==> Checking out commit 88956d104e5c3ecab49a072818a95f092bf80a5d in branch main
+2025-12-02T15:29:40.004269739Z ==> Requesting Node.js version >=20.0.0
+2025-12-02T15:29:40.272376811Z ==> Using Node.js version 25.2.1 via /opt/render/project/src/package.json
+2025-12-02T15:29:40.29639712Z ==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+2025-12-02T15:29:42.187429059Z ==> Running build command 'npm install && npm run build'...
+2025-12-02T15:29:47.830304358Z 
+2025-12-02T15:29:47.830352499Z added 371 packages, and audited 372 packages in 6s
+2025-12-02T15:29:47.83036865Z 
+2025-12-02T15:29:47.830431631Z 52 packages are looking for funding
+2025-12-02T15:29:47.830487202Z   run `npm fund` for details
+2025-12-02T15:29:47.833099095Z 
+2025-12-02T15:29:47.833109345Z 4 vulnerabilities (3 low, 1 high)
+2025-12-02T15:29:47.833111446Z 
+2025-12-02T15:29:47.833113966Z To address all issues, run:
+2025-12-02T15:29:47.833116876Z   npm audit fix
+2025-12-02T15:29:47.833119966Z 
+2025-12-02T15:29:47.833122676Z Run `npm audit` for details.
+2025-12-02T15:29:47.995716401Z 
+2025-12-02T15:29:47.995738991Z > mnetifi-wifi-billing@1.0.0 build
+2025-12-02T15:29:47.995743661Z > npx tsx script/build.ts
+2025-12-02T15:29:47.995746951Z 
+2025-12-02T15:29:50.227989961Z 
+2025-12-02T15:29:50.228017702Z node:internal/modules/run_main:107
+2025-12-02T15:29:50.228023442Z     triggerUncaughtException(
+2025-12-02T15:29:50.228026332Z     ^
+2025-12-02T15:29:50.228116614Z Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'esbuild' imported from /opt/render/project/src/script/build.ts
+2025-12-02T15:29:50.228120594Z     at Object.getPackageJSONURL (node:internal/modules/package_json_reader:316:9)
+2025-12-02T15:29:50.228124625Z     at packageResolve (node:internal/modules/esm/resolve:768:81)
+2025-12-02T15:29:50.228126454Z     at moduleResolve (node:internal/modules/esm/resolve:858:18)
+2025-12-02T15:29:50.228128185Z     at defaultResolve (node:internal/modules/esm/resolve:990:11)
+2025-12-02T15:29:50.228130045Z     at nextResolve (node:internal/modules/esm/hooks:769:28)
+2025-12-02T15:29:50.228131795Z     at resolveBase (file:///opt/render/.cache/_npx/fd45a72a545557e9/node_modules/tsx/dist/esm/index.mjs?1764689390135:2:3744)
+2025-12-02T15:29:50.228134915Z     at resolveDirectory (file:///opt/render/.cache/_npx/fd45a72a545557e9/node_modules/tsx/dist/esm/index.mjs?1764689390135:2:4243)
+2025-12-02T15:29:50.228136855Z     at resolveTsPaths (file:///opt/render/.cache/_npx/fd45a72a545557e9/node_modules/tsx/dist/esm/index.mjs?1764689390135:2:4984)
+2025-12-02T15:29:50.228138635Z     at async resolve (file:///opt/render/.cache/_npx/fd45a72a545557e9/node_modules/tsx/dist/esm/index.mjs?1764689390135:2:5355)
+2025-12-02T15:29:50.228141505Z     at async nextResolve (node:internal/modules/esm/hooks:769:22) {
+2025-12-02T15:29:50.228144205Z   code: 'ERR_MODULE_NOT_FOUND'
+2025-12-02T15:29:50.228145955Z }
+2025-12-02T15:29:50.228147565Z 
+2025-12-02T15:29:50.228149285Z Node.js v25.2.1
+2025-12-02T15:29:50.294134738Z ==> Build failed 😞
+2025-12-02T15:29:50.294152458Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
