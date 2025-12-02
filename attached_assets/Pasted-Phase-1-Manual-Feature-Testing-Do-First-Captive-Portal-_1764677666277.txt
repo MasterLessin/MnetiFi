@@ -1,0 +1,76 @@
+Phase 1: Manual Feature Testing (Do First)
+Captive Portal (Public WiFi Login)
+ Visit the home page / - verify glassmorphic design loads
+ Select a WiFi plan from dropdown
+ Enter a phone number and initiate M-Pesa payment
+ Confirm STK Push simulation triggers and shows "Pending"
+ Verify transaction completes and user is created
+Admin Dashboard
+ Navigate to /dashboard - verify stats cards load
+ Check "Expiring Soon" widget shows correct data
+ View recent transactions list
+ Test sidebar navigation to all pages
+WiFi Users Page
+ Create a new WiFi user manually
+ Edit user details (username, plan, expiry)
+ Test Suspend/Activate/Recharge actions
+ Delete a user
+Plans Management
+ Create a new plan with speed/duration/price
+ Edit an existing plan
+ Delete a plan (verify it's removed)
+Hotspots Management
+ Add a new hotspot/NAS device
+ Edit hotspot details (IP, secret)
+ Test connection button (stub response)
+ View active sessions (stub data)
+Support Tickets
+ Create a new ticket
+ Update ticket status/priority
+ Close ticket with resolution
+Walled Garden
+ Add a new allowed domain
+ Remove a domain
+Settings
+ Update tenant business name
+ Save and verify changes persist
+
+Phase 2: Payment Flow Testing
+Happy Path: Phone → STK Push → Payment Worker polls → Transaction marked "Completed" → WiFi User created automatically
+Retry Logic: Check job queue at /api/jobs/pending - verify failed jobs retry with exponential backoff
+Edge Cases:
+Invalid phone number format
+No plan selected
+Duplicate payment attempts
+
+Phase 3: API Testing (Browser DevTools)
+Open browser DevTools → Network tab and verify these endpoints return data:
+GET /api/dashboard/stats
+GET /api/plans
+GET /api/hotspots
+GET /api/wifi-users
+GET /api/transactions
+GET /api/tickets
+GET /api/walled-gardens
+GET /api/reports/financial
+GET /api/reports/reconciliation
+GET /api/jobs/pending
+
+Phase 4: Mobile & Responsiveness
+ Test captive portal on mobile viewport (375px width)
+ Test dashboard on tablet (768px)
+ Verify glassmorphism effects render correctly
+ Check touch interactions work
+
+Production Readiness Checklist
+ M-Pesa API credentials configured (when ready)
+ Africa's Talking SMS credentials set
+ MikroTik router IP/credentials per hotspot
+ Database backups configured
+ Error logging/monitoring in place
+
+Would you like me to create automated test scripts, or would you prefer to start with manual testing first?
+47 seconds of work
+Scroll to latest
+
+

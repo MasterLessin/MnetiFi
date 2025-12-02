@@ -1,0 +1,59 @@
+🏗️ System Requirements Grouping
+The requirements are categorized into six main modules, reflecting the multi-layered architecture of your platform (Super Admin, ISP Tenant, Network Integration, and End-Client).
+1. 👑 Platform Administration & Business Logic (Super Admin/SaaS Core)
+This group defines the core multi-tenant platform structure, the highest level of access, and the business model for managing ISPs.
+Super User Account: Make a Super User Account with control over every aspect for managing ISPs (Platform Admin).
+Sub-Admin Management: Super admin can create other accounts with different roles (Role-Based Access Control - RBAC) to help manage the ISPs.
+ISP Tiered Pricing Model:
+24-hour free trial for new ISPs.
+Tier 1 (<Ksh 10k/month): Ksh 500 registration + Ksh 500/month (Hotspot OR PPPoE/Static features only).
+Tier 2 (>=Ksh 10k/month): Ksh 1,500/month (All features available).
+ISP Registration Payment: ISPs have an option to pay with bank, M-Pesa, PayPal when registering.
+Strict Tenant Isolation: Implement logical separation at the database, network, and application levels. Each tenant's data must be completely segregated.
+Centralized Multi-Tenant Orchestration: Build a single control plane to manage provisioning, monitoring, and billing for all tenants.
+Multi-Tenant Admin Console: A central console for the Super Admin to manage all ISP tenants.
+Reliability & Security: Ensure high availability (target 99.9%+ uptime) and robust security practices.
+
+2. 🔑 Access, Portals & Customization
+This group focuses on the different administrative and client-facing interfaces and branding capabilities.
+ISP Login Panel: Make an ISP login panel to access their dashboard for user/account management.
+Tech Accounts & Panel: ISPs can create and assign roles to Tech Accounts. They have a login page to create users and choose PPPoE/Static packages.
+Client Access (Captive Portal): Input where clients enter their phone number (purchase) or voucher number to check validity and use.
+Interface Customization/White Labeling: ISPs can customize their interface (colors, logo) for their portals (ISP, Hotspot, Technician).
+Customer Portal for Self-Service: Include a customer portal for end-clients to manage their service.
+Reseller Management Module: Build a dedicated reseller management module with hierarchy support, commission tracking, and branded portals.
+
+3. 💸 Billing, Finance & Automation
+This module covers all financial, payment, and automated billing processes for both the ISP tenants and the end-clients.
+Hotspot Client Payment: The Wi-Fi billing system strictly remains M-Pesa for client bundle purchases/renewals.
+Automated Billing Engine: Configurable cycles, proration, recurring/invoice generation, dunning (failed payment) workflows.
+Core Automation: Build core automation for invoice generation, payment matching, and reminders.
+Automated Service Suspension: Automate service suspension/reactivation based on payment status.
+Usage-Based Metering & Billing: System must track resource consumption (bandwidth, subscriptions) per tenant in real-time, feeding into a flexible rating engine.
+Design for Localization: Support configurable billing cycles and proration.
+Reseller Commission Tracking: The reseller management module must support commission tracking.
+
+4. 🔗 Network & Service Management (Operational)
+These are the features required for active network control, user session management, and quality of service (QoS).
+Bandwidth Management (QoS): ISPs can do bandwidth management per voucher/account.
+PPPoE/Static Billing Cycle: These users should have monthly billings and run until they expire (long-term).
+Hotspot Session Management: Clients logged out automatically after 15 minutes of inactive use (can reuse voucher).
+Hotspot Voucher Device Limit: Vouchers must specify how many devices can be used; reject attempts exceeding the limit.
+Network Integration: API-based integration with RADIUS for automated access control and basic support for TR-069 device management.
+
+5. 📊 Reporting, Analytics & Monitoring
+This group covers all data collection, reporting, and real-time operational insights for both the platform and the ISP.
+Real-Time Monitoring: Program should have real-time network monitoring and usage for both Super Admin and ISPs (on clients as a whole and individually).
+Analytics & Reporting (Client): ISP can view usage history and have a detailed report on every client to make informed decisions.
+Customer Reports: System should have customer reports on sales, user activity, and network performance.
+Real-Time Data Analytics (Platform): Real-time data analytics on revenue (MRR/ARR), churn, or customer usage patterns (for Super Admin).
+
+6. 🎁 Value-Added & Communication Features
+These are supplementary features designed to enhance customer acquisition, retention, and support.
+SMS Communication (Premium Feature): ISPs are able to SMS their clients (all, single, grouped contacts). This feature is subscription-based for the Tier 2/Premium (Ksh 1,500) ISPs.
+Referral Program: System should have a referral program with voucher rewards (ISPs can create/manage).
+Guest Passes/Trial Periods: ISPs can set one-time guest passes/trial periods (configurable duration) to allow service testing.
+Support Chat (ISP $\leftrightarrow$ Super Admin): ISPs can chat with the super admin and get support.
+Support Chat (Client $\leftrightarrow$ ISP): Tenant clients can use their accounts to chat with their ISP and get support.
+Native OSS/BSS Integrations: Provide APIs or built-in modules for key payment gateways and major accounting software.
+
