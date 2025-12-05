@@ -817,6 +817,36 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.role, "superadmin"));
     return superadmins.length > 0;
   }
+
+  // Mark expired ISP trials as suspended
+  async markExpiredTrials(): Promise<number> {
+    const now = new Date();
+    const result = await db.update(tenants)
+      .set({ 
+        saasBillingStatus: "SUSPENDED",
+        tier: "EXPIRED_TRIAL",
+        trialExpiresAt: null,
+      })
+      .where(and(
+        eq(tenants.saasBillingStatus, "TRIAL"),
+        lte(tenants.trialExpiresAt, now)
+      ))
+      .returning();
+    return result.length;
+  }
+
+  // Get tenants with expiring trials
+  async getExpiringTrials(hoursAhead: number = 24): Promise<Tenant[]> {
+    const now = new Date();
+    const futureTime = new Date(now.getTime() + hoursAhead * 60 * 60 * 1000);
+    return db.select()
+      .from(tenants)
+      .where(and(
+        eq(tenants.saasBillingStatus, "TRIAL"),
+        gte(tenants.trialExpiresAt, now),
+        lte(tenants.trialExpiresAt, futureTime)
+      ));
+  }
 }
 
 export const storage = new DatabaseStorage();

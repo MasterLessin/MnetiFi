@@ -9,9 +9,11 @@ export class PaymentWorker {
   private pollInterval: ReturnType<typeof setInterval> | null = null;
   private stuckJobInterval: ReturnType<typeof setInterval> | null = null;
   private expiryCheckInterval: ReturnType<typeof setInterval> | null = null;
+  private trialCheckInterval: ReturnType<typeof setInterval> | null = null;
   private readonly POLL_INTERVAL_MS = 5000;
   private readonly STUCK_CHECK_INTERVAL_MS = 60000;
   private readonly EXPIRY_CHECK_INTERVAL_MS = 30000;
+  private readonly TRIAL_CHECK_INTERVAL_MS = 60000; // Check trials every minute
 
   start(): void {
     if (this.isRunning) {
@@ -34,8 +36,13 @@ export class PaymentWorker {
       await this.checkAndMarkExpiredUsers();
     }, this.EXPIRY_CHECK_INTERVAL_MS);
 
+    this.trialCheckInterval = setInterval(async () => {
+      await this.checkAndExpireTrials();
+    }, this.TRIAL_CHECK_INTERVAL_MS);
+
     this.processNextJob();
     this.checkAndMarkExpiredUsers();
+    this.checkAndExpireTrials();
   }
 
   private async resetStuckJobs(): Promise<void> {
@@ -62,8 +69,23 @@ export class PaymentWorker {
       clearInterval(this.expiryCheckInterval);
       this.expiryCheckInterval = null;
     }
+    if (this.trialCheckInterval) {
+      clearInterval(this.trialCheckInterval);
+      this.trialCheckInterval = null;
+    }
     this.isRunning = false;
     console.log("[PaymentWorker] Stopped");
+  }
+
+  private async checkAndExpireTrials(): Promise<void> {
+    try {
+      const expiredCount = await storage.markExpiredTrials();
+      if (expiredCount > 0) {
+        console.log(`[PaymentWorker] Suspended ${expiredCount} ISP(s) with expired trials`);
+      }
+    } catch (error) {
+      console.error("[PaymentWorker] Error checking expired trials:", error);
+    }
   }
 
   private async checkAndMarkExpiredUsers(): Promise<void> {

@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Phone, Loader2, CheckCircle, XCircle, ArrowRight } from "lucide-react";
+import { Phone, Loader2, CheckCircle, XCircle, ArrowRight, Wifi } from "lucide-react";
 import { MeshBackground } from "@/components/mesh-background";
 import { MnetiFiLogo, MpesaLogo } from "@/components/mnetifi-logo";
 import { GlassPanel } from "@/components/glass-panel";
@@ -11,9 +11,15 @@ import { WalledGardenFooter } from "@/components/walled-garden";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { Plan, WalledGarden, Transaction } from "@shared/schema";
+import type { Plan, WalledGarden, Transaction, Tenant } from "@shared/schema";
 
 type PaymentStep = "select-plan" | "enter-phone" | "processing" | "success" | "failed";
+
+interface BrandingConfig {
+  logo?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+}
 
 export default function CaptivePortal() {
   const { toast } = useToast();
@@ -22,17 +28,31 @@ export default function CaptivePortal() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [transaction, setTransaction] = useState<Transaction | null>(null);
 
-  // Fetch available plans
+  const { data: tenant } = useQuery<Tenant>({
+    queryKey: ["/api/tenant"],
+  });
+
+  const branding: BrandingConfig = useMemo(() => {
+    const config = tenant?.brandingConfig || {};
+    return {
+      logo: config.logo || "",
+      primaryColor: config.primaryColor || "#22d3ee",
+      secondaryColor: config.secondaryColor || "#a855f7",
+    };
+  }, [tenant]);
+
+  const gradientStyle = useMemo(() => ({
+    background: `linear-gradient(135deg, ${branding.primaryColor}, ${branding.secondaryColor})`,
+  }), [branding]);
+
   const { data: plans, isLoading: plansLoading } = useQuery<Plan[]>({
     queryKey: ["/api/plans"],
   });
 
-  // Fetch walled garden domains
   const { data: walledGardens } = useQuery<WalledGarden[]>({
     queryKey: ["/api/walled-gardens"],
   });
 
-  // Initiate payment mutation
   const paymentMutation = useMutation({
     mutationFn: async (data: { planId: string; phone: string }) => {
       const response = await apiRequest("POST", "/api/transactions/initiate", data);
@@ -41,7 +61,6 @@ export default function CaptivePortal() {
     onSuccess: (data) => {
       setTransaction(data);
       setStep("processing");
-      // Start polling for status
       pollTransactionStatus(data.id);
     },
     onError: (error: Error) => {
@@ -53,7 +72,6 @@ export default function CaptivePortal() {
     },
   });
 
-  // Poll transaction status
   const pollTransactionStatus = async (transactionId: string) => {
     const maxAttempts = 30;
     let attempts = 0;
@@ -98,7 +116,6 @@ export default function CaptivePortal() {
   const handlePhoneSubmit = () => {
     if (!selectedPlan) return;
 
-    // Validate phone number
     const cleanPhone = phoneNumber.replace(/\D/g, "");
     if (cleanPhone.length < 9) {
       toast({
@@ -109,7 +126,6 @@ export default function CaptivePortal() {
       return;
     }
 
-    // Format to international format
     let formattedPhone = cleanPhone;
     if (cleanPhone.startsWith("0")) {
       formattedPhone = "254" + cleanPhone.slice(1);
@@ -138,6 +154,46 @@ export default function CaptivePortal() {
     }).format(amount);
   };
 
+  const BrandedLogo = () => {
+    if (branding.logo) {
+      return (
+        <img
+          src={branding.logo}
+          alt={tenant?.name || "Logo"}
+          className="h-12 mx-auto object-contain"
+          onError={(e) => {
+            e.currentTarget.style.display = 'none';
+          }}
+        />
+      );
+    }
+    
+    if (tenant?.name) {
+      return (
+        <div className="flex items-center justify-center gap-2">
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center"
+            style={{ backgroundColor: `${branding.primaryColor}20` }}
+          >
+            <Wifi size={24} style={{ color: branding.primaryColor }} />
+          </div>
+          <span
+            className="text-2xl font-bold"
+            style={{
+              background: `linear-gradient(135deg, ${branding.primaryColor}, ${branding.secondaryColor})`,
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}
+          >
+            {tenant.name}
+          </span>
+        </div>
+      );
+    }
+
+    return <MnetiFiLogo size="lg" className="justify-center" />;
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
       <MeshBackground />
@@ -149,16 +205,14 @@ export default function CaptivePortal() {
         transition={{ duration: 0.5 }}
       >
         <GlassPanel size="lg" className="relative">
-          {/* Logo */}
           <div className="text-center mb-8">
-            <MnetiFiLogo size="lg" className="justify-center" />
+            <BrandedLogo />
             <p className="mt-2 text-muted-foreground text-sm">
               Connect to Wi-Fi with M-Pesa
             </p>
           </div>
 
           <AnimatePresence mode="wait">
-            {/* Step 1: Select Plan */}
             {step === "select-plan" && (
               <motion.div
                 key="select-plan"
@@ -183,6 +237,7 @@ export default function CaptivePortal() {
                         plan={plan}
                         onSelect={handlePlanSelect}
                         showDetails={false}
+                        brandingColor={{ primary: branding.primaryColor, secondary: branding.secondaryColor }}
                       />
                     ))}
                   </div>
@@ -194,7 +249,6 @@ export default function CaptivePortal() {
               </motion.div>
             )}
 
-            {/* Step 2: Enter Phone */}
             {step === "enter-phone" && selectedPlan && (
               <motion.div
                 key="enter-phone"
@@ -203,20 +257,25 @@ export default function CaptivePortal() {
                 exit={{ opacity: 0, x: -20 }}
                 className="space-y-6"
               >
-                {/* Selected plan summary */}
                 <div className="p-4 rounded-xl bg-white/5 border border-white/10">
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="text-sm text-muted-foreground">Selected Plan</span>
                       <h3 className="text-lg font-semibold text-white">{selectedPlan.name}</h3>
                     </div>
-                    <span className="text-2xl font-bold gradient-text">
+                    <span
+                      className="text-2xl font-bold"
+                      style={{
+                        background: `linear-gradient(135deg, ${branding.primaryColor}, ${branding.secondaryColor})`,
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                      }}
+                    >
                       {formatPrice(selectedPlan.price)}
                     </span>
                   </div>
                 </div>
 
-                {/* Phone input */}
                 <div>
                   <PhoneInput
                     label="M-Pesa Phone Number"
@@ -229,7 +288,6 @@ export default function CaptivePortal() {
                   </p>
                 </div>
 
-                {/* Action buttons */}
                 <div className="flex gap-3">
                   <Button
                     variant="ghost"
@@ -252,7 +310,6 @@ export default function CaptivePortal() {
               </motion.div>
             )}
 
-            {/* Step 3: Processing */}
             {step === "processing" && (
               <motion.div
                 key="processing"
@@ -264,7 +321,8 @@ export default function CaptivePortal() {
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                  className="w-16 h-16 mx-auto mb-6 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center"
+                  className="w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center"
+                  style={gradientStyle}
                 >
                   <Loader2 size={32} className="text-white" />
                 </motion.div>
@@ -280,7 +338,6 @@ export default function CaptivePortal() {
               </motion.div>
             )}
 
-            {/* Step 4: Success */}
             {step === "success" && (
               <motion.div
                 key="success"
@@ -293,9 +350,10 @@ export default function CaptivePortal() {
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ type: "spring", stiffness: 500, damping: 25 }}
-                  className="w-16 h-16 mx-auto mb-6 rounded-full bg-cyan-500/20 flex items-center justify-center"
+                  className="w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: `${branding.primaryColor}20` }}
                 >
-                  <CheckCircle size={40} className="text-cyan-400" />
+                  <CheckCircle size={40} style={{ color: branding.primaryColor }} />
                 </motion.div>
                 <h3 className="text-xl font-semibold text-white mb-2">
                   Payment Successful
@@ -308,14 +366,17 @@ export default function CaptivePortal() {
                     Receipt: {transaction.mpesaReceiptNumber}
                   </p>
                 )}
-                <Button className="mt-6 gradient-btn" data-testid="button-browse">
+                <Button
+                  className="mt-6"
+                  style={gradientStyle}
+                  data-testid="button-browse"
+                >
                   Start Browsing
                   <ArrowRight size={16} className="ml-2" />
                 </Button>
               </motion.div>
             )}
 
-            {/* Step 5: Failed */}
             {step === "failed" && (
               <motion.div
                 key="failed"
@@ -340,7 +401,7 @@ export default function CaptivePortal() {
                 </p>
                 <Button
                   onClick={handleRetry}
-                  className="gradient-btn"
+                  style={gradientStyle}
                   data-testid="button-retry"
                 >
                   Try Again
@@ -349,13 +410,11 @@ export default function CaptivePortal() {
             )}
           </AnimatePresence>
 
-          {/* Walled Garden Footer */}
           {walledGardens && walledGardens.length > 0 && step === "select-plan" && (
             <WalledGardenFooter domains={walledGardens} />
           )}
         </GlassPanel>
 
-        {/* Footer branding */}
         <p className="text-center mt-6 text-xs text-muted-foreground">
           Powered by <span className="gradient-text font-semibold">MnetiFi</span>
         </p>

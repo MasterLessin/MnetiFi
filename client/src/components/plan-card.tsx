@@ -3,14 +3,34 @@ import { Clock, Download, Upload, Users, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Plan } from "@shared/schema";
 
+interface BrandingColors {
+  primary?: string;
+  secondary?: string;
+}
+
 interface PlanCardProps {
   plan: Plan;
   selected?: boolean;
   onSelect?: (plan: Plan) => void;
   showDetails?: boolean;
+  brandingColor?: string | BrandingColors;
 }
 
-export function PlanCard({ plan, selected = false, onSelect, showDetails = true }: PlanCardProps) {
+export function PlanCard({ plan, selected = false, onSelect, showDetails = true, brandingColor }: PlanCardProps) {
+  const getBrandingColors = (): { primary: string; secondary: string } => {
+    if (typeof brandingColor === 'string') {
+      return { primary: brandingColor, secondary: "#3b82f6" };
+    }
+    if (brandingColor && typeof brandingColor === 'object') {
+      return { 
+        primary: brandingColor.primary || "#06b6d4", 
+        secondary: brandingColor.secondary || "#3b82f6" 
+      };
+    }
+    return { primary: "#06b6d4", secondary: "#3b82f6" };
+  };
+  
+  const { primary: primaryColor, secondary: secondaryColor } = getBrandingColors();
   // Format duration for display
   const formatDuration = (seconds: number) => {
     if (seconds < 3600) {
@@ -39,31 +59,34 @@ export function PlanCard({ plan, selected = false, onSelect, showDetails = true 
         "relative overflow-hidden rounded-2xl cursor-pointer",
         "bg-white/5 backdrop-blur-xl border transition-all duration-300",
         selected
-          ? "border-cyan-500/50 ring-2 ring-cyan-500/30"
+          ? "ring-2"
           : "border-white/10 hover:border-white/20",
         "group"
       )}
+      style={{
+        borderColor: selected ? `${primaryColor}80` : undefined,
+        boxShadow: selected ? `0 0 0 2px ${primaryColor}30` : undefined,
+      }}
       onClick={() => onSelect?.(plan)}
       whileHover={{ y: -4, scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       transition={{ type: "spring", stiffness: 400, damping: 25 }}
       data-testid={`plan-card-${plan.id}`}
     >
-      {/* Gradient top border */}
       <div
         className={cn(
           "absolute inset-x-0 top-0 h-1 transition-opacity duration-300",
           selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
         )}
         style={{
-          background: "linear-gradient(90deg, #06b6d4 0%, #3b82f6 100%)",
+          background: `linear-gradient(90deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
         }}
       />
 
-      {/* Selected check indicator */}
       {selected && (
         <motion.div
-          className="absolute top-3 right-3 w-6 h-6 rounded-full bg-cyan-500 flex items-center justify-center"
+          className="absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center"
+          style={{ backgroundColor: primaryColor }}
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: "spring", stiffness: 500, damping: 25 }}

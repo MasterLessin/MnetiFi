@@ -1,25 +1,32 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Building2, Key, Palette, Save, Eye, EyeOff } from "lucide-react";
+import { Building2, Key, Palette, Save, Eye, EyeOff, Upload, Wifi } from "lucide-react";
 import { GlassPanel } from "@/components/glass-panel";
 import { GlassInput } from "@/components/glass-input";
-import { MnetiFiLogo } from "@/components/mnetifi-logo";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Tenant } from "@shared/schema";
+
+const defaultColors = {
+  cyan: "#22d3ee",
+  purple: "#a855f7",
+  green: "#22c55e",
+  blue: "#3b82f6",
+  orange: "#f97316",
+  pink: "#ec4899",
+};
 
 export default function SettingsPage() {
   const { toast } = useToast();
   const [showSecrets, setShowSecrets] = useState(false);
 
-  // Fetch tenant settings
   const { data: tenant, isLoading } = useQuery<Tenant>({
     queryKey: ["/api/tenant"],
   });
 
-  // Form state
   const [formData, setFormData] = useState({
     name: "",
     subdomain: "",
@@ -29,8 +36,13 @@ export default function SettingsPage() {
     mpesaConsumerSecret: "",
   });
 
-  // Update form when tenant data loads
-  useState(() => {
+  const [brandingData, setBrandingData] = useState({
+    logo: "",
+    primaryColor: "#22d3ee",
+    secondaryColor: "#a855f7",
+  });
+
+  useEffect(() => {
     if (tenant) {
       setFormData({
         name: tenant.name || "",
@@ -40,13 +52,21 @@ export default function SettingsPage() {
         mpesaConsumerKey: tenant.mpesaConsumerKey || "",
         mpesaConsumerSecret: tenant.mpesaConsumerSecret || "",
       });
+      const branding = tenant.brandingConfig || {};
+      setBrandingData({
+        logo: branding.logo || "",
+        primaryColor: branding.primaryColor || "#22d3ee",
+        secondaryColor: branding.secondaryColor || "#a855f7",
+      });
     }
-  });
+  }, [tenant]);
 
-  // Save mutation
   const saveMutation = useMutation({
-    mutationFn: async (data: typeof formData) => {
-      return apiRequest("PATCH", "/api/tenant", data);
+    mutationFn: async (data: { formData: typeof formData; brandingData: typeof brandingData }) => {
+      return apiRequest("PATCH", "/api/tenant", {
+        ...data.formData,
+        brandingConfig: data.brandingData,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tenant"] });
@@ -66,21 +86,19 @@ export default function SettingsPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    saveMutation.mutate(formData);
+    saveMutation.mutate({ formData, brandingData });
   };
 
   return (
     <div className="p-6 space-y-6" data-testid="settings-page">
-      {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-white">Settings</h1>
         <p className="text-muted-foreground">
-          Configure your tenant and M-Pesa integration settings
+          Configure your organization, branding, and M-Pesa integration
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Organization Settings */}
         <GlassPanel size="md">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 rounded-lg bg-cyan-500/20">
@@ -112,7 +130,141 @@ export default function SettingsPage() {
           </div>
         </GlassPanel>
 
-        {/* M-Pesa Settings */}
+        <GlassPanel size="md">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 rounded-lg bg-purple-500/20">
+              <Palette size={20} className="text-purple-400" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-white">Branding & Customization</h2>
+              <p className="text-sm text-muted-foreground">
+                Customize how your captive portal appears to customers
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label className="text-muted-foreground">Logo URL</Label>
+              <GlassInput
+                placeholder="https://example.com/logo.png"
+                value={brandingData.logo}
+                onChange={(e) => setBrandingData({ ...brandingData, logo: e.target.value })}
+                icon={<Upload size={16} />}
+                data-testid="input-logo-url"
+              />
+              <p className="text-xs text-muted-foreground">
+                Enter a URL to your logo image (recommended: 200x60px PNG)
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">Primary Color</Label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    value={brandingData.primaryColor}
+                    onChange={(e) => setBrandingData({ ...brandingData, primaryColor: e.target.value })}
+                    className="w-12 h-9 rounded-md border border-white/10 bg-transparent cursor-pointer"
+                    data-testid="input-primary-color"
+                  />
+                  <div className="flex gap-2">
+                    {Object.entries(defaultColors).map(([name, color]) => (
+                      <button
+                        key={name}
+                        type="button"
+                        onClick={() => setBrandingData({ ...brandingData, primaryColor: color })}
+                        className="w-6 h-6 rounded-full border-2 border-white/20 transition-transform hover:scale-110"
+                        style={{ backgroundColor: color }}
+                        title={name}
+                        data-testid={`color-preset-${name}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">Secondary Color</Label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    value={brandingData.secondaryColor}
+                    onChange={(e) => setBrandingData({ ...brandingData, secondaryColor: e.target.value })}
+                    className="w-12 h-9 rounded-md border border-white/10 bg-transparent cursor-pointer"
+                    data-testid="input-secondary-color"
+                  />
+                  <div className="flex gap-2">
+                    {Object.entries(defaultColors).map(([name, color]) => (
+                      <button
+                        key={name}
+                        type="button"
+                        onClick={() => setBrandingData({ ...brandingData, secondaryColor: color })}
+                        className="w-6 h-6 rounded-full border-2 border-white/20 transition-transform hover:scale-110"
+                        style={{ backgroundColor: color }}
+                        title={name}
+                        data-testid={`color-secondary-preset-${name}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 p-6 rounded-xl bg-mesh-navy/50 border border-white/5">
+            <p className="text-xs text-muted-foreground mb-4 text-center">Captive Portal Preview</p>
+            <motion.div
+              className="text-center"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+            >
+              {brandingData.logo ? (
+                <img
+                  src={brandingData.logo}
+                  alt="Logo"
+                  className="h-12 mx-auto mb-4 object-contain"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              ) : (
+                <div className="flex items-center justify-center gap-2 mb-4">
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center"
+                    style={{ backgroundColor: `${brandingData.primaryColor}20` }}
+                  >
+                    <Wifi size={24} style={{ color: brandingData.primaryColor }} />
+                  </div>
+                  <span
+                    className="text-2xl font-bold"
+                    style={{
+                      background: `linear-gradient(135deg, ${brandingData.primaryColor}, ${brandingData.secondaryColor})`,
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                    }}
+                  >
+                    {formData.name || "Your ISP"}
+                  </span>
+                </div>
+              )}
+              <p className="text-muted-foreground text-sm">
+                Connect to {formData.name || "Your Organization"} Wi-Fi
+              </p>
+              <button
+                type="button"
+                className="mt-4 px-6 py-2 rounded-xl text-white font-medium transition-all"
+                style={{
+                  background: `linear-gradient(135deg, ${brandingData.primaryColor}, ${brandingData.secondaryColor})`,
+                }}
+              >
+                Select Plan
+              </button>
+            </motion.div>
+          </div>
+        </GlassPanel>
+
         <GlassPanel size="md">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
@@ -197,35 +349,6 @@ export default function SettingsPage() {
           </div>
         </GlassPanel>
 
-        {/* Branding Preview */}
-        <GlassPanel size="md">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 rounded-lg bg-purple-500/20">
-              <Palette size={20} className="text-purple-400" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-white">Branding Preview</h2>
-              <p className="text-sm text-muted-foreground">
-                How your captive portal will appear to users
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-center p-8 rounded-xl bg-mesh-navy/50 border border-white/5">
-            <motion.div
-              className="text-center"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-            >
-              <MnetiFiLogo size="xl" className="justify-center mb-4" />
-              <p className="text-muted-foreground">
-                {formData.name || "Your Organization"} Wi-Fi
-              </p>
-            </motion.div>
-          </div>
-        </GlassPanel>
-
-        {/* Save Button */}
         <div className="flex justify-end">
           <Button
             type="submit"

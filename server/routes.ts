@@ -974,6 +974,84 @@ export async function registerRoutes(
     }
   });
 
+  // ============== TECH ROUTES ==============
+  // These routes are for technicians to manage PPPoE and Static IP users
+  
+  app.get("/api/tech/stats", requireTech, async (req: AuthenticatedRequest, res) => {
+    try {
+      const tenantId = req.session?.user?.tenantId || defaultTenantId;
+      
+      // Get all WiFi users for this tenant
+      const allUsers = await storage.getWifiUsers(tenantId);
+      
+      // Filter by account type
+      const pppoeUsers = allUsers.filter(u => u.accountType === "PPPOE");
+      const staticUsers = allUsers.filter(u => u.accountType === "STATIC");
+      const activeUsers = allUsers.filter(u => 
+        (u.accountType === "PPPOE" || u.accountType === "STATIC") && 
+        u.status === "ACTIVE"
+      );
+      
+      // Get users expiring in the next 5 days
+      const now = new Date();
+      const fiveDaysFromNow = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000);
+      const expiringUsers = allUsers.filter(u => {
+        if (!u.expiryTime || (u.accountType !== "PPPOE" && u.accountType !== "STATIC")) {
+          return false;
+        }
+        const expiry = new Date(u.expiryTime);
+        return expiry > now && expiry <= fiveDaysFromNow;
+      });
+      
+      res.json({
+        totalPppoeUsers: pppoeUsers.length,
+        totalStaticUsers: staticUsers.length,
+        activeUsers: activeUsers.length,
+        expiringUsers,
+      });
+    } catch (error) {
+      console.error("Error fetching tech stats:", error);
+      res.status(500).json({ error: "Failed to fetch tech stats" });
+    }
+  });
+
+  app.get("/api/tech/customers", requireTech, async (req: AuthenticatedRequest, res) => {
+    try {
+      const tenantId = req.session?.user?.tenantId || defaultTenantId;
+      const { type, search, status } = req.query;
+      
+      let users = await storage.getWifiUsers(tenantId);
+      
+      // Filter by account type (PPPoE or Static only for tech)
+      if (type) {
+        users = users.filter(u => u.accountType === type);
+      } else {
+        users = users.filter(u => u.accountType === "PPPOE" || u.accountType === "STATIC");
+      }
+      
+      // Filter by status
+      if (status) {
+        users = users.filter(u => u.status === status);
+      }
+      
+      // Search filter
+      if (search) {
+        const searchLower = String(search).toLowerCase();
+        users = users.filter(u => 
+          u.fullName?.toLowerCase().includes(searchLower) ||
+          u.phoneNumber.toLowerCase().includes(searchLower) ||
+          u.username?.toLowerCase().includes(searchLower) ||
+          u.email?.toLowerCase().includes(searchLower)
+        );
+      }
+      
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching tech customers:", error);
+      res.status(500).json({ error: "Failed to fetch customers" });
+    }
+  });
+
   // ============== REPORTS ROUTES ==============
   
   app.get("/api/reports/reconciliation", async (req, res) => {

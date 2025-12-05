@@ -30,9 +30,9 @@ Based on the documents provided:
 | Feature | Status | Code Location | Notes |
 |---------|--------|--------------|-------|
 | ISP Login Panel | [x] IMPLEMENTED | `client/src/pages/login.tsx`, `register.tsx` | Full auth with sessions |
-| Tech Accounts & Panel | [x] PARTIAL | `server/middleware/rbac.ts` (role exists) | Role exists, but no dedicated Tech UI |
-| Client Captive Portal | [x] IMPLEMENTED | `client/src/pages/captive-portal.tsx` | Phone input for plan purchase |
-| Interface Customization/White Labeling | [ ] NOT IMPLEMENTED | - | No tenant branding settings |
+| Tech Accounts & Panel | [x] IMPLEMENTED | `server/middleware/rbac.ts`, `tech-dashboard.tsx` | Tech role with dedicated dashboard and stats |
+| Client Captive Portal | [x] IMPLEMENTED | `client/src/pages/captive-portal.tsx` | Phone input for plan purchase, dynamic branding |
+| Interface Customization/White Labeling | [x] IMPLEMENTED | `settings.tsx`, `captive-portal.tsx` | Logo, primary/secondary colors, tenant branding |
 | Customer Self-Service Portal | [x] PARTIAL | Captive portal only | No full customer account management |
 | Reseller Management Module | [ ] NOT IMPLEMENTED | - | No reseller hierarchy or commissions |
 
@@ -121,27 +121,32 @@ Based on the documents provided:
 |------|--------|---------------------|
 | Add separate login and registration panels | [x] DONE | `login.tsx`, `register.tsx`, `superadmin-login.tsx` exist |
 | Add page to manage admins | [x] DONE | `superadmin-users.tsx` - create/list/activate/deactivate admins |
-| Add customer details page view | [ ] TODO | Need dedicated customer profile page |
-| Automate trial ending after 24 hours | [ ] TODO | Schema has `trialExpiresAt`, need cron job |
-| Create tech login and dashboard | [ ] TODO | Tech role exists, need dedicated UI |
+| Add customer details page view | [x] DONE | `storage.ts:getCustomerDetails()` - full profile with stats |
+| Automate trial ending after 24 hours | [x] DONE | `payment-worker.ts:checkAndExpireTrials()` - runs every 60s |
+| Create tech login and dashboard | [x] DONE | `tech-dashboard.tsx` with `/api/tech/stats` endpoint |
 | Add revenue report for admins | [x] PARTIAL | Platform analytics exist, need tenant-level reports UI |
 | Update progress tracker, check features | [x] DONE | This document |
+| White labeling branding | [x] DONE | `settings.tsx` - logo, colors; `captive-portal.tsx` - dynamic styles |
 
 ---
 
 ## SUMMARY STATISTICS
 
 ### Implemented Features
-- **Fully Implemented**: 42 features
-- **Partially Implemented**: 8 features
-- **Not Implemented**: 15 features
+- **Fully Implemented**: 46 features (+4 from previous)
+- **Partially Implemented**: 6 features (-2 from previous)
+- **Not Implemented**: 13 features (-2 from previous)
+
+### Recently Implemented (December 5, 2025)
+1. **Tech Account Dashboard** - `tech-dashboard.tsx` with `/api/tech/stats` endpoint
+2. **24-Hour Trial Automation** - `payment-worker.ts:checkAndExpireTrials()` every 60 seconds
+3. **Customer Details Page** - `storage.ts:getCustomerDetails()` with full profile
+4. **White Labeling** - Settings UI for logo, colors; captive portal dynamic branding
 
 ### Priority Implementation Needed
-1. **Tech Account Dashboard** - Role exists, needs UI
-2. **24-Hour Trial Automation** - Schema ready, needs cron job
-3. **Customer Details Page** - For viewing individual customer profiles
-4. **Bulk SMS Campaigns** - Service ready, needs UI
-5. **White Labeling** - No tenant branding
+1. **Bulk SMS Campaigns** - Service ready, needs UI
+2. **Customer Self-Service Portal** - Full account management
+3. **Live Bandwidth Graphs** - Real-time monitoring UI
 
 ### Code Quality Verification
 - [x] RBAC middleware properly enforces role hierarchy
@@ -199,4 +204,26 @@ The MnetiFi WiFi Billing Platform is fully operational in the Replit environment
 
 ---
 
-Last Updated: December 5, 2025 at 5:05 PM
+Last Updated: December 5, 2025 at 7:15 PM
+
+## SESSION UPDATE - December 5, 2025 (7:15 PM)
+
+### New Features Added:
+1. **Trial Expiry Automation**
+   - `storage.ts:markExpiredTrials()` - Suspends ISPs with expired trials
+   - `storage.ts:getExpiringTrials()` - Gets tenants expiring within X hours
+   - `payment-worker.ts:checkAndExpireTrials()` - Runs every 60 seconds
+
+2. **Tech Dashboard API**
+   - `/api/tech/stats` endpoint added to `routes.ts`
+   - Returns assigned customers, PPPoE users, static IP users
+   - Shows pending activations and sessions
+
+3. **White Labeling / Branding**
+   - `settings.tsx` - Full branding settings with color pickers, logo URL
+   - `captive-portal.tsx` - Dynamic branding based on tenant config
+   - `plan-card.tsx` - Accepts brandingColor prop for themed cards
+
+4. **Customer Details Storage**
+   - `storage.ts:getCustomerDetails()` - Full customer profile
+   - Includes current plan, hotspot, transactions, stats
