@@ -192,8 +192,10 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   email: text("email"),
-  role: text("role").notNull().default("admin"), // superadmin, admin
+  role: text("role").notNull().default("admin"), // superadmin, admin, tech
   isActive: boolean("is_active").default(true),
+  resetToken: text("reset_token"),
+  resetTokenExpiry: timestamp("reset_token_expiry"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

@@ -6,6 +6,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { DashboardLayout } from "@/layouts/dashboard-layout";
 import CaptivePortal from "@/pages/captive-portal";
 import LoginPage from "@/pages/login";
+import RegisterPage from "@/pages/register";
+import ForgotPasswordPage from "@/pages/forgot-password";
 import Dashboard from "@/pages/dashboard";
 import PlansPage from "@/pages/plans";
 import HotspotsPage from "@/pages/hotspots";
@@ -24,8 +26,10 @@ function Router() {
       <Route path="/" component={CaptivePortal} />
       <Route path="/portal" component={CaptivePortal} />
       
-      {/* Login Page */}
+      {/* Auth Pages */}
       <Route path="/login" component={LoginPage} />
+      <Route path="/register" component={RegisterPage} />
+      <Route path="/forgot-password" component={ForgotPasswordPage} />
 
       {/* Dashboard Routes - Admin area */}
       <Route path="/dashboard">

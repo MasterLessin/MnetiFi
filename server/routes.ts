@@ -1,5 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import crypto from "crypto";
+import bcrypt from "bcryptjs";
 import { storage } from "./storage";
 import { 
   insertPlanSchema, 
@@ -15,6 +17,15 @@ import {
 import { z } from "zod";
 import { jobQueue } from "./services/job-queue";
 import { paymentWorker } from "./services/payment-worker";
+
+// Password hashing utility
+const SALT_ROUNDS = 10;
+async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, SALT_ROUNDS);
+}
+async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  return bcrypt.compare(password, hash);
+}
 
 // Default tenant ID for demo (in production, this would come from auth/subdomain)
 let defaultTenantId: string = "";
@@ -44,7 +55,26 @@ export async function registerRoutes(
 
       const user = await storage.getUserByUsername(username);
       
-      if (!user || user.password !== password) {
+      if (!user) {
+        return res.status(401).json({ error: "Invalid username or password" });
+      }
+
+      // Support both hashed and legacy plaintext passwords for backward compatibility
+      let passwordValid = false;
+      if (user.password.startsWith('$2a$') || user.password.startsWith('$2b$')) {
+        // Password is hashed
+        passwordValid = await verifyPassword(password, user.password);
+      } else {
+        // Legacy plaintext password - migrate to hashed on successful login
+        passwordValid = user.password === password;
+        if (passwordValid) {
+          const hashedPassword = await hashPassword(password);
+          await storage.updateUser(user.id, { password: hashedPassword });
+          console.log(`[Auth] Migrated password to bcrypt for user: ${username}`);
+        }
+      }
+
+      if (!passwordValid) {
         return res.status(401).json({ error: "Invalid username or password" });
       }
 
@@ -68,6 +98,142 @@ export async function registerRoutes(
 
   app.post("/api/auth/logout", async (req, res) => {
     res.json({ message: "Logged out successfully" });
+  });
+
+  // Registration endpoint for new ISPs
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const { businessName, subdomain, username, email, password } = req.body;
+      
+      if (!businessName || !subdomain || !username || !email || !password) {
+        return res.status(400).json({ error: "All fields are required" });
+      }
+
+      // Check if subdomain already exists
+      const existingTenant = await storage.getTenantBySubdomain(subdomain);
+      if (existingTenant) {
+        return res.status(409).json({ error: "Subdomain already taken" });
+      }
+
+      // Check if username already exists
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser) {
+        return res.status(409).json({ error: "Username already taken" });
+      }
+
+      // Check if email already exists
+      const existingEmail = await storage.getUserByEmail(email);
+      if (existingEmail) {
+        return res.status(409).json({ error: "Email already registered" });
+      }
+
+      // Create the tenant (ISP)
+      const tenant = await storage.createTenant({
+        name: businessName,
+        subdomain: subdomain.toLowerCase(),
+        saasBillingStatus: "TRIAL", // 24-hour free trial
+        isActive: true,
+      });
+
+      // Hash password and create the admin user for this tenant
+      const hashedPassword = await hashPassword(password);
+      const user = await storage.createUser({
+        tenantId: tenant.id,
+        username,
+        password: hashedPassword,
+        email,
+        role: "admin",
+      });
+
+      res.status(201).json({
+        message: "Account created successfully",
+        tenant: {
+          id: tenant.id,
+          name: tenant.name,
+          subdomain: tenant.subdomain,
+        },
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+        },
+      });
+    } catch (error) {
+      console.error("Error during registration:", error);
+      res.status(500).json({ error: "Failed to create account" });
+    }
+  });
+
+  // Forgot password endpoint
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      const user = await storage.getUserByEmail(email);
+      
+      // Always return success to prevent email enumeration
+      if (!user) {
+        return res.json({ message: "If the email exists, a reset link has been sent" });
+      }
+
+      // Generate a reset token
+      const resetToken = crypto.randomUUID();
+      const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+      await storage.updateUser(user.id, {
+        resetToken,
+        resetTokenExpiry,
+      });
+
+      // In production, send an email with the reset link
+      // For now, just log it
+      console.log(`[Auth] Password reset requested for ${email}`);
+      console.log(`[Auth] Reset token: ${resetToken}`);
+      console.log(`[Auth] Reset link: /reset-password?token=${resetToken}`);
+
+      res.json({ message: "If the email exists, a reset link has been sent" });
+    } catch (error) {
+      console.error("Error during password reset request:", error);
+      res.status(500).json({ error: "Failed to process request" });
+    }
+  });
+
+  // Reset password endpoint
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const { token, newPassword } = req.body;
+      
+      if (!token || !newPassword) {
+        return res.status(400).json({ error: "Token and new password are required" });
+      }
+
+      const user = await storage.getUserByResetToken(token);
+      
+      if (!user) {
+        return res.status(400).json({ error: "Invalid or expired reset token" });
+      }
+
+      if (user.resetTokenExpiry && new Date(user.resetTokenExpiry) < new Date()) {
+        return res.status(400).json({ error: "Reset token has expired" });
+      }
+
+      // Hash the new password and update user, clear reset token
+      const hashedNewPassword = await hashPassword(newPassword);
+      await storage.updateUser(user.id, {
+        password: hashedNewPassword,
+        resetToken: null,
+        resetTokenExpiry: null,
+      });
+
+      res.json({ message: "Password has been reset successfully" });
+    } catch (error) {
+      console.error("Error during password reset:", error);
+      res.status(500).json({ error: "Failed to reset password" });
+    }
   });
 
   // Start the payment worker for background job processing

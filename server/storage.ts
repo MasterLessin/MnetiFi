@@ -51,7 +51,11 @@ export interface IStorage {
   // User operations
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByResetToken(token: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: string, data: Partial<InsertUser & { resetToken?: string | null; resetTokenExpiry?: Date | null }>): Promise<User | undefined>;
+  getAllTenants(): Promise<Tenant[]>;
 
   // WiFi User operations
   getWifiUsers(tenantId: string): Promise<WifiUser[]>;
@@ -242,6 +246,25 @@ export class DatabaseStorage implements IStorage {
   async createUser(user: InsertUser): Promise<User> {
     const [created] = await db.insert(users).values(user).returning();
     return created;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || undefined;
+  }
+
+  async getUserByResetToken(token: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.resetToken, token));
+    return user || undefined;
+  }
+
+  async updateUser(id: string, data: Partial<InsertUser & { resetToken?: string | null; resetTokenExpiry?: Date | null }>): Promise<User | undefined> {
+    const [updated] = await db.update(users).set(data as any).where(eq(users.id, id)).returning();
+    return updated || undefined;
+  }
+
+  async getAllTenants(): Promise<Tenant[]> {
+    return db.select().from(tenants).orderBy(desc(tenants.createdAt));
   }
 
   // WiFi User operations
@@ -534,11 +557,6 @@ export class DatabaseStorage implements IStorage {
         lte(transactions.createdAt, endDate)
       ))
       .orderBy(desc(transactions.createdAt));
-  }
-
-  // Get all tenants (for SaaS admin)
-  async getAllTenants(): Promise<Tenant[]> {
-    return db.select().from(tenants);
   }
 
   // Update tenant SaaS billing status

@@ -102,8 +102,202 @@
 [x] 49. Verified default tenant created with sample data (admin/admin123)
 [x] 50. All systems operational and ready for production use
 
+## Authentication Enhancements (December 5, 2025)
+[x] 51. Added "Forgot your password?" link to login page
+[x] 52. Added "New ISP? Create an account" link to login page
+[x] 53. Created registration page with 2-step wizard (business info + credentials)
+[x] 54. Created forgot password page with email-based reset flow
+[x] 55. Added password reset token fields to users schema (resetToken, resetTokenExpiry)
+[x] 56. Implemented /api/auth/register endpoint for ISP registration
+[x] 57. Implemented /api/auth/forgot-password endpoint
+[x] 58. Implemented /api/auth/reset-password endpoint
+[x] 59. Registration includes ISP tiered pricing info (Tier 1: Ksh 500, Tier 2: Ksh 1,500)
+[x] 60. Database schema pushed with new user fields
+
+---
+
+# FEATURE ANALYSIS & ROADMAP
+
+## Current Implementation Status
+
+### Fully Implemented Features
+- Multi-tenant SaaS architecture with tenant isolation
+- M-Pesa STK Push integration
+- MikroTik RouterOS API integration (hotspot/PPPoE/static)
+- RADIUS CoA support
+- SMS notification service (Africa's Talking)
+- Automated billing and payment matching
+- Job queue with exponential backoff
+- Dashboard with analytics and widgets
+- WiFi user management (CRUD)
+- Plans management with QoS settings
+- Hotspot management
+- Walled garden domains
+- Support ticketing system
+- Transaction reconciliation
+- Expiring users alerts
+- User authentication (login/register/forgot password)
+
+### Partially Implemented (Need Enhancement)
+- Role-Based Access Control (basic admin role only)
+- Customer self-service portal (captive portal exists, needs expansion)
+- Real-time monitoring (API exists, needs UI dashboard)
+
+---
+
+## PRIORITIZED DEVELOPMENT ROADMAP
+
+### PHASE 1: Core Business Features (High Priority)
+**Estimated: 2-3 weeks**
+
+1. **Super Admin Console**
+   - [ ] Create super admin dashboard to manage all ISP tenants
+   - [ ] ISP tenant listing with status, revenue metrics
+   - [ ] Ability to suspend/activate tenants
+   - [ ] Platform-wide analytics (total revenue, active ISPs)
+
+2. **ISP Tiered Billing Automation**
+   - [ ] Implement 24-hour free trial auto-expiry
+   - [ ] Tier 1 vs Tier 2 feature gating
+   - [ ] Automated billing reminders for ISPs
+   - [ ] ISP payment tracking
+
+3. **Tech Accounts & Panel**
+   - [ ] Tech role with limited permissions
+   - [ ] Tech login portal
+   - [ ] Ability to create/manage WiFi users only
+   - [ ] Package assignment functionality
+
+### PHASE 2: Customer Experience (Medium-High Priority)
+**Estimated: 2-3 weeks**
+
+4. **Enhanced Customer Self-Service Portal**
+   - [ ] Customer account creation/login
+   - [ ] View current plan and expiry
+   - [ ] Purchase history
+   - [ ] Renew subscription
+   - [ ] View usage statistics
+
+5. **Interface Customization/White Labeling**
+   - [ ] ISP branding settings (logo, colors)
+   - [ ] Custom captive portal theming
+   - [ ] Custom subdomain support
+
+6. **Voucher System Enhancement**
+   - [ ] Printable voucher generation
+   - [ ] Voucher codes with device limits
+   - [ ] Voucher validity configuration
+   - [ ] Bulk voucher creation
+
+### PHASE 3: Network & Operations (Medium Priority)
+**Estimated: 2-3 weeks**
+
+7. **Real-Time Monitoring Dashboard**
+   - [ ] Live bandwidth usage graphs
+   - [ ] Router status monitoring
+   - [ ] Active sessions view
+   - [ ] CPU/Memory utilization
+
+8. **Remote Router Management**
+   - [ ] Router configuration backup
+   - [ ] Remote reboot capability
+   - [ ] Quick action buttons
+
+9. **Hotspot Session Management**
+   - [ ] 15-minute inactivity logout (configurable)
+   - [ ] Device limit enforcement
+   - [ ] Session time tracking
+
+### PHASE 4: Communication & Engagement (Medium Priority)
+**Estimated: 1-2 weeks**
+
+10. **Bulk SMS Campaigns**
+    - [ ] SMS broadcast to all/selected customers
+    - [ ] Scheduled messages
+    - [ ] Template management
+    - [ ] SMS analytics (delivery rates)
+
+11. **Automated Notifications**
+    - [ ] Payment confirmation SMS
+    - [ ] Expiry reminder (24h, 1h before)
+    - [ ] Welcome message on first purchase
+    - [ ] Service outage notifications
+
+12. **Support Chat System**
+    - [ ] ISP ↔ Super Admin chat
+    - [ ] Client ↔ ISP chat
+    - [ ] Chat history and tickets integration
+
+### PHASE 5: Value-Added Features (Lower Priority)
+**Estimated: 2-3 weeks**
+
+13. **Referral Program**
+    - [ ] Referral code generation
+    - [ ] Voucher rewards for referrals
+    - [ ] Referral tracking dashboard
+
+14. **Guest Passes/Trial Periods**
+    - [ ] Configurable free trial duration
+    - [ ] One-time guest access
+    - [ ] Trial user conversion tracking
+
+15. **Compensation Module**
+    - [ ] Automatic service outage detection
+    - [ ] Customer compensation credits
+    - [ ] Outage reporting
+
+16. **Reseller Management**
+    - [ ] Reseller accounts
+    - [ ] Commission tracking
+    - [ ] Reseller portals
+
+### PHASE 6: Advanced Features (Future)
+**Estimated: 3-4 weeks**
+
+17. **Stock/Inventory Management**
+    - [ ] Hardware tracking (routers, cables)
+    - [ ] POS for hardware sales
+    - [ ] Inventory alerts
+
+18. **Advanced Reporting**
+    - [ ] Unit economics (Churn, LTV)
+    - [ ] Income statements
+    - [ ] Export to Excel/PDF
+    - [ ] Scheduled report emails
+
+19. **TR-069 Device Management**
+    - [ ] CPE auto-configuration
+    - [ ] Remote device updates
+
+20. **Network Topology Mapping**
+    - [ ] Visual network map
+    - [ ] Device discovery
+
+---
+
+## COMPETITOR FEATURE COMPARISON
+
+| Feature | MnetiFi | Netpap | Kivipay | Cute Profit |
+|---------|---------|--------|---------|-------------|
+| M-Pesa Integration | ✅ | ✅ | ✅ | ✅ |
+| Multi-tenant SaaS | ✅ | ✅ | ✅ | ? |
+| MikroTik API | ✅ | ✅ | ✅ | ✅ |
+| PPPoE Billing | ✅ | ✅ | ✅ | ✅ |
+| Hotspot Billing | ✅ | ✅ | ✅ | ✅ |
+| SMS Notifications | ✅ | ✅ | ✅ | ✅ |
+| Customer Portal | ⚠️ Partial | ✅ | ✅ | ✅ |
+| White Labeling | ⚠️ Planned | ✅ | ✅ | ? |
+| RADIUS CoA | ✅ | ✅ | ? | ? |
+| Super Admin | ⚠️ Planned | ✅ | ✅ | ? |
+| Bulk SMS | ⚠️ Planned | ✅ | ✅ | ✅ |
+| Referral Program | ⚠️ Planned | ✅ | ? | ? |
+| Remote Tunnels | ⚠️ Planned | ✅ | ? | ? |
+
+---
+
 ✅ **All Stages Complete - MnetiFi SaaS Platform Fully Operational**
 ✅ **Migration to Replit Environment: COMPLETE**
 ✅ **Ready for Render.com Deployment**
 ✅ **All Progress Tracker Items Marked as Done [x]**
 ✅ **Import Migration Fully Complete - December 5, 2025**
+✅ **Authentication Enhancements Added - December 5, 2025**

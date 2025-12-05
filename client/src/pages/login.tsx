@@ -139,7 +139,27 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            <div className="mt-6 pt-6 border-t border-white/10">
+            <div className="mt-4 text-center">
+              <Link 
+                href="/forgot-password" 
+                className="text-sm text-cyan-400 hover:text-cyan-300 transition-colors"
+                data-testid="link-forgot-password"
+              >
+                Forgot your password?
+              </Link>
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-white/10 space-y-3">
+              <p className="text-sm text-muted-foreground">
+                New ISP?{" "}
+                <Link 
+                  href="/register" 
+                  className="text-cyan-400 hover:text-cyan-300 transition-colors font-medium"
+                  data-testid="link-register"
+                >
+                  Create an account
+                </Link>
+              </p>
               <p className="text-sm text-muted-foreground">
                 Need WiFi access?{" "}
                 <Link href="/" className="text-cyan-400 hover:text-cyan-300 transition-colors">
