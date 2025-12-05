@@ -13,10 +13,20 @@ import {
   insertTicketSchema,
   ReconciliationStatus,
   TransactionStatus,
+  UserRole,
+  type UserRoleValue,
 } from "@shared/schema";
 import { z } from "zod";
 import { jobQueue } from "./services/job-queue";
 import { paymentWorker } from "./services/payment-worker";
+import { 
+  requireAuth, 
+  requireSuperAdmin, 
+  requireAdmin, 
+  requireTech,
+  requireTenantAccess,
+  type AuthenticatedRequest 
+} from "./middleware/rbac";
 
 // Password hashing utility
 const SALT_ROUNDS = 10;
@@ -82,12 +92,21 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Account is disabled" });
       }
 
+      req.session.user = {
+        id: user.id,
+        username: user.username,
+        role: user.role as UserRoleValue,
+        tenantId: user.tenantId,
+        email: user.email,
+      };
+
       res.json({
         user: {
           id: user.id,
           username: user.username,
           role: user.role,
           email: user.email,
+          tenantId: user.tenantId,
         },
       });
     } catch (error) {
@@ -96,8 +115,21 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/auth/me", (req, res) => {
+    if (!req.session?.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    res.json({ user: req.session.user });
+  });
+
   app.post("/api/auth/logout", async (req, res) => {
-    res.json({ message: "Logged out successfully" });
+    req.session.destroy((err) => {
+      if (err) {
+        console.error("Error destroying session:", err);
+        return res.status(500).json({ error: "Failed to logout" });
+      }
+      res.json({ message: "Logged out successfully" });
+    });
   });
 
   // Registration endpoint for new ISPs
@@ -1037,9 +1069,10 @@ export async function registerRoutes(
   });
 
   // ============== SUPER ADMIN ROUTES ==============
+  // All superadmin routes require superadmin role
 
   // Get platform analytics for super admin dashboard
-  app.get("/api/superadmin/analytics", async (req, res) => {
+  app.get("/api/superadmin/analytics", requireSuperAdmin, async (req, res) => {
     try {
       const analytics = await storage.getPlatformAnalytics();
       res.json(analytics);
@@ -1050,7 +1083,7 @@ export async function registerRoutes(
   });
 
   // Get all tenants with enhanced stats
-  app.get("/api/superadmin/tenants", async (req, res) => {
+  app.get("/api/superadmin/tenants", requireSuperAdmin, async (req, res) => {
     try {
       const tenantsWithStats = await storage.getAllTenantsWithStats();
       res.json(tenantsWithStats);
@@ -1061,7 +1094,7 @@ export async function registerRoutes(
   });
 
   // Get single tenant details
-  app.get("/api/superadmin/tenants/:id", async (req, res) => {
+  app.get("/api/superadmin/tenants/:id", requireSuperAdmin, async (req, res) => {
     try {
       const tenant = await storage.getTenant(req.params.id);
       if (!tenant) {
@@ -1088,7 +1121,7 @@ export async function registerRoutes(
   });
 
   // Update tenant subscription tier
-  app.patch("/api/superadmin/tenants/:id/subscription", async (req, res) => {
+  app.patch("/api/superadmin/tenants/:id/subscription", requireSuperAdmin, async (req, res) => {
     try {
       const { tier, saasBillingStatus, trialExpiresAt, subscriptionExpiresAt } = req.body;
       
@@ -1121,7 +1154,7 @@ export async function registerRoutes(
   });
 
   // Activate/Suspend tenant
-  app.patch("/api/superadmin/tenants/:id/status", async (req, res) => {
+  app.patch("/api/superadmin/tenants/:id/status", requireSuperAdmin, async (req, res) => {
     try {
       const { isActive, saasBillingStatus } = req.body;
       
@@ -1142,8 +1175,8 @@ export async function registerRoutes(
     }
   });
 
-  // Create super admin user
-  app.post("/api/superadmin/create-superadmin", async (req, res) => {
+  // Create super admin user (protected - only existing superadmins can create new ones)
+  app.post("/api/superadmin/create-superadmin", requireSuperAdmin, async (req, res) => {
     try {
       const { username, email, password } = req.body;
       
