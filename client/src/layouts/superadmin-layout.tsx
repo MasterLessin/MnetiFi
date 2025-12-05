@@ -102,7 +102,9 @@ export function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
 
   useEffect(() => {
     if (!isLoading && !user) {
-      setLocation("/login");
+      setLocation("/superadmin/login");
+    } else if (!isLoading && user && user.role !== "superadmin") {
+      setLocation("/superadmin/login");
     }
   }, [user, isLoading, setLocation]);
 
@@ -117,7 +119,7 @@ export function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
     );
   }
 
-  if (!user) {
+  if (!user || user.role !== "superadmin") {
     return null;
   }
 

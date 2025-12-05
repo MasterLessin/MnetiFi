@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { User, Lock, Loader2, ArrowRight, Building2 } from "lucide-react";
+import { User, Lock, Loader2, ArrowRight, ShieldCheck } from "lucide-react";
 import { MeshBackground } from "@/components/mesh-background";
 import { MnetiFiLogo } from "@/components/mnetifi-logo";
 import { GlassPanel } from "@/components/glass-panel";
@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 
-export default function LoginPage() {
+export default function SuperAdminLoginPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [username, setUsername] = useState("");
@@ -19,7 +19,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const session = localStorage.getItem("admin_session");
+    const session = localStorage.getItem("superadmin_session");
     if (session) {
       try {
         const sessionData = JSON.parse(session);
@@ -27,13 +27,13 @@ export default function LoginPage() {
         const now = Date.now();
         const tenMinutes = 10 * 60 * 1000;
         
-        if (now - lastActivity < tenMinutes) {
-          setLocation("/dashboard");
+        if (now - lastActivity < tenMinutes && sessionData.user?.role === "superadmin") {
+          setLocation("/superadmin");
         } else {
-          localStorage.removeItem("admin_session");
+          localStorage.removeItem("superadmin_session");
         }
       } catch {
-        localStorage.removeItem("admin_session");
+        localStorage.removeItem("superadmin_session");
       }
     }
   }, [setLocation]);
@@ -52,15 +52,24 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        localStorage.setItem("admin_session", JSON.stringify({
+        if (data.user.role !== "superadmin") {
+          toast({
+            title: "Access Denied",
+            description: "This login is for Super Admins only. Please use the ISP login.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        localStorage.setItem("superadmin_session", JSON.stringify({
           user: data.user,
           lastActivity: new Date().toISOString(),
         }));
         toast({
-          title: "Welcome back!",
+          title: "Welcome, Super Admin!",
           description: `Logged in as ${data.user.username}`,
         });
-        setLocation("/dashboard");
+        setLocation("/superadmin");
       } else {
         toast({
           title: "Login Failed",
@@ -93,26 +102,26 @@ export default function LoginPage() {
             <div className="mb-8">
               <MnetiFiLogo size="lg" className="mx-auto mb-4" />
               <div className="flex items-center justify-center gap-2 mb-2">
-                <Badge variant="outline" className="bg-cyan-500/20 text-cyan-400 border-0">
-                  <Building2 size={12} className="mr-1" />
-                  ISP Portal
+                <Badge variant="outline" className="bg-pink-500/20 text-pink-400 border-0">
+                  <ShieldCheck size={12} className="mr-1" />
+                  Platform Administration
                 </Badge>
               </div>
-              <h1 className="text-2xl font-bold text-white mb-2">ISP Admin Login</h1>
+              <h1 className="text-2xl font-bold text-white mb-2">Super Admin Login</h1>
               <p className="text-muted-foreground">
-                Sign in to manage your WiFi business
+                Sign in to manage the MnetiFi platform
               </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <GlassInput
                 label="Username"
-                placeholder="Enter your username"
+                placeholder="Enter your admin username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
                 icon={<User size={16} />}
-                data-testid="input-username"
+                data-testid="input-superadmin-username"
               />
 
               <GlassInput
@@ -123,23 +132,23 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 icon={<Lock size={16} />}
-                data-testid="input-password"
+                data-testid="input-superadmin-password"
               />
 
               <Button
                 type="submit"
-                className="w-full gradient-btn"
+                className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700"
                 disabled={isLoading}
-                data-testid="button-login"
+                data-testid="button-superadmin-login"
               >
                 {isLoading ? (
                   <>
                     <Loader2 size={18} className="mr-2 animate-spin" />
-                    Signing in...
+                    Authenticating...
                   </>
                 ) : (
                   <>
-                    Sign In to Dashboard
+                    Access Platform Console
                     <ArrowRight size={18} className="ml-2" />
                   </>
                 )}
@@ -148,43 +157,31 @@ export default function LoginPage() {
 
             <div className="mt-4 text-center">
               <Link 
-                href="/forgot-password" 
-                className="text-sm text-cyan-400 hover:text-cyan-300 transition-colors"
-                data-testid="link-forgot-password"
+                href="/superadmin/forgot-password" 
+                className="text-sm text-pink-400 hover:text-pink-300 transition-colors"
+                data-testid="link-superadmin-forgot-password"
               >
                 Forgot your password?
               </Link>
             </div>
 
-            <div className="mt-6 pt-6 border-t border-white/10 space-y-3">
+            <div className="mt-6 pt-6 border-t border-white/10">
               <p className="text-sm text-muted-foreground">
-                New ISP?{" "}
+                ISP Administrator?{" "}
                 <Link 
-                  href="/register" 
+                  href="/login" 
                   className="text-cyan-400 hover:text-cyan-300 transition-colors font-medium"
-                  data-testid="link-register"
+                  data-testid="link-isp-login"
                 >
-                  Register your business
-                </Link>
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Need WiFi access?{" "}
-                <Link href="/" className="text-cyan-400 hover:text-cyan-300 transition-colors">
-                  Go to the WiFi portal
+                  Go to ISP Login
                 </Link>
               </p>
             </div>
 
-            <div className="mt-4 pt-4 border-t border-white/10">
-              <p className="text-xs text-muted-foreground">
-                Platform Administrator?{" "}
-                <Link 
-                  href="/superadmin/login" 
-                  className="text-pink-400 hover:text-pink-300 transition-colors font-medium"
-                  data-testid="link-superadmin"
-                >
-                  Super Admin Login
-                </Link>
+            <div className="mt-4 p-3 rounded-lg bg-pink-500/10 border border-pink-500/20 text-left">
+              <p className="text-xs text-pink-200/80">
+                <ShieldCheck size={14} className="inline mr-1" />
+                This portal is for MnetiFi platform administrators only. Unauthorized access attempts are logged.
               </p>
             </div>
           </GlassPanel>

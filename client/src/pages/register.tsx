@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { motion } from "framer-motion";
-import { User, Lock, Mail, Building2, Loader2, ArrowRight, ArrowLeft, Check } from "lucide-react";
+import { User, Lock, Mail, Building2, Loader2, ArrowRight, ArrowLeft, Check, Wifi } from "lucide-react";
 import { MeshBackground } from "@/components/mesh-background";
 import { MnetiFiLogo } from "@/components/mnetifi-logo";
 import { GlassPanel } from "@/components/glass-panel";
 import { GlassInput } from "@/components/glass-input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 
 export default function RegisterPage() {
@@ -15,7 +16,6 @@ export default function RegisterPage() {
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   
-  // Form fields
   const [businessName, setBusinessName] = useState("");
   const [subdomain, setSubdomain] = useState("");
   const [username, setUsername] = useState("");
@@ -160,13 +160,18 @@ export default function RegisterPage() {
           <GlassPanel size="lg" className="text-center">
             <div className="mb-8">
               <MnetiFiLogo size="lg" className="mx-auto mb-4" />
-              <h1 className="text-2xl font-bold text-white mb-2">Create ISP Account</h1>
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Badge variant="outline" className="bg-cyan-500/20 text-cyan-400 border-0">
+                  <Wifi size={12} className="mr-1" />
+                  ISP Registration
+                </Badge>
+              </div>
+              <h1 className="text-2xl font-bold text-white mb-2">Register Your ISP Business</h1>
               <p className="text-muted-foreground">
                 Start your 24-hour free trial
               </p>
             </div>
 
-            {/* Progress indicator */}
             <div className="flex items-center justify-center gap-2 mb-6">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
                 step >= 1 ? 'bg-cyan-500 text-white' : 'bg-white/10 text-muted-foreground'
@@ -219,7 +224,7 @@ export default function RegisterPage() {
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
                 <GlassInput
-                  label="Username"
+                  label="Admin Username"
                   placeholder="Choose a username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
@@ -296,18 +301,17 @@ export default function RegisterPage() {
 
             <div className="mt-6 pt-6 border-t border-white/10">
               <p className="text-sm text-muted-foreground">
-                Already have an account?{" "}
+                Already have an ISP account?{" "}
                 <Link 
                   href="/login" 
                   className="text-cyan-400 hover:text-cyan-300 transition-colors font-medium"
                   data-testid="link-login"
                 >
-                  Sign in
+                  Sign in here
                 </Link>
               </p>
             </div>
 
-            {/* Pricing info */}
             <div className="mt-4 p-3 rounded-lg bg-white/5 text-left">
               <p className="text-xs text-muted-foreground mb-2">Pricing after trial:</p>
               <div className="space-y-1 text-xs">

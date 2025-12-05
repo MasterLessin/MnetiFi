@@ -9,6 +9,8 @@ import CaptivePortal from "@/pages/captive-portal";
 import LoginPage from "@/pages/login";
 import RegisterPage from "@/pages/register";
 import ForgotPasswordPage from "@/pages/forgot-password";
+import SuperAdminLoginPage from "@/pages/superadmin-login";
+import SuperAdminForgotPasswordPage from "@/pages/superadmin-forgot-password";
 import Dashboard from "@/pages/dashboard";
 import PlansPage from "@/pages/plans";
 import HotspotsPage from "@/pages/hotspots";
@@ -100,6 +102,10 @@ function Router() {
           </DashboardLayout>
         )}
       </Route>
+
+      {/* Super Admin Auth Pages */}
+      <Route path="/superadmin/login" component={SuperAdminLoginPage} />
+      <Route path="/superadmin/forgot-password" component={SuperAdminForgotPasswordPage} />
 
       {/* Super Admin Routes */}
       <Route path="/superadmin">

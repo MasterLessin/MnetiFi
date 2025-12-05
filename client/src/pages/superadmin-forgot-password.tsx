@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { Mail, Loader2, ArrowRight, ArrowLeft, Check, KeyRound, Building2 } from "lucide-react";
+import { Mail, Loader2, ArrowRight, ArrowLeft, Check, KeyRound, ShieldCheck } from "lucide-react";
 import { MeshBackground } from "@/components/mesh-background";
 import { MnetiFiLogo } from "@/components/mnetifi-logo";
 import { GlassPanel } from "@/components/glass-panel";
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 
-export default function ForgotPasswordPage() {
+export default function SuperAdminForgotPasswordPage() {
   const { toast } = useToast();
   const [step, setStep] = useState<'request' | 'sent'>('request');
   const [isLoading, setIsLoading] = useState(false);
@@ -86,17 +86,17 @@ export default function ForgotPasswordPage() {
             <div className="mb-8">
               <MnetiFiLogo size="lg" className="mx-auto mb-4" />
               <div className="flex items-center justify-center gap-2 mb-2">
-                <Badge variant="outline" className="bg-cyan-500/20 text-cyan-400 border-0">
-                  <Building2 size={12} className="mr-1" />
-                  ISP Portal
+                <Badge variant="outline" className="bg-pink-500/20 text-pink-400 border-0">
+                  <ShieldCheck size={12} className="mr-1" />
+                  Platform Administration
                 </Badge>
               </div>
               <h1 className="text-2xl font-bold text-white mb-2">
-                {step === 'request' ? 'ISP Password Reset' : 'Check Your Email'}
+                {step === 'request' ? 'Super Admin Password Reset' : 'Check Your Email'}
               </h1>
               <p className="text-muted-foreground">
                 {step === 'request' 
-                  ? 'Enter your ISP admin email to receive a reset link' 
+                  ? 'Enter your Super Admin email to receive a reset link' 
                   : 'We sent you password reset instructions'}
               </p>
             </div>
@@ -106,17 +106,17 @@ export default function ForgotPasswordPage() {
                 <GlassInput
                   label="Email Address"
                   type="email"
-                  placeholder="Enter your ISP admin email"
+                  placeholder="Enter your Super Admin email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   icon={<Mail size={16} />}
-                  data-testid="input-email"
+                  data-testid="input-superadmin-email"
                 />
 
                 <Button
                   type="submit"
-                  className="w-full gradient-btn"
+                  className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700"
                   disabled={isLoading}
                   data-testid="button-send-reset"
                 >
@@ -135,15 +135,15 @@ export default function ForgotPasswordPage() {
               </form>
             ) : (
               <div className="space-y-6">
-                <div className="w-16 h-16 mx-auto rounded-full bg-cyan-500/20 flex items-center justify-center">
-                  <Check size={32} className="text-cyan-400" />
+                <div className="w-16 h-16 mx-auto rounded-full bg-pink-500/20 flex items-center justify-center">
+                  <Check size={32} className="text-pink-400" />
                 </div>
                 
                 <div className="space-y-2">
                   <p className="text-white/80">
                     We sent a password reset link to:
                   </p>
-                  <p className="text-cyan-400 font-medium">
+                  <p className="text-pink-400 font-medium">
                     {email}
                   </p>
                 </div>
@@ -158,7 +158,7 @@ export default function ForgotPasswordPage() {
                 <Button
                   onClick={() => { setStep('request'); setEmail(''); }}
                   variant="outline"
-                  className="w-full border-white/20"
+                  className="w-full border-pink-500/30 text-pink-400 hover:bg-pink-500/10"
                   data-testid="button-try-again"
                 >
                   <ArrowLeft size={18} className="mr-2" />
@@ -171,23 +171,23 @@ export default function ForgotPasswordPage() {
               <p className="text-sm text-muted-foreground">
                 Remember your password?{" "}
                 <Link 
-                  href="/login" 
-                  className="text-cyan-400 hover:text-cyan-300 transition-colors font-medium"
-                  data-testid="link-login"
+                  href="/superadmin/login" 
+                  className="text-pink-400 hover:text-pink-300 transition-colors font-medium"
+                  data-testid="link-superadmin-login"
                 >
-                  Back to ISP login
+                  Back to Super Admin login
                 </Link>
               </p>
             </div>
 
             <div className="mt-4 pt-4 border-t border-white/10">
               <p className="text-xs text-muted-foreground">
-                Platform Administrator?{" "}
+                ISP Administrator?{" "}
                 <Link 
-                  href="/superadmin/forgot-password" 
-                  className="text-pink-400 hover:text-pink-300 transition-colors font-medium"
+                  href="/forgot-password" 
+                  className="text-cyan-400 hover:text-cyan-300 transition-colors font-medium"
                 >
-                  Super Admin Password Reset
+                  ISP Password Reset
                 </Link>
               </p>
             </div>
