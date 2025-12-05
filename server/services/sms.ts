@@ -87,8 +87,55 @@ export class SmsService {
   }
 
   private async sendViaTwilio(phone: string, message: string): Promise<SmsResult> {
-    console.log(`[SMS] Twilio integration not implemented yet`);
-    return { success: false, error: "Twilio integration not yet implemented" };
+    try {
+      const accountSid = this.config.apiKey;
+      const authToken = this.config.username; // Using username field to store auth token for Twilio
+      const fromNumber = this.config.senderId || "+15005550006"; // Twilio phone number
+
+      if (!accountSid || !authToken) {
+        return { success: false, error: "Twilio credentials not configured" };
+      }
+
+      const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
+      const auth = Buffer.from(`${accountSid}:${authToken}`).toString("base64");
+      
+      const formData = new URLSearchParams();
+      formData.append("To", phone);
+      formData.append("From", fromNumber);
+      formData.append("Body", message);
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Authorization": `Basic ${auth}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: formData.toString(),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("[SMS] Twilio error:", errorData);
+        return {
+          success: false,
+          error: errorData.message || `Twilio API error: ${response.status}`,
+        };
+      }
+
+      const data = await response.json();
+      console.log(`[SMS] Twilio message sent: ${data.sid}`);
+      
+      return {
+        success: true,
+        messageId: data.sid,
+      };
+    } catch (error) {
+      console.error("[SMS] Twilio request error:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Twilio request failed",
+      };
+    }
   }
 
   private async sendMock(phone: string, message: string): Promise<SmsResult> {

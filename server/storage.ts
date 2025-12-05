@@ -40,6 +40,7 @@ export interface IStorage {
   getRecentTransactions(tenantId: string, limit?: number): Promise<Transaction[]>;
   getTransaction(id: string): Promise<Transaction | undefined>;
   getTransactionByCheckoutRequestId(checkoutRequestId: string): Promise<Transaction | undefined>;
+  getTransactionsByWifiUserId(wifiUserId: string): Promise<Transaction[]>;
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
   updateTransaction(id: string, data: Partial<InsertTransaction>): Promise<Transaction | undefined>;
 
@@ -198,6 +199,12 @@ export class DatabaseStorage implements IStorage {
     const [transaction] = await db.select().from(transactions)
       .where(eq(transactions.checkoutRequestId, checkoutRequestId));
     return transaction || undefined;
+  }
+
+  async getTransactionsByWifiUserId(wifiUserId: string): Promise<Transaction[]> {
+    return db.select().from(transactions)
+      .where(eq(transactions.wifiUserId, wifiUserId))
+      .orderBy(desc(transactions.createdAt));
   }
 
   async createTransaction(transaction: InsertTransaction): Promise<Transaction> {

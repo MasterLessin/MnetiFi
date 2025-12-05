@@ -153,11 +153,23 @@ export default function RegisterPage() {
       const data = await response.json();
 
       if (response.ok) {
+        let toastDescription = "";
+        if (paymentMethod === "MPESA") {
+          toastDescription = "Check your phone for M-Pesa payment prompt. Your trial starts immediately!";
+        } else if (paymentMethod === "BANK") {
+          toastDescription = `Account created! Transfer to KCB Acc: 1234567890 using reference: ${data.tenant?.id || "your-tenant-id"}`;
+        } else if (paymentMethod === "PAYPAL") {
+          toastDescription = "Redirecting to PayPal to complete payment...";
+          if (data.paypalRedirect) {
+            setTimeout(() => {
+              window.open(data.paypalRedirect, "_blank");
+            }, 2000);
+          }
+        }
+        
         toast({
           title: "Account Created!",
-          description: paymentMethod === "MPESA" 
-            ? "Check your phone for M-Pesa payment prompt. Your trial starts after payment."
-            : "Your ISP account has been created. Complete payment to activate.",
+          description: toastDescription,
         });
         setLocation("/login");
       } else {

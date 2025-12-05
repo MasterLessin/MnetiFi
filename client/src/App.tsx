@@ -8,6 +8,7 @@ import { SuperAdminLayout } from "@/layouts/superadmin-layout";
 import { TechLayout } from "@/layouts/tech-layout";
 import LandingPage from "@/pages/landing";
 import CaptivePortal from "@/pages/captive-portal";
+import CustomerPortal from "@/pages/customer-portal";
 import LoginPage from "@/pages/login";
 import RegisterPage from "@/pages/register";
 import ForgotPasswordPage from "@/pages/forgot-password";
@@ -45,6 +46,9 @@ function Router() {
       
       {/* Captive Portal - Public facing */}
       <Route path="/portal" component={CaptivePortal} />
+      
+      {/* Customer Portal - Self-service for WiFi users */}
+      <Route path="/my-account" component={CustomerPortal} />
       
       {/* Auth Pages */}
       <Route path="/login" component={LoginPage} />

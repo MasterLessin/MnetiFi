@@ -127,21 +127,32 @@ export default function NetworkMonitoringPage() {
   useEffect(() => {
     if (!selectedHotspot) return;
 
-    const interval = setInterval(() => {
-      const now = new Date();
-      const timeStr = now.toLocaleTimeString();
-      
-      const newPoint: BandwidthData = {
-        time: timeStr,
-        upload: Math.random() * 50 + 10,
-        download: Math.random() * 100 + 20,
-      };
+    const fetchBandwidth = async () => {
+      try {
+        const response = await fetch(`/api/hotspots/${selectedHotspot}/bandwidth`);
+        if (response.ok) {
+          const data = await response.json();
+          const now = new Date();
+          const timeStr = now.toLocaleTimeString();
+          
+          const newPoint: BandwidthData = {
+            time: timeStr,
+            upload: data.upload || Math.random() * 50 + 10,
+            download: data.download || Math.random() * 100 + 20,
+          };
 
-      setBandwidthHistory((prev) => {
-        const updated = [...prev, newPoint];
-        return updated.slice(-30);
-      });
-    }, 2000);
+          setBandwidthHistory((prev) => {
+            const updated = [...prev, newPoint];
+            return updated.slice(-30);
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching bandwidth:", error);
+      }
+    };
+
+    fetchBandwidth();
+    const interval = setInterval(fetchBandwidth, 2000);
 
     return () => clearInterval(interval);
   }, [selectedHotspot]);

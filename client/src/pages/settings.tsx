@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Building2, Key, Palette, Save, Eye, EyeOff, Upload, Wifi } from "lucide-react";
+import { Building2, Key, Palette, Save, Eye, EyeOff, Upload, Wifi, MessageSquare } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { GlassPanel } from "@/components/glass-panel";
 import { GlassInput } from "@/components/glass-input";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,10 @@ export default function SettingsPage() {
     mpesaPasskey: "",
     mpesaConsumerKey: "",
     mpesaConsumerSecret: "",
+    smsProvider: "mock",
+    smsApiKey: "",
+    smsUsername: "",
+    smsSenderId: "",
   });
 
   const [brandingData, setBrandingData] = useState({
@@ -51,6 +56,10 @@ export default function SettingsPage() {
         mpesaPasskey: tenant.mpesaPasskey || "",
         mpesaConsumerKey: tenant.mpesaConsumerKey || "",
         mpesaConsumerSecret: tenant.mpesaConsumerSecret || "",
+        smsProvider: tenant.smsProvider || "mock",
+        smsApiKey: tenant.smsApiKey || "",
+        smsUsername: tenant.smsUsername || "",
+        smsSenderId: tenant.smsSenderId || "",
       });
       const branding = tenant.brandingConfig || {};
       setBrandingData({
@@ -345,6 +354,103 @@ export default function SettingsPage() {
                 Safaricom Developer Portal
               </a>
               . Use sandbox credentials for testing.
+            </p>
+          </div>
+        </GlassPanel>
+
+        <GlassPanel size="md">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-orange-500/20">
+                <MessageSquare size={20} className="text-orange-400" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-white">SMS Integration</h2>
+                <p className="text-sm text-muted-foreground">
+                  Configure SMS provider for customer notifications and campaigns
+                </p>
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowSecrets(!showSecrets)}
+              data-testid="button-toggle-sms-secrets"
+            >
+              {showSecrets ? (
+                <>
+                  <EyeOff size={16} className="mr-2" />
+                  Hide
+                </>
+              ) : (
+                <>
+                  <Eye size={16} className="mr-2" />
+                  Show
+                </>
+              )}
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label className="text-muted-foreground">SMS Provider</Label>
+              <Select 
+                value={formData.smsProvider} 
+                onValueChange={(value) => setFormData({ ...formData, smsProvider: value })}
+              >
+                <SelectTrigger className="glass-input" data-testid="select-sms-provider">
+                  <SelectValue placeholder="Select provider" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="mock">Mock (Testing)</SelectItem>
+                  <SelectItem value="africas_talking">Africa's Talking</SelectItem>
+                  <SelectItem value="twilio">Twilio</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Use Mock for testing, Africa's Talking for production in Kenya
+              </p>
+            </div>
+
+            <GlassInput
+              label="Sender ID"
+              placeholder="YOURCOMPANY"
+              value={formData.smsSenderId}
+              onChange={(e) => setFormData({ ...formData, smsSenderId: e.target.value })}
+              data-testid="input-sms-sender-id"
+            />
+
+            <GlassInput
+              label="API Key"
+              type={showSecrets ? "text" : "password"}
+              placeholder="Your SMS API Key"
+              value={formData.smsApiKey}
+              onChange={(e) => setFormData({ ...formData, smsApiKey: e.target.value })}
+              data-testid="input-sms-api-key"
+            />
+
+            <GlassInput
+              label="Username"
+              placeholder="sandbox or your username"
+              value={formData.smsUsername}
+              onChange={(e) => setFormData({ ...formData, smsUsername: e.target.value })}
+              data-testid="input-sms-username"
+            />
+          </div>
+
+          <div className="mt-4 p-4 rounded-xl bg-orange-500/10 border border-orange-500/20">
+            <p className="text-sm text-muted-foreground">
+              For Africa's Talking, get your credentials from the{" "}
+              <a
+                href="https://africastalking.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-cyan-400 hover:text-cyan-300"
+              >
+                Africa's Talking Dashboard
+              </a>
+              . Use "sandbox" as username for testing. SMS campaigns are available for Tier 2 subscribers.
             </p>
           </div>
         </GlassPanel>

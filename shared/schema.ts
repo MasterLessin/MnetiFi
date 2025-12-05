@@ -104,6 +104,10 @@ export const tenants = pgTable("tenants", {
   mpesaPasskey: text("mpesa_passkey"),
   mpesaConsumerKey: text("mpesa_consumer_key"),
   mpesaConsumerSecret: text("mpesa_consumer_secret"),
+  smsProvider: text("sms_provider").default("mock"), // mock, africas_talking, twilio
+  smsApiKey: text("sms_api_key"),
+  smsUsername: text("sms_username"),
+  smsSenderId: text("sms_sender_id"),
   tier: text("tier").default("TRIAL"),
   trialExpiresAt: timestamp("trial_expires_at"),
   subscriptionExpiresAt: timestamp("subscription_expires_at"),
