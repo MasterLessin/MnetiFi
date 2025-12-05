@@ -178,6 +178,7 @@ export const plans = pgTable("plans", {
   burstThreshold: text("burst_threshold"), // e.g., "1M"
   burstTime: integer("burst_time"), // in seconds
   simultaneousUse: integer("simultaneous_use").default(1),
+  maxDevices: integer("max_devices").default(1), // Maximum devices allowed per voucher
   isActive: boolean("is_active").default(true),
   sortOrder: integer("sort_order").default(0),
   createdAt: timestamp("created_at").defaultNow(),

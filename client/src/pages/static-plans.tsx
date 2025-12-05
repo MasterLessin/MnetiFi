@@ -10,6 +10,7 @@ import {
   Zap,
   Clock,
   Globe,
+  Smartphone,
 } from "lucide-react";
 import { GlassPanel } from "@/components/glass-panel";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,7 @@ export default function StaticPlansPage() {
     speedMbps: "",
     uploadLimit: "",
     downloadLimit: "",
+    maxDevices: "1",
   });
 
   const { data: plans, isLoading } = useQuery<Plan[]>({
@@ -54,6 +56,7 @@ export default function StaticPlansPage() {
     mutationFn: async (data: typeof formData) => {
       const price = parseInt(data.price) || 0;
       const speedMbps = parseInt(data.speedMbps) || 0;
+      const maxDevices = parseInt(data.maxDevices) || 1;
       if (price <= 0 || speedMbps <= 0) {
         throw new Error("Price and speed must be valid positive numbers");
       }
@@ -66,6 +69,7 @@ export default function StaticPlansPage() {
         durationSeconds: 30 * 24 * 60 * 60, // 30 days
         uploadLimit: data.uploadLimit || `${speedMbps}M`,
         downloadLimit: data.downloadLimit || `${speedMbps}M`,
+        maxDevices,
       });
     },
     onSuccess: () => {
@@ -90,6 +94,7 @@ export default function StaticPlansPage() {
     mutationFn: async (data: typeof formData & { id: string }) => {
       const price = parseInt(data.price) || 0;
       const speedMbps = parseInt(data.speedMbps) || 0;
+      const maxDevices = parseInt(data.maxDevices) || 1;
       if (price <= 0 || speedMbps <= 0) {
         throw new Error("Price and speed must be valid positive numbers");
       }
@@ -100,6 +105,7 @@ export default function StaticPlansPage() {
         speedMbps,
         uploadLimit: data.uploadLimit || `${speedMbps}M`,
         downloadLimit: data.downloadLimit || `${speedMbps}M`,
+        maxDevices,
       });
     },
     onSuccess: () => {
@@ -149,6 +155,7 @@ export default function StaticPlansPage() {
       speedMbps: "",
       uploadLimit: "",
       downloadLimit: "",
+      maxDevices: "1",
     });
   };
 
@@ -167,6 +174,7 @@ export default function StaticPlansPage() {
       speedMbps: plan.speedMbps?.toString() || "",
       uploadLimit: plan.uploadLimit || "",
       downloadLimit: plan.downloadLimit || "",
+      maxDevices: plan.maxDevices?.toString() || "1",
     });
     setIsDialogOpen(true);
   };
@@ -344,6 +352,22 @@ export default function StaticPlansPage() {
                   onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                   required
                   data-testid="input-price"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Max Devices per Voucher</Label>
+              <div className="flex items-center gap-2">
+                <Smartphone size={16} className="text-muted-foreground" />
+                <Input
+                  type="number"
+                  min="1"
+                  max="20"
+                  placeholder="1"
+                  value={formData.maxDevices}
+                  onChange={(e) => setFormData({ ...formData, maxDevices: e.target.value })}
+                  data-testid="input-max-devices"
                 />
               </div>
             </div>

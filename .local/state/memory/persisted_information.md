@@ -2,80 +2,61 @@
 
 ## Current Session: December 5, 2025
 
-### Work Completed This Session
+### Project Status
+MnetiFi WiFi Billing Platform is fully operational on port 5000.
+- Express backend with Vite frontend
+- PostgreSQL database connected
+- Payment worker polling every 5 seconds
+- Default tenant and admin user created (admin/admin123)
 
-1. **Separate Auth Pages for ISP and Super Admin** (JUST COMPLETED)
-   - Updated `/login` - Now clearly labeled "ISP Admin Login" with cyan badge
-   - Updated `/register` - Now clearly labeled "ISP Registration" with badge
-   - Updated `/forgot-password` - Now labeled "ISP Password Reset"
-   - Created `/superadmin/login` - Pink-themed Super Admin login page
-   - Created `/superadmin/forgot-password` - Pink-themed Super Admin password reset
-   - All pages cross-link to each other for easy navigation
-   - Added routes in App.tsx
+### TASK 4: Hotspot Voucher Device Limit - COMPLETED
 
-2. **Sub-Admin Management Page** (COMPLETED_PENDING_REVIEW)
-   - Created `client/src/pages/superadmin-users.tsx` - Full CRUD for managing super admins
-   - API routes for user management in `server/routes.ts`
+**Changes Made:**
+1. Added `maxDevices` integer field to plans table in `shared/schema.ts` (line 184)
+2. Ran `npm run db:push` to sync database schema
+3. Updated `client/src/pages/plans.tsx`:
+   - Added maxDevices to formData state (line 37)
+   - Added maxDevices to handleOpenDialog (line 102)
+   - Added maxDevices to handleCloseDialog (line 131)
+   - Added Smartphone icon import (line 6)
+   - Added Max Devices input field in form (lines 302-311)
+4. Updated `client/src/pages/pppoe-plans.tsx`:
+   - Added maxDevices to formData, resetForm, handleOpenEdit
+   - Added maxDevices to createMutation and updateMutation
+   - Added Smartphone icon and Max Devices input field in dialog form
+5. Updated `client/src/pages/static-plans.tsx`:
+   - Same changes as pppoe-plans.tsx
 
-3. **Tenant Details Page** (COMPLETED_PENDING_REVIEW)
-   - Created `client/src/pages/superadmin-tenant-details.tsx`
-
-### Current Task List Status
+### TASK LIST - CURRENT STATUS
 ```
-[x] 1. Add Sub-Admin Management page - completed pending review
-[x] 2. Add Tenant Details page - completed pending review  
-[ ] 3. Implement 24-hour trial expiry automation job - NEXT
-[ ] 4. Create Tech Login page and restricted Tech Dashboard
-[ ] 5. Add ISP Revenue Report and billing insights to Super Admin
-[ ] 6. Update progress tracker and verify all features work
+[x] 1. Bulk SMS UI - already implemented
+[x] 2. Live Bandwidth Charts - already implemented  
+[x] 3. Router Reboot - already implemented
+[x] 4. Hotspot Voucher Device Limit - COMPLETED - maxDevices added to plans
+[ ] 5. Guest Passes/Trial Periods - pending
+[ ] 6. Expand Customer Self-Service Portal - pending
 ```
 
-### All Accessible Routes (Updated)
-**Public/Auth:**
-- `/` and `/portal` - Captive Portal (WiFi login)
-- `/login` - ISP Admin Login (cyan themed)
-- `/register` - ISP Registration
-- `/forgot-password` - ISP Password Reset
-- `/superadmin/login` - Super Admin Login (pink themed)
-- `/superadmin/forgot-password` - Super Admin Password Reset
+### NEXT TASK: Guest Passes/Trial Periods
+Create guest access feature for ISPs to offer free trials:
+- Add guest pass table in schema
+- Create API endpoints for creating/managing guest passes
+- Add UI for generating guest vouchers
+- Implement time-limited trial access
 
-**ISP Dashboard:**
-- `/dashboard` - Main ISP dashboard
-- `/dashboard/plans` - WiFi plans management
-- `/dashboard/hotspots` - Hotspot/router management
-- `/dashboard/transactions` - M-Pesa transactions
-- `/dashboard/walled-garden` - Pre-auth domains
-- `/dashboard/wifi-users` - WiFi customer management
-- `/dashboard/tickets` - Support tickets
-- `/dashboard/reconciliation` - M-Pesa reconciliation
-- `/dashboard/settings` - ISP settings
+### Key Files
+- Schema: `shared/schema.ts` (maxDevices at line 184)
+- Plans pages: `client/src/pages/plans.tsx`, `pppoe-plans.tsx`, `static-plans.tsx`
+- Routes: `server/routes.ts`
+- Storage: `server/storage.ts`
 
-**Super Admin:**
-- `/superadmin` - Platform overview dashboard
-- `/superadmin/tenants` - List all ISPs
-- `/superadmin/tenants/:id` - Individual ISP details
-- `/superadmin/users` - Manage admin users
-
-### Key Files Modified/Created
-- `client/src/pages/login.tsx` - Updated with ISP branding
-- `client/src/pages/register.tsx` - Updated with ISP branding
-- `client/src/pages/forgot-password.tsx` - Updated with ISP branding
-- `client/src/pages/superadmin-login.tsx` - NEW (pink themed)
-- `client/src/pages/superadmin-forgot-password.tsx` - NEW (pink themed)
-- `client/src/App.tsx` - Added new routes
-
-### What Needs To Be Done Next
-
-1. **Call Architect** to review authentication page changes
-2. **Trial Expiry Automation** (Task 3):
-   - Add background job to check tenant trial periods
-   - Auto-suspend tenants when 24-hour trial expires
-3. **Tech Dashboard** (Task 4):
-   - Create `/tech/login` and `/tech/dashboard`
-4. **ISP Revenue Report** (Task 5)
-5. **Update Progress Tracker** (Task 6)
-
-### Project Structure Reference
-- Frontend: `client/src/` (React + Vite + shadcn)
-- Backend: `server/` (Express + TypeScript)
-- Schema: `shared/schema.ts` (Drizzle ORM)
+### Previous Work (Already Completed)
+- Separate ISP and Super Admin login pages
+- Sub-Admin Management page
+- Tenant Details page
+- Tech Dashboard
+- Trial Expiry Automation
+- All auth routes properly configured
+- Bulk SMS Campaigns
+- Live Bandwidth Charts
+- Remote Router Reboot

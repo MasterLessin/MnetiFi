@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Clock, Upload, Download, Users, X } from "lucide-react";
+import { Plus, Clock, Upload, Download, Users, Smartphone, X } from "lucide-react";
 import { GlassPanel } from "@/components/glass-panel";
 import { GlassInput, GlassTextarea } from "@/components/glass-input";
 import { PlanCard, PlanCardSkeleton } from "@/components/plan-card";
@@ -31,6 +31,7 @@ export default function PlansPage() {
     uploadLimit: "",
     downloadLimit: "",
     simultaneousUse: 1,
+    maxDevices: 1,
   });
 
   // Fetch plans
@@ -95,6 +96,7 @@ export default function PlansPage() {
         uploadLimit: plan.uploadLimit || "",
         downloadLimit: plan.downloadLimit || "",
         simultaneousUse: plan.simultaneousUse || 1,
+        maxDevices: plan.maxDevices || 1,
       });
     } else {
       setEditingPlan(null);
@@ -106,6 +108,7 @@ export default function PlansPage() {
         uploadLimit: "",
         downloadLimit: "",
         simultaneousUse: 1,
+        maxDevices: 1,
       });
     }
     setIsDialogOpen(true);
@@ -122,6 +125,7 @@ export default function PlansPage() {
       uploadLimit: "",
       downloadLimit: "",
       simultaneousUse: 1,
+      maxDevices: 1,
     });
   };
 
@@ -281,16 +285,28 @@ export default function PlansPage() {
               />
             </div>
 
-            <GlassInput
-              label="Simultaneous Devices"
-              type="number"
-              min={1}
-              max={10}
-              value={formData.simultaneousUse?.toString() || "1"}
-              onChange={(e) => setFormData({ ...formData, simultaneousUse: parseInt(e.target.value) || 1 })}
-              icon={<Users size={16} />}
-              data-testid="input-plan-devices"
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <GlassInput
+                label="Simultaneous Sessions"
+                type="number"
+                min={1}
+                max={10}
+                value={formData.simultaneousUse?.toString() || "1"}
+                onChange={(e) => setFormData({ ...formData, simultaneousUse: parseInt(e.target.value) || 1 })}
+                icon={<Users size={16} />}
+                data-testid="input-plan-devices"
+              />
+              <GlassInput
+                label="Max Devices per Voucher"
+                type="number"
+                min={1}
+                max={20}
+                value={formData.maxDevices?.toString() || "1"}
+                onChange={(e) => setFormData({ ...formData, maxDevices: parseInt(e.target.value) || 1 })}
+                icon={<Smartphone size={16} />}
+                data-testid="input-plan-max-devices"
+              />
+            </div>
 
             <div className="flex gap-3 pt-4">
               <Button
