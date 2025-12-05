@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import {
   Building2,
@@ -14,6 +15,7 @@ import {
   Users,
   DollarSign,
   Calendar,
+  Eye,
 } from "lucide-react";
 import { GlassPanel } from "@/components/glass-panel";
 import { Badge } from "@/components/ui/badge";
@@ -56,6 +58,7 @@ export default function SuperAdminTenantsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [tierFilter, setTierFilter] = useState<string>("all");
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
 
   const { data: tenants, isLoading } = useQuery<TenantWithStats[]>({
@@ -309,6 +312,14 @@ export default function SuperAdminTenantsPage() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
+                    <DropdownMenuItem 
+                      onClick={() => setLocation(`/superadmin/tenants/${tenant.id}`)}
+                      data-testid={`action-view-${tenant.id}`}
+                    >
+                      <Eye size={16} className="mr-2" />
+                      View Details
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
                     {tenant.saasBillingStatus !== "ACTIVE" && (
                       <DropdownMenuItem 
                         onClick={() => handleActivate(tenant)}

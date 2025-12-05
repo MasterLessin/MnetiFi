@@ -1104,15 +1104,29 @@ export async function registerRoutes(
       const wifiUsersList = await storage.getWifiUsers(req.params.id);
       const transactionsList = await storage.getTransactions(req.params.id);
       const hotspotsList = await storage.getHotspots(req.params.id);
+      const plansList = await storage.getPlans(req.params.id);
+
+      const now = new Date();
+      const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+
+      const completedTransactions = transactionsList.filter(t => t.status === 'COMPLETED');
+      const thisMonthRevenue = completedTransactions
+        .filter(t => t.createdAt && new Date(t.createdAt) >= thisMonthStart)
+        .reduce((sum, t) => sum + t.amount, 0);
+      const lastMonthRevenue = completedTransactions
+        .filter(t => t.createdAt && new Date(t.createdAt) >= lastMonthStart && new Date(t.createdAt) <= lastMonthEnd)
+        .reduce((sum, t) => sum + t.amount, 0);
 
       res.json({
         ...tenant,
-        stats: {
-          totalUsers: wifiUsersList.length,
-          activeUsers: wifiUsersList.filter(u => u.status === 'ACTIVE').length,
-          totalTransactions: transactionsList.length,
-          totalHotspots: hotspotsList.length,
-        }
+        userCount: wifiUsersList.length,
+        transactionCount: transactionsList.length,
+        hotspotCount: hotspotsList.length,
+        planCount: plansList.length,
+        revenueThisMonth: thisMonthRevenue,
+        revenueLastMonth: lastMonthRevenue,
       });
     } catch (error) {
       console.error("Error fetching tenant details:", error);
@@ -1175,14 +1189,17 @@ export async function registerRoutes(
     }
   });
 
-  // Create super admin user (protected - only existing superadmins can create new ones)
+  // Create admin user (protected - only existing superadmins can create new ones)
   app.post("/api/superadmin/create-superadmin", requireSuperAdmin, async (req, res) => {
     try {
-      const { username, email, password } = req.body;
+      const { username, email, password, role } = req.body;
       
       if (!username || !email || !password) {
         return res.status(400).json({ error: "Username, email, and password are required" });
       }
+
+      const validRoles = ["superadmin", "admin", "tech"];
+      const userRole = validRoles.includes(role) ? role : "superadmin";
 
       const existingUser = await storage.getUserByUsername(username);
       if (existingUser) {
@@ -1194,7 +1211,7 @@ export async function registerRoutes(
         username,
         email,
         password: hashedPassword,
-        role: "superadmin",
+        role: userRole,
         isActive: true,
       });
 
@@ -1205,8 +1222,57 @@ export async function registerRoutes(
         role: user.role,
       });
     } catch (error) {
-      console.error("Error creating super admin:", error);
-      res.status(500).json({ error: "Failed to create super admin" });
+      console.error("Error creating admin user:", error);
+      res.status(500).json({ error: "Failed to create admin user" });
+    }
+  });
+
+  // List all admin users
+  app.get("/api/superadmin/users", requireSuperAdmin, async (req, res) => {
+    try {
+      const adminUsers = await storage.getAllAdminUsers();
+      res.json(adminUsers.map(u => ({
+        id: u.id,
+        username: u.username,
+        email: u.email,
+        role: u.role,
+        isActive: u.isActive,
+        tenantId: u.tenantId,
+        tenantName: u.tenantName,
+        createdAt: u.createdAt,
+      })));
+    } catch (error) {
+      console.error("Error fetching admin users:", error);
+      res.status(500).json({ error: "Failed to fetch admin users" });
+    }
+  });
+
+  // Update admin user status
+  app.patch("/api/superadmin/users/:id/status", requireSuperAdmin, async (req, res) => {
+    try {
+      const { isActive } = req.body;
+      const user = await storage.updateUser(req.params.id, { isActive });
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      res.json({ id: user.id, username: user.username, isActive: user.isActive });
+    } catch (error) {
+      console.error("Error updating user status:", error);
+      res.status(500).json({ error: "Failed to update user status" });
+    }
+  });
+
+  // Delete admin user
+  app.delete("/api/superadmin/users/:id", requireSuperAdmin, async (req, res) => {
+    try {
+      const deleted = await storage.deleteUser(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ error: "Failed to delete user" });
     }
   });
 

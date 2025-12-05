@@ -263,6 +263,23 @@ export class DatabaseStorage implements IStorage {
     return updated || undefined;
   }
 
+  async deleteUser(id: string): Promise<boolean> {
+    const result = await db.delete(users).where(eq(users.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async getAllAdminUsers(): Promise<(User & { tenantName?: string })[]> {
+    const allUsers = await db.select().from(users).orderBy(desc(users.createdAt));
+    const allTenants = await db.select().from(tenants);
+    
+    return allUsers.map(user => ({
+      ...user,
+      tenantName: user.tenantId 
+        ? allTenants.find(t => t.id === user.tenantId)?.name 
+        : undefined
+    }));
+  }
+
   async getAllTenants(): Promise<Tenant[]> {
     return db.select().from(tenants).orderBy(desc(tenants.createdAt));
   }

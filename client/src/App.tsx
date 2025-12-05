@@ -20,6 +20,8 @@ import ReconciliationPage from "@/pages/reconciliation";
 import SettingsPage from "@/pages/settings";
 import SuperAdminDashboard from "@/pages/superadmin-dashboard";
 import SuperAdminTenantsPage from "@/pages/superadmin-tenants";
+import SuperAdminTenantDetailsPage from "@/pages/superadmin-tenant-details";
+import SuperAdminUsersPage from "@/pages/superadmin-users";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -111,6 +113,20 @@ function Router() {
         {() => (
           <SuperAdminLayout>
             <SuperAdminTenantsPage />
+          </SuperAdminLayout>
+        )}
+      </Route>
+      <Route path="/superadmin/tenants/:id">
+        {() => (
+          <SuperAdminLayout>
+            <SuperAdminTenantDetailsPage />
+          </SuperAdminLayout>
+        )}
+      </Route>
+      <Route path="/superadmin/users">
+        {() => (
+          <SuperAdminLayout>
+            <SuperAdminUsersPage />
           </SuperAdminLayout>
         )}
       </Route>
