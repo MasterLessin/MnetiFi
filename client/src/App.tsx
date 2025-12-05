@@ -5,6 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { DashboardLayout } from "@/layouts/dashboard-layout";
 import { SuperAdminLayout } from "@/layouts/superadmin-layout";
+import { TechLayout } from "@/layouts/tech-layout";
+import LandingPage from "@/pages/landing";
 import CaptivePortal from "@/pages/captive-portal";
 import LoginPage from "@/pages/login";
 import RegisterPage from "@/pages/register";
@@ -14,6 +16,8 @@ import SuperAdminForgotPasswordPage from "@/pages/superadmin-forgot-password";
 import SuperAdminRegisterPage from "@/pages/superadmin-register";
 import Dashboard from "@/pages/dashboard";
 import PlansPage from "@/pages/plans";
+import PPPoEPlansPage from "@/pages/pppoe-plans";
+import StaticPlansPage from "@/pages/static-plans";
 import HotspotsPage from "@/pages/hotspots";
 import TransactionsPage from "@/pages/transactions";
 import WalledGardenPage from "@/pages/walled-garden-page";
@@ -26,13 +30,18 @@ import SuperAdminDashboard from "@/pages/superadmin-dashboard";
 import SuperAdminTenantsPage from "@/pages/superadmin-tenants";
 import SuperAdminTenantDetailsPage from "@/pages/superadmin-tenant-details";
 import SuperAdminUsersPage from "@/pages/superadmin-users";
+import TechDashboard from "@/pages/tech-dashboard";
+import TechPPPoEUsersPage from "@/pages/tech-pppoe-users";
+import TechStaticUsersPage from "@/pages/tech-static-users";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
     <Switch>
+      {/* Landing Page - Official Website */}
+      <Route path="/" component={LandingPage} />
+      
       {/* Captive Portal - Public facing */}
-      <Route path="/" component={CaptivePortal} />
       <Route path="/portal" component={CaptivePortal} />
       
       {/* Auth Pages */}
@@ -52,6 +61,20 @@ function Router() {
         {() => (
           <DashboardLayout>
             <PlansPage />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path="/dashboard/pppoe-plans">
+        {() => (
+          <DashboardLayout>
+            <PPPoEPlansPage />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path="/dashboard/static-plans">
+        {() => (
+          <DashboardLayout>
+            <StaticPlansPage />
           </DashboardLayout>
         )}
       </Route>
@@ -144,6 +167,36 @@ function Router() {
           <SuperAdminLayout>
             <SuperAdminUsersPage />
           </SuperAdminLayout>
+        )}
+      </Route>
+
+      {/* Tech Portal Routes */}
+      <Route path="/tech">
+        {() => (
+          <TechLayout>
+            <TechDashboard />
+          </TechLayout>
+        )}
+      </Route>
+      <Route path="/tech/pppoe-users">
+        {() => (
+          <TechLayout>
+            <TechPPPoEUsersPage />
+          </TechLayout>
+        )}
+      </Route>
+      <Route path="/tech/static-users">
+        {() => (
+          <TechLayout>
+            <TechStaticUsersPage />
+          </TechLayout>
+        )}
+      </Route>
+      <Route path="/tech/customers">
+        {() => (
+          <TechLayout>
+            <WifiUsersPage />
+          </TechLayout>
         )}
       </Route>
 

@@ -4,8 +4,35 @@
 MnetiFi is a multi-tenant Wi-Fi hotspot billing system designed for ISPs with M-Pesa (Safaricom Daraja) integration. The platform features a premium "Vaultic" Glassmorphism design aesthetic with animated mesh gradient backgrounds.
 
 ## Project Status
-- **Current Phase**: All Core Stages Complete (1-7) + Authentication System
+- **Current Phase**: All Core Stages Complete (1-7) + Authentication System + Landing Page + Tech Portal
 - **Last Updated**: December 5, 2025
+
+## Recent Updates
+
+### Landing Page
+- Public-facing website at `/` showcasing MnetiFi platform
+- Features section highlighting hotspot, PPPoE, static IP, M-Pesa integration
+- Pricing tiers: Trial (24h free), Tier 1 (Ksh 500/mo), Tier 2 (Ksh 1,500/mo)
+- Testimonials and call-to-action sections
+
+### Registration with Payment Options
+- 3-step registration wizard
+- Step 1: Business name and subdomain
+- Step 2: Admin credentials (username, email, password)
+- Step 3: Payment method selection (M-Pesa, Bank Transfer, PayPal)
+- Schema updated with registration payment fields
+
+### Tech Portal
+- Dedicated dashboard for Technician role at `/tech`
+- Sidebar navigation: Dashboard, PPPoE Users, Static IP Users, All Customers
+- User management for PPPoE and Static IP customers
+- Metrics display for active and expiring users
+
+### PPPoE/Static Plan Management
+- Speed-based monthly pricing model
+- Example tiers: 5 Mbps (Ksh 1,500), 8 Mbps (Ksh 2,000), 15 Mbps (Ksh 3,000)
+- Separate management pages for PPPoE and Static IP plans
+- Schema updated with `planType` and `speedMbps` fields
 
 ## Authentication
 - **Password Security**: bcrypt hashing with automatic legacy password migration
@@ -131,22 +158,33 @@ MnetiFi is a multi-tenant Wi-Fi hotspot billing system designed for ISPs with M-
 
 ## Routes
 
-### ISP Admin Routes
-- `/` - Captive Portal (public)
+### Public Routes
+- `/` - Landing Page (official website)
+- `/portal` - Captive Portal (WiFi login)
 - `/login` - Admin Login
-- `/register` - ISP Registration Wizard
+- `/register` - ISP Registration Wizard (3-step with payment options)
 - `/forgot-password` - Password Reset Request
 - `/reset-password/:token` - Password Reset Form
+
+### ISP Admin Routes
 - `/dashboard` - Admin Dashboard
 - `/dashboard/wifi-users` - WiFi Users Management
 - `/dashboard/wifi-users/:id` - Customer Details Page (individual customer profile)
-- `/dashboard/plans` - Plan Management
+- `/dashboard/plans` - Hotspot Plan Management
+- `/dashboard/pppoe-plans` - PPPoE Plan Management (speed-based)
+- `/dashboard/static-plans` - Static IP Plan Management (speed-based)
 - `/dashboard/hotspots` - Hotspot Management
 - `/dashboard/transactions` - Transaction History
 - `/dashboard/tickets` - Support Tickets
 - `/dashboard/reconciliation` - Reconciliation Reports
 - `/dashboard/walled-garden` - Walled Garden Config
 - `/dashboard/settings` - Tenant Settings
+
+### Technician Routes
+- `/tech` - Technician Dashboard
+- `/tech/pppoe-users` - PPPoE User Management
+- `/tech/static-users` - Static IP User Management
+- `/tech/customers` - All Customers View
 
 ### Super Admin Routes
 - `/superadmin/login` - Super Admin Login

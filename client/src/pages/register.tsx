@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { motion } from "framer-motion";
-import { User, Lock, Mail, Building2, Loader2, ArrowRight, ArrowLeft, Check, Wifi } from "lucide-react";
+import { User, Lock, Mail, Building2, Loader2, ArrowRight, ArrowLeft, Check, Wifi, CreditCard, Building, Phone } from "lucide-react";
+import { SiPaypal } from "react-icons/si";
 import { MeshBackground } from "@/components/mesh-background";
-import { MnetiFiLogo } from "@/components/mnetifi-logo";
+import { MnetiFiLogo, MpesaLogo } from "@/components/mnetifi-logo";
 import { GlassPanel } from "@/components/glass-panel";
 import { GlassInput } from "@/components/glass-input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+
+type PaymentMethod = "MPESA" | "BANK" | "PAYPAL" | null;
 
 export default function RegisterPage() {
   const [, setLocation] = useLocation();
@@ -22,6 +25,8 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(null);
+  const [phoneNumber, setPhoneNumber] = useState("");
 
   const validateStep1 = () => {
     if (!businessName.trim()) {
@@ -95,16 +100,38 @@ export default function RegisterPage() {
     return true;
   };
 
+  const validateStep3 = () => {
+    if (!paymentMethod) {
+      toast({
+        title: "Payment method required",
+        description: "Please select a payment method",
+        variant: "destructive",
+      });
+      return false;
+    }
+    if (paymentMethod === "MPESA" && !phoneNumber.trim()) {
+      toast({
+        title: "Phone number required",
+        description: "Please enter your M-Pesa phone number",
+        variant: "destructive",
+      });
+      return false;
+    }
+    return true;
+  };
+
   const handleNext = () => {
     if (step === 1 && validateStep1()) {
       setStep(2);
+    } else if (step === 2 && validateStep2()) {
+      setStep(3);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateStep2()) return;
+    if (!validateStep3()) return;
     
     setIsLoading(true);
 
@@ -118,6 +145,8 @@ export default function RegisterPage() {
           username,
           email,
           password,
+          paymentMethod,
+          phoneNumber: paymentMethod === "MPESA" ? phoneNumber : undefined,
         }),
       });
 
@@ -126,7 +155,9 @@ export default function RegisterPage() {
       if (response.ok) {
         toast({
           title: "Account Created!",
-          description: "Your ISP account has been created. You can now login.",
+          description: paymentMethod === "MPESA" 
+            ? "Check your phone for M-Pesa payment prompt. Your trial starts after payment."
+            : "Your ISP account has been created. Complete payment to activate.",
         });
         setLocation("/login");
       } else {
@@ -178,11 +209,17 @@ export default function RegisterPage() {
               }`}>
                 {step > 1 ? <Check size={16} /> : '1'}
               </div>
-              <div className={`w-12 h-0.5 ${step > 1 ? 'bg-cyan-500' : 'bg-white/10'}`} />
+              <div className={`w-8 h-0.5 ${step > 1 ? 'bg-cyan-500' : 'bg-white/10'}`} />
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
                 step >= 2 ? 'bg-cyan-500 text-white' : 'bg-white/10 text-muted-foreground'
               }`}>
-                2
+                {step > 2 ? <Check size={16} /> : '2'}
+              </div>
+              <div className={`w-8 h-0.5 ${step > 2 ? 'bg-cyan-500' : 'bg-white/10'}`} />
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                step >= 3 ? 'bg-cyan-500 text-white' : 'bg-white/10 text-muted-foreground'
+              }`}>
+                3
               </div>
             </div>
 
@@ -221,8 +258,8 @@ export default function RegisterPage() {
                   <ArrowRight size={18} className="ml-2" />
                 </Button>
               </form>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
+            ) : step === 2 ? (
+              <form onSubmit={(e) => { e.preventDefault(); handleNext(); }} className="space-y-4">
                 <GlassInput
                   label="Admin Username"
                   placeholder="Choose a username"
@@ -280,7 +317,137 @@ export default function RegisterPage() {
                   <Button
                     type="submit"
                     className="flex-1 gradient-btn"
-                    disabled={isLoading}
+                    data-testid="button-next-step2"
+                  >
+                    Next Step
+                    <ArrowRight size={18} className="ml-2" />
+                  </Button>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="text-left mb-4">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Choose your preferred payment method for registration:
+                  </p>
+                  
+                  <div className="space-y-3">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod("MPESA")}
+                      className={`w-full p-4 rounded-xl border transition-all flex items-center gap-4 ${
+                        paymentMethod === "MPESA"
+                          ? "border-green-500 bg-green-500/10"
+                          : "border-white/10 bg-white/5 hover:bg-white/10"
+                      }`}
+                      data-testid="button-payment-mpesa"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                        <MpesaLogo size={24} />
+                      </div>
+                      <div className="flex-1 text-left">
+                        <p className="font-semibold text-white">M-Pesa</p>
+                        <p className="text-xs text-muted-foreground">Pay instantly via STK Push</p>
+                      </div>
+                      {paymentMethod === "MPESA" && (
+                        <Check size={20} className="text-green-400" />
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod("BANK")}
+                      className={`w-full p-4 rounded-xl border transition-all flex items-center gap-4 ${
+                        paymentMethod === "BANK"
+                          ? "border-cyan-500 bg-cyan-500/10"
+                          : "border-white/10 bg-white/5 hover:bg-white/10"
+                      }`}
+                      data-testid="button-payment-bank"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                        <Building size={20} className="text-cyan-400" />
+                      </div>
+                      <div className="flex-1 text-left">
+                        <p className="font-semibold text-white">Bank Transfer</p>
+                        <p className="text-xs text-muted-foreground">Pay via bank deposit</p>
+                      </div>
+                      {paymentMethod === "BANK" && (
+                        <Check size={20} className="text-cyan-400" />
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod("PAYPAL")}
+                      className={`w-full p-4 rounded-xl border transition-all flex items-center gap-4 ${
+                        paymentMethod === "PAYPAL"
+                          ? "border-blue-500 bg-blue-500/10"
+                          : "border-white/10 bg-white/5 hover:bg-white/10"
+                      }`}
+                      data-testid="button-payment-paypal"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+                        <SiPaypal size={20} className="text-blue-400" />
+                      </div>
+                      <div className="flex-1 text-left">
+                        <p className="font-semibold text-white">PayPal</p>
+                        <p className="text-xs text-muted-foreground">Pay with PayPal account</p>
+                      </div>
+                      {paymentMethod === "PAYPAL" && (
+                        <Check size={20} className="text-blue-400" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {paymentMethod === "MPESA" && (
+                  <GlassInput
+                    label="M-Pesa Phone Number"
+                    placeholder="0712345678"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    required
+                    icon={<Phone size={16} />}
+                    data-testid="input-phone"
+                  />
+                )}
+
+                {paymentMethod === "BANK" && (
+                  <div className="p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-left">
+                    <p className="text-sm font-medium text-white mb-2">Bank Details</p>
+                    <p className="text-xs text-muted-foreground">
+                      Bank: Kenya Commercial Bank<br />
+                      Account: 1234567890<br />
+                      Name: MnetiFi Ltd<br />
+                      Branch: Nairobi
+                    </p>
+                  </div>
+                )}
+
+                {paymentMethod === "PAYPAL" && (
+                  <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-left">
+                    <p className="text-sm font-medium text-white mb-2">PayPal Payment</p>
+                    <p className="text-xs text-muted-foreground">
+                      You will be redirected to PayPal to complete payment after registration.
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1 border-white/20"
+                    onClick={() => setStep(2)}
+                    data-testid="button-back"
+                  >
+                    <ArrowLeft size={18} className="mr-2" />
+                    Back
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="flex-1 gradient-btn"
+                    disabled={isLoading || !paymentMethod}
                     data-testid="button-register"
                   >
                     {isLoading ? (
@@ -290,7 +457,7 @@ export default function RegisterPage() {
                       </>
                     ) : (
                       <>
-                        Create Account
+                        Complete Registration
                         <ArrowRight size={18} className="ml-2" />
                       </>
                     )}

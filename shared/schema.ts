@@ -72,6 +72,22 @@ export const ReconciliationStatus = {
 } as const;
 export type ReconciliationStatusValue = typeof ReconciliationStatus[keyof typeof ReconciliationStatus];
 
+// ISP Payment Method for registration
+export const ISPPaymentMethod = {
+  MPESA: "MPESA",
+  BANK: "BANK",
+  PAYPAL: "PAYPAL",
+} as const;
+export type ISPPaymentMethodValue = typeof ISPPaymentMethod[keyof typeof ISPPaymentMethod];
+
+// ISP Registration Payment Status
+export const ISPPaymentStatus = {
+  PENDING: "PENDING",
+  COMPLETED: "COMPLETED",
+  FAILED: "FAILED",
+} as const;
+export type ISPPaymentStatusValue = typeof ISPPaymentStatus[keyof typeof ISPPaymentStatus];
+
 // Tenant - Multi-tenant SaaS organization
 export const tenants = pgTable("tenants", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -95,6 +111,9 @@ export const tenants = pgTable("tenants", {
   totalUsers: integer("total_users").default(0),
   saasBillingStatus: text("saas_billing_status").default("TRIAL"),
   isActive: boolean("is_active").default(true),
+  registrationPaymentMethod: text("registration_payment_method"), // MPESA, BANK, PAYPAL
+  registrationPaymentStatus: text("registration_payment_status").default("PENDING"), // PENDING, COMPLETED, FAILED
+  registrationPaymentRef: text("registration_payment_ref"), // Reference number for payment
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -130,6 +149,14 @@ export const hotspotsRelations = relations(hotspots, ({ one }) => ({
   }),
 }));
 
+// Plan type
+export const PlanType = {
+  HOTSPOT: "HOTSPOT",
+  PPPOE: "PPPOE",
+  STATIC: "STATIC",
+} as const;
+export type PlanTypeValue = typeof PlanType[keyof typeof PlanType];
+
 // Plan - WiFi subscription plans
 export const plans = pgTable("plans", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -138,6 +165,8 @@ export const plans = pgTable("plans", {
   description: text("description"),
   price: integer("price").notNull(), // In smallest currency unit (cents/shillings)
   durationSeconds: integer("duration_seconds").notNull(),
+  planType: text("plan_type").notNull().default("HOTSPOT"), // HOTSPOT, PPPOE, STATIC
+  speedMbps: integer("speed_mbps"), // Speed in Mbps for PPPoE/Static plans
   uploadLimit: text("upload_limit"), // e.g., "2M" for MikroTik
   downloadLimit: text("download_limit"), // e.g., "5M" for MikroTik
   burstRateUp: text("burst_rate_up"), // e.g., "4M" burst upload
