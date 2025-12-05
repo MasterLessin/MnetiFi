@@ -4,8 +4,14 @@
 MnetiFi is a multi-tenant Wi-Fi hotspot billing system designed for ISPs with M-Pesa (Safaricom Daraja) integration. The platform features a premium "Vaultic" Glassmorphism design aesthetic with animated mesh gradient backgrounds.
 
 ## Project Status
-- **Current Phase**: All Core Stages Complete (1-7)
-- **Last Updated**: December 1, 2025
+- **Current Phase**: All Core Stages Complete (1-7) + Authentication System
+- **Last Updated**: December 5, 2025
+
+## Authentication
+- **Password Security**: bcrypt hashing with automatic legacy password migration
+- **Registration**: Multi-step wizard for new ISP accounts with 24-hour free trial
+- **Password Reset**: Token-based password recovery system (1-hour expiry)
+- **Default Admin**: admin/admin123 (password auto-migrates to bcrypt on first login)
 
 ## Architecture
 
@@ -116,6 +122,10 @@ MnetiFi is a multi-tenant Wi-Fi hotspot billing system designed for ISPs with M-
 
 ## Routes
 - `/` - Captive Portal (public)
+- `/login` - Admin Login
+- `/register` - ISP Registration Wizard
+- `/forgot-password` - Password Reset Request
+- `/reset-password/:token` - Password Reset Form
 - `/dashboard` - Admin Dashboard
 - `/dashboard/wifi-users` - WiFi Users Management
 - `/dashboard/plans` - Plan Management
