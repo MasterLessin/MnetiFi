@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation, Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Plus, 
@@ -16,6 +17,7 @@ import {
   Play,
   ArrowRightLeft,
   UserCircle,
+  Eye,
 } from "lucide-react";
 import { GlassPanel } from "@/components/glass-panel";
 import { GlassInput, GlassTextarea } from "@/components/glass-input";
@@ -374,6 +376,12 @@ export default function WifiUsersPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem asChild>
+                          <Link href={`/dashboard/wifi-users/${user.id}`} className="flex items-center cursor-pointer">
+                            <Eye size={16} className="mr-2" />
+                            View Details
+                          </Link>
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleOpenDialog(user)}>
                           <UserCircle size={16} className="mr-2" />
                           Edit Details

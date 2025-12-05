@@ -268,6 +268,65 @@ export async function registerRoutes(
     }
   });
 
+  // Super Admin Registration endpoint (requires setup key from environment)
+  app.post("/api/auth/register-superadmin", async (req, res) => {
+    try {
+      const { username, email, password, setupKey } = req.body;
+      
+      if (!username || !email || !password || !setupKey) {
+        return res.status(400).json({ error: "All fields are required" });
+      }
+
+      // Verify setup key from environment - fail if not configured
+      const SUPERADMIN_SETUP_KEY = process.env.SUPERADMIN_SETUP_KEY;
+      if (!SUPERADMIN_SETUP_KEY) {
+        console.error("[Auth] SUPERADMIN_SETUP_KEY environment variable is not configured");
+        return res.status(503).json({ error: "Super admin registration is not configured on this server" });
+      }
+
+      if (setupKey !== SUPERADMIN_SETUP_KEY) {
+        return res.status(403).json({ error: "Invalid setup key" });
+      }
+
+      // Check if username already exists
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser) {
+        return res.status(409).json({ error: "Username already taken" });
+      }
+
+      // Check if email already exists
+      const existingEmail = await storage.getUserByEmail(email);
+      if (existingEmail) {
+        return res.status(409).json({ error: "Email already registered" });
+      }
+
+      // Hash password and create the super admin user
+      const hashedPassword = await hashPassword(password);
+      const user = await storage.createUser({
+        username,
+        password: hashedPassword,
+        email,
+        role: "superadmin",
+        isActive: true,
+      });
+
+      console.log(`[Auth] Super admin created: ${username}`);
+
+      res.status(201).json({
+        message: "Super admin account created successfully",
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+        },
+      });
+    } catch (error) {
+      console.error("Error during super admin registration:", error);
+      res.status(500).json({ error: "Failed to create super admin account" });
+    }
+  });
+
   // Start the payment worker for background job processing
   paymentWorker.start();
   console.log("[Server] Payment worker started");
@@ -682,6 +741,65 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error deleting wifi user:", error);
       res.status(500).json({ error: "Failed to delete wifi user" });
+    }
+  });
+
+  // Get detailed customer information with payment history
+  app.get("/api/wifi-users/:id/details", requireAuth, async (req, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const tenantId = authReq.user?.tenantId || defaultTenantId;
+      
+      const details = await storage.getCustomerDetails(req.params.id);
+      if (!details) {
+        return res.status(404).json({ error: "Customer not found" });
+      }
+
+      // Verify the customer belongs to the current tenant (prevent cross-tenant access)
+      if (details.customer.tenantId !== tenantId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      res.json({
+        id: details.customer.id,
+        phoneNumber: details.customer.phoneNumber,
+        email: details.customer.email,
+        fullName: details.customer.fullName,
+        accountType: details.customer.accountType,
+        status: details.customer.status,
+        macAddress: details.customer.macAddress,
+        ipAddress: details.customer.ipAddress,
+        username: details.customer.username,
+        expiryTime: details.customer.expiryTime,
+        notes: details.customer.notes,
+        createdAt: details.customer.createdAt,
+        updatedAt: details.customer.updatedAt,
+        currentPlan: details.currentPlan ? {
+          id: details.currentPlan.id,
+          name: details.currentPlan.name,
+          price: details.currentPlan.price,
+          durationSeconds: details.currentPlan.durationSeconds,
+          uploadLimit: details.currentPlan.uploadLimit,
+          downloadLimit: details.currentPlan.downloadLimit,
+        } : null,
+        currentHotspot: details.currentHotspot ? {
+          id: details.currentHotspot.id,
+          locationName: details.currentHotspot.locationName,
+          nasIp: details.currentHotspot.nasIp,
+        } : null,
+        transactions: details.transactions.map(tx => ({
+          id: tx.id,
+          amount: tx.amount,
+          status: tx.status,
+          mpesaReceiptNumber: tx.mpesaReceiptNumber,
+          createdAt: tx.createdAt,
+          planName: tx.planName,
+        })),
+        stats: details.stats,
+      });
+    } catch (error) {
+      console.error("Error fetching customer details:", error);
+      res.status(500).json({ error: "Failed to fetch customer details" });
     }
   });
 

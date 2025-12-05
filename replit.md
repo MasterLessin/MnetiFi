@@ -70,10 +70,19 @@ MnetiFi is a multi-tenant Wi-Fi hotspot billing system designed for ISPs with M-
 - `GET/POST/PATCH/DELETE /api/wifi-users` - WiFi user CRUD
 
 ### WiFi User Admin Actions
+- `GET /api/wifi-users/:id/details` - Get detailed customer profile with payment history
 - `POST /api/wifi-users/:id/recharge` - Manual recharge user
 - `POST /api/wifi-users/:id/suspend` - Suspend user
 - `POST /api/wifi-users/:id/activate` - Activate user
 - `POST /api/wifi-users/:id/change-hotspot` - Move user to different NAS
+
+### Authentication
+- `POST /api/auth/login` - Admin login
+- `POST /api/auth/logout` - Admin logout
+- `POST /api/auth/register` - ISP registration
+- `POST /api/auth/forgot-password` - Request password reset
+- `POST /api/auth/reset-password` - Complete password reset
+- `POST /api/auth/register-superadmin` - Super Admin registration (requires setup key)
 
 ### Tickets
 - `GET/POST/PATCH /api/tickets` - Support ticket management
@@ -121,6 +130,8 @@ MnetiFi is a multi-tenant Wi-Fi hotspot billing system designed for ISPs with M-
 - **Reconciliation Status**: Tracks PENDING/MATCHED/UNMATCHED for each transaction
 
 ## Routes
+
+### ISP Admin Routes
 - `/` - Captive Portal (public)
 - `/login` - Admin Login
 - `/register` - ISP Registration Wizard
@@ -128,6 +139,7 @@ MnetiFi is a multi-tenant Wi-Fi hotspot billing system designed for ISPs with M-
 - `/reset-password/:token` - Password Reset Form
 - `/dashboard` - Admin Dashboard
 - `/dashboard/wifi-users` - WiFi Users Management
+- `/dashboard/wifi-users/:id` - Customer Details Page (individual customer profile)
 - `/dashboard/plans` - Plan Management
 - `/dashboard/hotspots` - Hotspot Management
 - `/dashboard/transactions` - Transaction History
@@ -135,6 +147,15 @@ MnetiFi is a multi-tenant Wi-Fi hotspot billing system designed for ISPs with M-
 - `/dashboard/reconciliation` - Reconciliation Reports
 - `/dashboard/walled-garden` - Walled Garden Config
 - `/dashboard/settings` - Tenant Settings
+
+### Super Admin Routes
+- `/superadmin/login` - Super Admin Login
+- `/superadmin/register` - Super Admin Registration (requires setup key)
+- `/superadmin/forgot-password` - Super Admin Password Reset
+- `/superadmin` - Super Admin Dashboard
+- `/superadmin/tenants` - Tenant Management
+- `/superadmin/tenants/:id` - Tenant Details
+- `/superadmin/users` - Platform User Management
 
 ## Backend Services (server/services/)
 - **mikrotik.ts** - MikroTik RouterOS API integration for direct router management

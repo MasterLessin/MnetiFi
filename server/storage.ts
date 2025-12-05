@@ -740,6 +740,83 @@ export class DatabaseStorage implements IStorage {
   async getUsersByTenant(tenantId: string): Promise<User[]> {
     return db.select().from(users).where(eq(users.tenantId, tenantId));
   }
+
+  // Get customer details with transactions and stats
+  async getCustomerDetails(customerId: string): Promise<{
+    customer: WifiUser;
+    currentPlan: Plan | null;
+    currentHotspot: Hotspot | null;
+    transactions: (Transaction & { planName: string | null })[];
+    stats: {
+      totalSpent: number;
+      totalTransactions: number;
+      successfulPayments: number;
+      failedPayments: number;
+      daysSinceRegistration: number;
+      averagePayment: number;
+    };
+  } | null> {
+    const customer = await this.getWifiUser(customerId);
+    if (!customer) {
+      return null;
+    }
+
+    let currentPlan: Plan | null = null;
+    if (customer.currentPlanId) {
+      currentPlan = await this.getPlan(customer.currentPlanId) || null;
+    }
+
+    let currentHotspot: Hotspot | null = null;
+    if (customer.currentHotspotId) {
+      currentHotspot = await this.getHotspot(customer.currentHotspotId) || null;
+    }
+
+    const customerTransactions = await db.select()
+      .from(transactions)
+      .where(eq(transactions.userPhone, customer.phoneNumber))
+      .orderBy(desc(transactions.createdAt));
+
+    const allPlans = await this.getPlans(customer.tenantId);
+    const plansMap = new Map(allPlans.map(p => [p.id, p]));
+
+    const transactionsWithPlanNames = customerTransactions.map(tx => ({
+      ...tx,
+      planName: tx.planId ? plansMap.get(tx.planId)?.name || null : null,
+    }));
+
+    const completedTransactions = customerTransactions.filter(t => t.status === "COMPLETED");
+    const failedTransactions = customerTransactions.filter(t => t.status === "FAILED");
+    const totalSpent = completedTransactions.reduce((sum, t) => sum + t.amount, 0);
+    
+    const daysSinceRegistration = customer.createdAt 
+      ? Math.floor((Date.now() - new Date(customer.createdAt).getTime()) / (1000 * 60 * 60 * 24))
+      : 0;
+
+    return {
+      customer,
+      currentPlan,
+      currentHotspot,
+      transactions: transactionsWithPlanNames,
+      stats: {
+        totalSpent,
+        totalTransactions: customerTransactions.length,
+        successfulPayments: completedTransactions.length,
+        failedPayments: failedTransactions.length,
+        daysSinceRegistration,
+        averagePayment: completedTransactions.length > 0 
+          ? Math.round(totalSpent / completedTransactions.length) 
+          : 0,
+      },
+    };
+  }
+
+  // Check if any superadmin exists
+  async hasSuperAdmin(): Promise<boolean> {
+    const superadmins = await db.select()
+      .from(users)
+      .where(eq(users.role, "superadmin"));
+    return superadmins.length > 0;
+  }
 }
 
 export const storage = new DatabaseStorage();

@@ -155,13 +155,20 @@ export default function SuperAdminLoginPage() {
               </Button>
             </form>
 
-            <div className="mt-4 text-center">
+            <div className="mt-4 text-center space-y-2">
               <Link 
                 href="/superadmin/forgot-password" 
-                className="text-sm text-pink-400 hover:text-pink-300 transition-colors"
+                className="text-sm text-pink-400 hover:text-pink-300 transition-colors block"
                 data-testid="link-superadmin-forgot-password"
               >
                 Forgot your password?
+              </Link>
+              <Link 
+                href="/superadmin/register" 
+                className="text-sm text-purple-400 hover:text-purple-300 transition-colors block"
+                data-testid="link-superadmin-register"
+              >
+                Register as Super Admin
               </Link>
             </div>
 

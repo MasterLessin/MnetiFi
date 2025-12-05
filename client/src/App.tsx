@@ -11,12 +11,14 @@ import RegisterPage from "@/pages/register";
 import ForgotPasswordPage from "@/pages/forgot-password";
 import SuperAdminLoginPage from "@/pages/superadmin-login";
 import SuperAdminForgotPasswordPage from "@/pages/superadmin-forgot-password";
+import SuperAdminRegisterPage from "@/pages/superadmin-register";
 import Dashboard from "@/pages/dashboard";
 import PlansPage from "@/pages/plans";
 import HotspotsPage from "@/pages/hotspots";
 import TransactionsPage from "@/pages/transactions";
 import WalledGardenPage from "@/pages/walled-garden-page";
 import WifiUsersPage from "@/pages/wifi-users";
+import CustomerDetailsPage from "@/pages/customer-details";
 import TicketsPage from "@/pages/tickets";
 import ReconciliationPage from "@/pages/reconciliation";
 import SettingsPage from "@/pages/settings";
@@ -81,6 +83,13 @@ function Router() {
           </DashboardLayout>
         )}
       </Route>
+      <Route path="/dashboard/wifi-users/:id">
+        {() => (
+          <DashboardLayout>
+            <CustomerDetailsPage />
+          </DashboardLayout>
+        )}
+      </Route>
       <Route path="/dashboard/tickets">
         {() => (
           <DashboardLayout>
@@ -105,6 +114,7 @@ function Router() {
 
       {/* Super Admin Auth Pages */}
       <Route path="/superadmin/login" component={SuperAdminLoginPage} />
+      <Route path="/superadmin/register" component={SuperAdminRegisterPage} />
       <Route path="/superadmin/forgot-password" component={SuperAdminForgotPasswordPage} />
 
       {/* Super Admin Routes */}
