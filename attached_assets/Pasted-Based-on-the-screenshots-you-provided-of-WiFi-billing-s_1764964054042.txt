@@ -1,0 +1,72 @@
+Based on the screenshots you provided of WiFi billing systems in Kenya (Netpap, Kivipay/KiviPay, Cute Profit, and Hotspot Kenya), here is a comprehensive list of stated features organized by category.
+Billing & Invoicing
+Automated invoicing and payment reminders (SMS/Email).
+Prepaid and postpaid billing management.
+Automated service suspension and reconnection upon payment.
+Burst rates, data caps, and Fair Usage Policy (FUP) management.
+Discount issuance and plan expiry extension.
+Wallet system for partial, excess, and advance payments.
+Ledger and transaction tracking.
+Expense and bill tracking (basic accounting).
+Export reports to Excel.
+Payment Integration
+M-PESA Paybill and Till number integration (Kenya-specific).
+Integration with Kopokopo payment gateway.
+Automated reconnection upon payment confirmation.
+Point of Sale (POS) for hardware/inventory sales.
+Customer Management (CRM)
+Customer Self-Service Portal (view bills, pay, manage accounts).
+Inbuilt CRM for customer onboarding and organization.
+Lead tracking and management.
+Customer grouping and segmentation.
+Support ticketing system for installations and complaints.
+Auto-suspend, reconnect, and send reminders.
+Network Management & Configuration
+Multi-connection type support: Hotspot, PPPoE, and Static IP billing from a single platform.
+PPPoE customer management and plan assignment.
+Static IP and DHCP monitoring and management.
+Bandwidth plan setup for different connection types.
+Remote router monitoring and management (MikroTik, Ubiquiti, etc.).
+View live traffic, router stats (uptime, CPU, memory).
+Remote router configuration backup and restore.
+Remote router reboot.
+CPE (Customer Premises Equipment) Auto-Configuration via TR-069 protocol for zero-touch setup.
+Network topology mapping.
+Hotspot Management
+Fast hotspot gateway designed for walk-in customers.
+No mandatory customer registration; system learns from usage.
+Customizable expiry/captive portal pages.
+Pay-to-use hotspot with automatic connection.
+Remote Access & Monitoring
+Netpap Tunnels: Create secure tunnels to routers for remote management without a public IP.
+Free remote access tools for MikroTik, Cambium, and other radios.
+Live bandwidth usage monitoring.
+Network weather maps and resource utilization tracking.
+Incident tracking.
+Notification & Communication
+SMS and Email notifications for payments, expiry, outages.
+Bulk SMS campaigns for announcements, greetings, or service alerts.
+Integrated multi-SMS gateway support.
+Affordable SMS pricing (0.70 KES/sms).
+Free WhatsApp gateway for customer communication.
+Personalized SMS with account details.
+Reporting & Analytics
+Comprehensive reporting on revenue, customer trends, and service performance.
+Hotspot analytics.
+Unit economics reporting (Churn, Customer Lifetime Value - LTV).
+Accounting reports (Income Statement).
+Additional Features & Modules
+Role-Based Access Control (RBAC): Unlimited multi-user dashboards with permissions.
+Compensation Module: Automatically compensate customers for service outages.
+Free Subdomain for customer portal or option to use a custom domain.
+Cloud-Based Architecture: Accessible from anywhere.
+AI-Based Billing (as claimed by Hotspot Kenya).
+Stock/Inventory Management for hardware.
+Free Tier/Freemium Model: Offers free accounts, remote access tools, and billing system trials.
+Referral programs.
+Infrastructure & Support
+Free future updates.
+Claimed high uptime (e.g., 99.9%).
+Dedicated customer support.
+Free IT-G8 network device management tool
+
