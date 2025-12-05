@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { DashboardLayout } from "@/layouts/dashboard-layout";
+import { SuperAdminLayout } from "@/layouts/superadmin-layout";
 import CaptivePortal from "@/pages/captive-portal";
 import LoginPage from "@/pages/login";
 import RegisterPage from "@/pages/register";
@@ -17,6 +18,8 @@ import WifiUsersPage from "@/pages/wifi-users";
 import TicketsPage from "@/pages/tickets";
 import ReconciliationPage from "@/pages/reconciliation";
 import SettingsPage from "@/pages/settings";
+import SuperAdminDashboard from "@/pages/superadmin-dashboard";
+import SuperAdminTenantsPage from "@/pages/superadmin-tenants";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -93,6 +96,22 @@ function Router() {
           <DashboardLayout>
             <SettingsPage />
           </DashboardLayout>
+        )}
+      </Route>
+
+      {/* Super Admin Routes */}
+      <Route path="/superadmin">
+        {() => (
+          <SuperAdminLayout>
+            <SuperAdminDashboard />
+          </SuperAdminLayout>
+        )}
+      </Route>
+      <Route path="/superadmin/tenants">
+        {() => (
+          <SuperAdminLayout>
+            <SuperAdminTenantsPage />
+          </SuperAdminLayout>
         )}
       </Route>
 
