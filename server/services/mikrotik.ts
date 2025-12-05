@@ -278,6 +278,39 @@ export class MikrotikService {
       return { success: false, error: message };
     }
   }
+
+  async rebootRouter(): Promise<MikrotikResponse> {
+    console.log(`[Mikrotik] Rebooting router ${this.hotspot.locationName}`);
+    return this.makeRequest("/rest/system/reboot", "POST");
+  }
+
+  async getTrafficStats(): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/interface/ethernet");
+  }
+
+  async getBandwidthUsage(interfaceName: string = "ether1"): Promise<MikrotikResponse> {
+    return this.makeRequest(`/rest/interface/monitor-traffic?interface=${encodeURIComponent(interfaceName)}&once=`);
+  }
+
+  async getActiveConnections(): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/ip/firewall/connection");
+  }
+
+  async getDHCPLeases(): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/ip/dhcp-server/lease");
+  }
+
+  async getRouterIdentity(): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/system/identity");
+  }
+
+  async getRouterHealth(): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/system/health");
+  }
+
+  async getQueueStats(): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/queue/simple");
+  }
 }
 
 export async function createMikrotikService(hotspot: Hotspot): Promise<MikrotikService | null> {

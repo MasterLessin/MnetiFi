@@ -1,5 +1,5 @@
 import { 
-  tenants, hotspots, plans, transactions, walledGardens, users, wifiUsers, tickets,
+  tenants, hotspots, plans, transactions, walledGardens, users, wifiUsers, tickets, smsCampaigns,
   type Tenant, type InsertTenant,
   type Hotspot, type InsertHotspot,
   type Plan, type InsertPlan,
@@ -8,9 +8,10 @@ import {
   type User, type InsertUser,
   type WifiUser, type InsertWifiUser,
   type Ticket, type InsertTicket,
+  type SmsCampaign, type InsertSmsCampaign,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, gte, lte, sql } from "drizzle-orm";
+import { eq, desc, and, gte, lte, sql, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // Tenant operations
@@ -845,6 +846,49 @@ export class DatabaseStorage implements IStorage {
         eq(tenants.saasBillingStatus, "TRIAL"),
         gte(tenants.trialExpiresAt, now),
         lte(tenants.trialExpiresAt, futureTime)
+      ));
+  }
+
+  // SMS Campaign operations
+  async getSmsCampaigns(tenantId: string): Promise<SmsCampaign[]> {
+    return db.select()
+      .from(smsCampaigns)
+      .where(eq(smsCampaigns.tenantId, tenantId))
+      .orderBy(desc(smsCampaigns.createdAt));
+  }
+
+  async createSmsCampaign(campaign: InsertSmsCampaign): Promise<SmsCampaign> {
+    const [created] = await db.insert(smsCampaigns).values(campaign as any).returning();
+    return created;
+  }
+
+  async updateSmsCampaign(id: string, data: Partial<InsertSmsCampaign>): Promise<SmsCampaign | undefined> {
+    const [updated] = await db.update(smsCampaigns).set(data as any).where(eq(smsCampaigns.id, id)).returning();
+    return updated || undefined;
+  }
+
+  // Safe update method that only allows updating status-related fields
+  async updateSmsCampaignStatus(id: string, sentCount: number, failedCount: number): Promise<SmsCampaign | undefined> {
+    const status = failedCount > 0 && sentCount === 0 ? "failed" : "completed";
+    const [updated] = await db.update(smsCampaigns)
+      .set({ 
+        sentCount, 
+        failedCount, 
+        status 
+      } as any)
+      .where(eq(smsCampaigns.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  // Get WiFi users by IDs
+  async getWifiUsersByIds(tenantId: string, ids: string[]): Promise<WifiUser[]> {
+    if (ids.length === 0) return [];
+    return db.select()
+      .from(wifiUsers)
+      .where(and(
+        eq(wifiUsers.tenantId, tenantId),
+        inArray(wifiUsers.id, ids)
       ));
   }
 }

@@ -459,3 +459,39 @@ export const insertJobSchema = createInsertSchema(jobs).omit({
 
 export type Job = typeof jobs.$inferSelect;
 export type InsertJob = z.infer<typeof insertJobSchema>;
+
+// SMS Campaigns - Bulk SMS message tracking
+export const SmsCampaignStatus = {
+  PENDING: "pending",
+  SENDING: "sending",
+  COMPLETED: "completed",
+  FAILED: "failed",
+} as const;
+export type SmsCampaignStatusValue = typeof SmsCampaignStatus[keyof typeof SmsCampaignStatus];
+
+export const smsCampaigns = pgTable("sms_campaigns", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id),
+  name: text("name").notNull(),
+  message: text("message").notNull(),
+  recipientCount: integer("recipient_count").notNull().default(0),
+  sentCount: integer("sent_count").default(0),
+  failedCount: integer("failed_count").default(0),
+  status: text("status").notNull().default("pending"), // pending, sending, completed, failed
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const smsCampaignsRelations = relations(smsCampaigns, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [smsCampaigns.tenantId],
+    references: [tenants.id],
+  }),
+}));
+
+export const insertSmsCampaignSchema = createInsertSchema(smsCampaigns).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type SmsCampaign = typeof smsCampaigns.$inferSelect;
+export type InsertSmsCampaign = z.infer<typeof insertSmsCampaignSchema>;

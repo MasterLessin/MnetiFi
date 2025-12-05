@@ -11,6 +11,8 @@ import {
   Users,
   Ticket,
   FileCheck,
+  MessageSquare,
+  Activity,
 } from "lucide-react";
 import {
   Sidebar,
@@ -56,6 +58,16 @@ const menuItems = [
     title: "Transactions",
     url: "/dashboard/transactions",
     icon: Receipt,
+  },
+  {
+    title: "SMS Campaigns",
+    url: "/dashboard/sms-campaigns",
+    icon: MessageSquare,
+  },
+  {
+    title: "Network Monitoring",
+    url: "/dashboard/network-monitoring",
+    icon: Activity,
   },
   {
     title: "Tickets",

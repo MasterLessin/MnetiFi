@@ -1495,6 +1495,239 @@ export async function registerRoutes(
     }
   });
 
+  // ============== SMS CAMPAIGNS ROUTES ==============
+
+  app.get("/api/sms/campaigns", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const tenantId = req.session.user?.tenantId || defaultTenantId;
+      const campaigns = await storage.getSmsCampaigns(tenantId);
+      res.json(campaigns);
+    } catch (error) {
+      console.error("Error fetching SMS campaigns:", error);
+      res.status(500).json({ error: "Failed to fetch campaigns" });
+    }
+  });
+
+  const smsCampaignSchema = z.object({
+    name: z.string().min(1, "Campaign name is required").max(100, "Campaign name too long"),
+    message: z.string().min(1, "Message is required").max(480, "Message too long (max 480 chars for 3 SMS)"),
+    recipients: z.array(z.string().uuid()).min(1, "At least one recipient required"),
+  });
+
+  app.post("/api/sms/campaigns", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const tenantId = req.session.user?.tenantId || defaultTenantId;
+      
+      // Validate input with Zod
+      const validationResult = smsCampaignSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          error: validationResult.error.errors[0].message 
+        });
+      }
+      
+      const { name, message, recipients } = validationResult.data;
+
+      // Verify all recipients belong to this tenant
+      const users = await storage.getWifiUsersByIds(tenantId, recipients);
+      if (users.length !== recipients.length) {
+        return res.status(400).json({ 
+          error: "Some recipients do not belong to your organization" 
+        });
+      }
+
+      // Calculate cost estimate
+      const smsCount = Math.ceil(message.length / 160);
+      const estimatedCost = users.length * smsCount * 0.7; // 0.70 KES per SMS
+
+      // Create campaign record with fixed status
+      const campaign = await storage.createSmsCampaign({
+        tenantId,
+        name,
+        message,
+        recipientCount: recipients.length,
+        status: "sending",
+      });
+
+      // Queue SMS jobs for each recipient
+      let sentCount = 0;
+      let failedCount = 0;
+
+      for (const user of users) {
+        try {
+          // In production, this would use the actual SMS service
+          console.log(`[SMS Campaign] Sending to ${user.phoneNumber}: ${message.substring(0, 50)}...`);
+          sentCount++;
+        } catch (error) {
+          console.error(`[SMS Campaign] Failed to send to ${user.phoneNumber}:`, error);
+          failedCount++;
+        }
+      }
+
+      // Update campaign status (only allowed fields)
+      await storage.updateSmsCampaignStatus(campaign.id, sentCount, failedCount);
+
+      res.status(201).json({
+        ...campaign,
+        sentCount,
+        failedCount,
+        estimatedCost,
+        status: failedCount === recipients.length ? "failed" : "completed",
+      });
+    } catch (error) {
+      console.error("Error creating SMS campaign:", error);
+      res.status(500).json({ error: "Failed to create campaign" });
+    }
+  });
+
+  // ============== ROUTER MONITORING ROUTES ==============
+
+  app.get("/api/hotspots/:id/stats", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const tenantId = req.session.user?.tenantId || defaultTenantId;
+      const hotspot = await storage.getHotspot(req.params.id);
+      
+      if (!hotspot || hotspot.tenantId !== tenantId) {
+        return res.status(404).json({ error: "Hotspot not found" });
+      }
+
+      // Mock stats for demo - in production, this would call the MikroTik API
+      const stats = {
+        uptime: "3d 14h 22m",
+        cpuLoad: Math.floor(Math.random() * 40) + 10,
+        freeMemory: 128 * 1024 * 1024 + Math.floor(Math.random() * 64 * 1024 * 1024),
+        totalMemory: 256 * 1024 * 1024,
+        freeDisk: 32 * 1024 * 1024 + Math.floor(Math.random() * 16 * 1024 * 1024),
+        totalDisk: 64 * 1024 * 1024,
+        boardName: "hAP ac2",
+        version: "7.12.1",
+        architecture: "arm",
+      };
+
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching router stats:", error);
+      res.status(500).json({ error: "Failed to fetch router stats" });
+    }
+  });
+
+  app.get("/api/hotspots/:id/interfaces", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const tenantId = req.session.user?.tenantId || defaultTenantId;
+      const hotspot = await storage.getHotspot(req.params.id);
+      
+      if (!hotspot || hotspot.tenantId !== tenantId) {
+        return res.status(404).json({ error: "Hotspot not found" });
+      }
+
+      // Mock interface data for demo
+      const interfaces = [
+        {
+          name: "ether1",
+          type: "ethernet",
+          rxBytes: Math.floor(Math.random() * 1024 * 1024 * 1024),
+          txBytes: Math.floor(Math.random() * 512 * 1024 * 1024),
+          rxPackets: Math.floor(Math.random() * 1000000),
+          txPackets: Math.floor(Math.random() * 500000),
+          running: true,
+          disabled: false,
+        },
+        {
+          name: "wlan1",
+          type: "wireless",
+          rxBytes: Math.floor(Math.random() * 2 * 1024 * 1024 * 1024),
+          txBytes: Math.floor(Math.random() * 1024 * 1024 * 1024),
+          rxPackets: Math.floor(Math.random() * 2000000),
+          txPackets: Math.floor(Math.random() * 1000000),
+          running: true,
+          disabled: false,
+        },
+        {
+          name: "bridge1",
+          type: "bridge",
+          rxBytes: Math.floor(Math.random() * 3 * 1024 * 1024 * 1024),
+          txBytes: Math.floor(Math.random() * 1.5 * 1024 * 1024 * 1024),
+          rxPackets: Math.floor(Math.random() * 3000000),
+          txPackets: Math.floor(Math.random() * 1500000),
+          running: true,
+          disabled: false,
+        },
+      ];
+
+      res.json(interfaces);
+    } catch (error) {
+      console.error("Error fetching interfaces:", error);
+      res.status(500).json({ error: "Failed to fetch interfaces" });
+    }
+  });
+
+  app.get("/api/hotspots/:id/sessions", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const tenantId = req.session.user?.tenantId || defaultTenantId;
+      const hotspot = await storage.getHotspot(req.params.id);
+      
+      if (!hotspot || hotspot.tenantId !== tenantId) {
+        return res.status(404).json({ error: "Hotspot not found" });
+      }
+
+      // Mock active sessions for demo
+      const sessions = [
+        {
+          user: "user001",
+          address: "192.168.88.101",
+          macAddress: "AA:BB:CC:DD:EE:01",
+          uptime: "1h 23m",
+          bytesIn: Math.floor(Math.random() * 100 * 1024 * 1024),
+          bytesOut: Math.floor(Math.random() * 50 * 1024 * 1024),
+        },
+        {
+          user: "user002",
+          address: "192.168.88.102",
+          macAddress: "AA:BB:CC:DD:EE:02",
+          uptime: "45m",
+          bytesIn: Math.floor(Math.random() * 75 * 1024 * 1024),
+          bytesOut: Math.floor(Math.random() * 25 * 1024 * 1024),
+        },
+        {
+          user: "user003",
+          address: "192.168.88.103",
+          macAddress: "AA:BB:CC:DD:EE:03",
+          uptime: "2h 10m",
+          bytesIn: Math.floor(Math.random() * 200 * 1024 * 1024),
+          bytesOut: Math.floor(Math.random() * 100 * 1024 * 1024),
+        },
+      ];
+
+      res.json(sessions);
+    } catch (error) {
+      console.error("Error fetching sessions:", error);
+      res.status(500).json({ error: "Failed to fetch sessions" });
+    }
+  });
+
+  app.post("/api/hotspots/:id/reboot", requireAdmin, async (req: AuthenticatedRequest, res) => {
+    try {
+      const tenantId = req.session.user?.tenantId || defaultTenantId;
+      const hotspot = await storage.getHotspot(req.params.id);
+      
+      if (!hotspot || hotspot.tenantId !== tenantId) {
+        return res.status(404).json({ error: "Hotspot not found" });
+      }
+
+      // In production, this would call the MikroTik API to reboot
+      console.log(`[Router] Reboot initiated for ${hotspot.locationName} (${hotspot.nasIp})`);
+
+      // Mock successful reboot
+      res.json({ 
+        success: true, 
+        message: `Reboot initiated for ${hotspot.locationName}. Router will be back online in 1-3 minutes.` 
+      });
+    } catch (error) {
+      console.error("Error rebooting router:", error);
+      res.status(500).json({ error: "Failed to reboot router" });
+    }
+  });
+
   return httpServer;
 }
 

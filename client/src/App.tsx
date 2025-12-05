@@ -26,6 +26,8 @@ import CustomerDetailsPage from "@/pages/customer-details";
 import TicketsPage from "@/pages/tickets";
 import ReconciliationPage from "@/pages/reconciliation";
 import SettingsPage from "@/pages/settings";
+import SmsCampaignsPage from "@/pages/sms-campaigns";
+import NetworkMonitoringPage from "@/pages/network-monitoring";
 import SuperAdminDashboard from "@/pages/superadmin-dashboard";
 import SuperAdminTenantsPage from "@/pages/superadmin-tenants";
 import SuperAdminTenantDetailsPage from "@/pages/superadmin-tenant-details";
@@ -131,6 +133,20 @@ function Router() {
         {() => (
           <DashboardLayout>
             <SettingsPage />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path="/dashboard/sms-campaigns">
+        {() => (
+          <DashboardLayout>
+            <SmsCampaignsPage />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path="/dashboard/network-monitoring">
+        {() => (
+          <DashboardLayout>
+            <NetworkMonitoringPage />
           </DashboardLayout>
         )}
       </Route>
