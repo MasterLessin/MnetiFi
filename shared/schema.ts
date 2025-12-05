@@ -500,3 +500,74 @@ export const insertSmsCampaignSchema = createInsertSchema(smsCampaigns).omit({
 
 export type SmsCampaign = typeof smsCampaigns.$inferSelect;
 export type InsertSmsCampaign = z.infer<typeof insertSmsCampaignSchema>;
+
+// Guest Pass Status
+export const GuestPassStatus = {
+  ACTIVE: "ACTIVE",
+  EXPIRED: "EXPIRED",
+  EXHAUSTED: "EXHAUSTED",
+} as const;
+export type GuestPassStatusValue = typeof GuestPassStatus[keyof typeof GuestPassStatus];
+
+// Guest Passes - Free trial/guest access vouchers
+export const guestPasses = pgTable("guest_passes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id),
+  code: text("code").notNull(), // Unique voucher code for redemption
+  name: text("name").notNull(), // Descriptive name like "Weekend Trial"
+  durationSeconds: integer("duration_seconds").notNull(), // How long access lasts
+  usageLimit: integer("usage_limit").notNull().default(1), // How many times can be redeemed
+  usedCount: integer("used_count").notNull().default(0), // Times already used
+  speedLimitUp: text("speed_limit_up"), // Optional upload limit e.g. "1M"
+  speedLimitDown: text("speed_limit_down"), // Optional download limit e.g. "2M"
+  validFrom: timestamp("valid_from").defaultNow(), // When pass becomes valid
+  validUntil: timestamp("valid_until"), // When pass expires (null = never)
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const guestPassesRelations = relations(guestPasses, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [guestPasses.tenantId],
+    references: [tenants.id],
+  }),
+}));
+
+export const insertGuestPassSchema = createInsertSchema(guestPasses).omit({
+  id: true,
+  usedCount: true,
+  createdAt: true,
+});
+
+export type GuestPass = typeof guestPasses.$inferSelect;
+export type InsertGuestPass = z.infer<typeof insertGuestPassSchema>;
+
+// Guest Pass Redemptions - Track when passes are used
+export const guestPassRedemptions = pgTable("guest_pass_redemptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  guestPassId: varchar("guest_pass_id").notNull().references(() => guestPasses.id),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id),
+  macAddress: text("mac_address"), // Device that redeemed
+  ipAddress: text("ip_address"),
+  expiresAt: timestamp("expires_at").notNull(), // When this session expires
+  redeemedAt: timestamp("redeemed_at").defaultNow(),
+});
+
+export const guestPassRedemptionsRelations = relations(guestPassRedemptions, ({ one }) => ({
+  guestPass: one(guestPasses, {
+    fields: [guestPassRedemptions.guestPassId],
+    references: [guestPasses.id],
+  }),
+  tenant: one(tenants, {
+    fields: [guestPassRedemptions.tenantId],
+    references: [tenants.id],
+  }),
+}));
+
+export const insertGuestPassRedemptionSchema = createInsertSchema(guestPassRedemptions).omit({
+  id: true,
+  redeemedAt: true,
+});
+
+export type GuestPassRedemption = typeof guestPassRedemptions.$inferSelect;
+export type InsertGuestPassRedemption = z.infer<typeof insertGuestPassRedemptionSchema>;
