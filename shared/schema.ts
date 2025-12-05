@@ -39,6 +39,22 @@ export const SaaSBillingStatus = {
 } as const;
 export type SaaSBillingStatusValue = typeof SaaSBillingStatus[keyof typeof SaaSBillingStatus];
 
+// Tenant subscription tier
+export const TenantTier = {
+  TRIAL: "TRIAL",
+  TIER_1: "TIER_1",
+  TIER_2: "TIER_2",
+} as const;
+export type TenantTierValue = typeof TenantTier[keyof typeof TenantTier];
+
+// User roles for RBAC
+export const UserRole = {
+  SUPERADMIN: "superadmin",
+  ADMIN: "admin",
+  TECH: "tech",
+} as const;
+export type UserRoleValue = typeof UserRole[keyof typeof UserRole];
+
 // WiFi User status
 export const WifiUserStatus = {
   ACTIVE: "ACTIVE",
@@ -61,6 +77,8 @@ export const tenants = pgTable("tenants", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   subdomain: text("subdomain").notNull().unique(),
+  email: text("email"),
+  phone: text("phone"),
   brandingConfig: jsonb("branding_config").$type<{
     logo?: string;
     primaryColor?: string;
@@ -70,7 +88,12 @@ export const tenants = pgTable("tenants", {
   mpesaPasskey: text("mpesa_passkey"),
   mpesaConsumerKey: text("mpesa_consumer_key"),
   mpesaConsumerSecret: text("mpesa_consumer_secret"),
-  saasBillingStatus: text("saas_billing_status").default("ACTIVE"),
+  tier: text("tier").default("TRIAL"),
+  trialExpiresAt: timestamp("trial_expires_at"),
+  subscriptionExpiresAt: timestamp("subscription_expires_at"),
+  monthlyRevenue: integer("monthly_revenue").default(0),
+  totalUsers: integer("total_users").default(0),
+  saasBillingStatus: text("saas_billing_status").default("TRIAL"),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
 });

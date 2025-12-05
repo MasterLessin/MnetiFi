@@ -599,6 +599,130 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return result.length;
   }
+
+  // ============== SUPER ADMIN METHODS ==============
+
+  // Get all tenants with enhanced stats
+  async getAllTenantsWithStats(): Promise<(Tenant & { 
+    userCount: number; 
+    transactionCount: number;
+    revenueThisMonth: number;
+  })[]> {
+    const allTenants = await db.select().from(tenants).orderBy(desc(tenants.createdAt));
+    
+    const tenantsWithStats = await Promise.all(allTenants.map(async (tenant) => {
+      const userCount = await db.select({ count: sql<number>`count(*)` })
+        .from(wifiUsers)
+        .where(eq(wifiUsers.tenantId, tenant.id));
+      
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+      
+      const monthlyTransactions = await db.select({
+        count: sql<number>`count(*)`,
+        revenue: sql<number>`COALESCE(SUM(CASE WHEN status = 'COMPLETED' THEN amount ELSE 0 END), 0)`
+      })
+        .from(transactions)
+        .where(and(
+          eq(transactions.tenantId, tenant.id),
+          gte(transactions.createdAt, startOfMonth)
+        ));
+
+      return {
+        ...tenant,
+        userCount: Number(userCount[0]?.count || 0),
+        transactionCount: Number(monthlyTransactions[0]?.count || 0),
+        revenueThisMonth: Number(monthlyTransactions[0]?.revenue || 0),
+      };
+    }));
+
+    return tenantsWithStats;
+  }
+
+  // Get platform-wide analytics for super admin
+  async getPlatformAnalytics(): Promise<{
+    totalTenants: number;
+    activeTenants: number;
+    trialTenants: number;
+    suspendedTenants: number;
+    totalUsers: number;
+    totalRevenue: number;
+    revenueThisMonth: number;
+    revenueLastMonth: number;
+    transactionsToday: number;
+    newTenantsThisMonth: number;
+  }> {
+    const allTenants = await db.select().from(tenants);
+    
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    const totalUsers = await db.select({ count: sql<number>`count(*)` }).from(wifiUsers);
+    
+    const allTimeRevenue = await db.select({ 
+      total: sql<number>`COALESCE(SUM(CASE WHEN status = 'COMPLETED' THEN amount ELSE 0 END), 0)` 
+    }).from(transactions);
+
+    const thisMonthRevenue = await db.select({ 
+      total: sql<number>`COALESCE(SUM(CASE WHEN status = 'COMPLETED' THEN amount ELSE 0 END), 0)` 
+    }).from(transactions).where(gte(transactions.createdAt, startOfMonth));
+
+    const lastMonthRevenue = await db.select({ 
+      total: sql<number>`COALESCE(SUM(CASE WHEN status = 'COMPLETED' THEN amount ELSE 0 END), 0)` 
+    }).from(transactions).where(and(
+      gte(transactions.createdAt, startOfLastMonth),
+      lte(transactions.createdAt, endOfLastMonth)
+    ));
+
+    const todayTransactions = await db.select({ count: sql<number>`count(*)` })
+      .from(transactions)
+      .where(gte(transactions.createdAt, startOfToday));
+
+    const newTenantsThisMonth = allTenants.filter(t => 
+      t.createdAt && t.createdAt >= startOfMonth
+    ).length;
+
+    return {
+      totalTenants: allTenants.length,
+      activeTenants: allTenants.filter(t => t.saasBillingStatus === 'ACTIVE').length,
+      trialTenants: allTenants.filter(t => t.saasBillingStatus === 'TRIAL').length,
+      suspendedTenants: allTenants.filter(t => t.saasBillingStatus === 'SUSPENDED' || t.saasBillingStatus === 'BLOCKED').length,
+      totalUsers: Number(totalUsers[0]?.count || 0),
+      totalRevenue: Number(allTimeRevenue[0]?.total || 0),
+      revenueThisMonth: Number(thisMonthRevenue[0]?.total || 0),
+      revenueLastMonth: Number(lastMonthRevenue[0]?.total || 0),
+      transactionsToday: Number(todayTransactions[0]?.count || 0),
+      newTenantsThisMonth,
+    };
+  }
+
+  // Update tenant tier and subscription
+  async updateTenantSubscription(id: string, data: {
+    tier?: string;
+    saasBillingStatus?: string;
+    trialExpiresAt?: Date | null;
+    subscriptionExpiresAt?: Date | null;
+  }): Promise<Tenant | undefined> {
+    const [updated] = await db.update(tenants)
+      .set(data as any)
+      .where(eq(tenants.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  // Get users by role
+  async getUsersByRole(role: string): Promise<User[]> {
+    return db.select().from(users).where(eq(users.role, role));
+  }
+
+  // Get all users for a tenant
+  async getUsersByTenant(tenantId: string): Promise<User[]> {
+    return db.select().from(users).where(eq(users.tenantId, tenantId));
+  }
 }
 
 export const storage = new DatabaseStorage();

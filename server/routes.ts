@@ -1036,6 +1036,147 @@ export async function registerRoutes(
     }
   });
 
+  // ============== SUPER ADMIN ROUTES ==============
+
+  // Get platform analytics for super admin dashboard
+  app.get("/api/superadmin/analytics", async (req, res) => {
+    try {
+      const analytics = await storage.getPlatformAnalytics();
+      res.json(analytics);
+    } catch (error) {
+      console.error("Error fetching platform analytics:", error);
+      res.status(500).json({ error: "Failed to fetch platform analytics" });
+    }
+  });
+
+  // Get all tenants with enhanced stats
+  app.get("/api/superadmin/tenants", async (req, res) => {
+    try {
+      const tenantsWithStats = await storage.getAllTenantsWithStats();
+      res.json(tenantsWithStats);
+    } catch (error) {
+      console.error("Error fetching tenants with stats:", error);
+      res.status(500).json({ error: "Failed to fetch tenants" });
+    }
+  });
+
+  // Get single tenant details
+  app.get("/api/superadmin/tenants/:id", async (req, res) => {
+    try {
+      const tenant = await storage.getTenant(req.params.id);
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant not found" });
+      }
+
+      const wifiUsersList = await storage.getWifiUsers(req.params.id);
+      const transactionsList = await storage.getTransactions(req.params.id);
+      const hotspotsList = await storage.getHotspots(req.params.id);
+
+      res.json({
+        ...tenant,
+        stats: {
+          totalUsers: wifiUsersList.length,
+          activeUsers: wifiUsersList.filter(u => u.status === 'ACTIVE').length,
+          totalTransactions: transactionsList.length,
+          totalHotspots: hotspotsList.length,
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching tenant details:", error);
+      res.status(500).json({ error: "Failed to fetch tenant details" });
+    }
+  });
+
+  // Update tenant subscription tier
+  app.patch("/api/superadmin/tenants/:id/subscription", async (req, res) => {
+    try {
+      const { tier, saasBillingStatus, trialExpiresAt, subscriptionExpiresAt } = req.body;
+      
+      const updateData: {
+        tier?: string;
+        saasBillingStatus?: string;
+        trialExpiresAt?: Date | null;
+        subscriptionExpiresAt?: Date | null;
+      } = {};
+
+      if (tier) updateData.tier = tier;
+      if (saasBillingStatus) updateData.saasBillingStatus = saasBillingStatus;
+      if (trialExpiresAt !== undefined) {
+        updateData.trialExpiresAt = trialExpiresAt ? new Date(trialExpiresAt) : null;
+      }
+      if (subscriptionExpiresAt !== undefined) {
+        updateData.subscriptionExpiresAt = subscriptionExpiresAt ? new Date(subscriptionExpiresAt) : null;
+      }
+
+      const tenant = await storage.updateTenantSubscription(req.params.id, updateData);
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant not found" });
+      }
+
+      res.json(tenant);
+    } catch (error) {
+      console.error("Error updating tenant subscription:", error);
+      res.status(500).json({ error: "Failed to update tenant subscription" });
+    }
+  });
+
+  // Activate/Suspend tenant
+  app.patch("/api/superadmin/tenants/:id/status", async (req, res) => {
+    try {
+      const { isActive, saasBillingStatus } = req.body;
+      
+      const updateData: Partial<{ isActive: boolean; saasBillingStatus: string }> = {};
+      if (isActive !== undefined) updateData.isActive = isActive;
+      if (saasBillingStatus) updateData.saasBillingStatus = saasBillingStatus;
+
+      const tenant = await storage.updateTenant(req.params.id, updateData);
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant not found" });
+      }
+
+      console.log(`[SuperAdmin] Tenant ${tenant.name} status updated: active=${isActive}, billing=${saasBillingStatus}`);
+      res.json(tenant);
+    } catch (error) {
+      console.error("Error updating tenant status:", error);
+      res.status(500).json({ error: "Failed to update tenant status" });
+    }
+  });
+
+  // Create super admin user
+  app.post("/api/superadmin/create-superadmin", async (req, res) => {
+    try {
+      const { username, email, password } = req.body;
+      
+      if (!username || !email || !password) {
+        return res.status(400).json({ error: "Username, email, and password are required" });
+      }
+
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser) {
+        return res.status(409).json({ error: "Username already exists" });
+      }
+
+      const hashedPassword = await hashPassword(password);
+      const user = await storage.createUser({
+        username,
+        email,
+        password: hashedPassword,
+        role: "superadmin",
+        isActive: true,
+      });
+
+      res.json({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+      });
+    } catch (error) {
+      console.error("Error creating super admin:", error);
+      res.status(500).json({ error: "Failed to create super admin" });
+    }
+  });
+
   // ============== JOB QUEUE STATUS ROUTES ==============
   
   app.get("/api/jobs/pending", async (req, res) => {
