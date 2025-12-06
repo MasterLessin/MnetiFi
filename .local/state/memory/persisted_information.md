@@ -2,7 +2,7 @@
 
 ## Current Session: December 6, 2025
 
-## Render.com Deployment Fixes Applied (Both Complete)
+## Render.com Deployment Fixes Applied (ALL 3 COMPLETE)
 
 ### Fix 1: Missing esbuild package
 **Issue**: `Cannot find package 'esbuild'`
@@ -11,12 +11,19 @@
 
 ### Fix 2: Replit-specific plugins failing on Render
 **Issue**: `Cannot find package '@replit/vite-plugin-runtime-error-modal'`
-**Solution**: Updated `vite.config.ts` to conditionally load Replit plugins only when `REPL_ID` environment variable is present. This means:
-- In Replit: All Replit plugins load normally
-- On Render.com/other platforms: Replit plugins are skipped entirely
+**Solution**: Updated `vite.config.ts` to conditionally load Replit plugins only when `REPL_ID` environment variable is present.
+
+### Fix 3: Missing Tailwind typography plugin
+**Issue**: `Cannot find module '@tailwindcss/typography'`
+**Solution**: Moved remaining packages from `devDependencies` to `dependencies`:
+- @tailwindcss/typography
+- @tailwindcss/vite
+- All @types/* packages (connect-pg-simple, express, express-session, node, passport, passport-local, react, react-dom, ws)
+
+Now devDependencies only contains Replit-specific plugins (which are conditionally loaded).
 
 ## Files Modified This Session
-1. `package.json` - Moved build tools to dependencies
+1. `package.json` - Moved all build-time dependencies to dependencies; only Replit plugins remain in devDependencies
 2. `vite.config.ts` - Made Replit plugins conditional based on REPL_ID env var
 
 ## Verification Complete
