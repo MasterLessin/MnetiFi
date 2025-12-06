@@ -1,0 +1,459 @@
+2025-12-06T08:38:03.30543389Z ==> Cloning from https://github.com/MasterLessin/MnetiFi
+2025-12-06T08:38:04.652671336Z ==> Checking out commit a1def3cd80776a2beffa6f5681cb2b684a88c3f0 in branch main
+2025-12-06T08:38:25.595386844Z ==> Requesting Node.js version >=20.0.0
+2025-12-06T08:38:25.873339032Z ==> Using Node.js version 25.2.1 via /opt/render/project/src/package.json
+2025-12-06T08:38:25.898932672Z ==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+2025-12-06T08:38:28.550901Z ==> Running build command 'npm install && npm run build'...
+2025-12-06T08:38:40.529145468Z 
+2025-12-06T08:38:40.529174189Z added 443 packages, and audited 444 packages in 12s
+2025-12-06T08:38:40.52922432Z 
+2025-12-06T08:38:40.529372564Z 62 packages are looking for funding
+2025-12-06T08:38:40.529463546Z   run `npm fund` for details
+2025-12-06T08:38:40.548673975Z 
+2025-12-06T08:38:40.548686345Z 9 vulnerabilities (3 low, 5 moderate, 1 high)
+2025-12-06T08:38:40.548689965Z 
+2025-12-06T08:38:40.548694135Z To address issues that do not require attention, run:
+2025-12-06T08:38:40.548697715Z   npm audit fix
+2025-12-06T08:38:40.548701075Z 
+2025-12-06T08:38:40.548704605Z To address all issues (including breaking changes), run:
+2025-12-06T08:38:40.548711345Z   npm audit fix --force
+2025-12-06T08:38:40.548714856Z 
+2025-12-06T08:38:40.548719065Z Run `npm audit` for details.
+2025-12-06T08:38:40.731032145Z 
+2025-12-06T08:38:40.731051336Z > mnetifi-wifi-billing@1.0.0 build
+2025-12-06T08:38:40.731055265Z > npx tsx script/build.ts
+2025-12-06T08:38:40.731057996Z 
+2025-12-06T08:38:41.835933337Z building client...
+2025-12-06T08:38:41.888057195Z vite v5.4.20 building for production...
+2025-12-06T08:38:42.080396858Z transforming...
+2025-12-06T08:38:42.467339536Z ✓ 3 modules transformed.
+2025-12-06T08:38:42.46796351Z x Build failed in 414ms
+2025-12-06T08:38:42.469157448Z [vite:css] [postcss] Cannot find module '@tailwindcss/typography'
+2025-12-06T08:38:42.469173888Z Require stack:
+2025-12-06T08:38:42.469180879Z - /opt/render/project/src/tailwind.config.ts
+2025-12-06T08:38:42.469187159Z file: /opt/render/project/src/client/src/index.css:undefined:NaN
+2025-12-06T08:38:42.469195859Z     at node:internal/modules/cjs/loader:1420:15
+2025-12-06T08:38:42.469201709Z     at nextResolveSimple (/opt/render/project/src/node_modules/tsx/dist/register-D46fvsV_.cjs:4:1004)
+2025-12-06T08:38:42.469206179Z     at /opt/render/project/src/node_modules/tsx/dist/register-D46fvsV_.cjs:3:2630
+2025-12-06T08:38:42.469209649Z     at /opt/render/project/src/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1542
+2025-12-06T08:38:42.469213169Z     at resolveTsPaths (/opt/render/project/src/node_modules/tsx/dist/register-D46fvsV_.cjs:4:760)
+2025-12-06T08:38:42.4692166Z     at /opt/render/project/src/node_modules/tsx/dist/register-D46fvsV_.cjs:4:1102
+2025-12-06T08:38:42.46922013Z     at m._resolveFilename (file:///opt/render/project/src/node_modules/tsx/dist/register-B7jrtLTO.mjs:1:789)
+2025-12-06T08:38:42.4692236Z     at require.resolve (node:internal/modules/helpers:163:19)
+2025-12-06T08:38:42.46922713Z     at _resolve (/opt/render/project/src/node_modules/jiti/dist/jiti.js:1:241814)
+2025-12-06T08:38:42.46924594Z     at jiti (/opt/render/project/src/node_modules/jiti/dist/jiti.js:1:244531) {
+2025-12-06T08:38:42.46924855Z   code: 'PLUGIN_ERROR',
+2025-12-06T08:38:42.4692508Z   requireStack: [ '/opt/render/project/src/tailwind.config.ts' ],
+2025-12-06T08:38:42.46925295Z   loc: { file: undefined, line: undefined, column: NaN },
+2025-12-06T08:38:42.46925505Z   pluginCode: '@tailwind base;\n' +
+2025-12-06T08:38:42.469257721Z     '@tailwind components;\n' +
+2025-12-06T08:38:42.469259781Z     '@tailwind utilities;\n' +
+2025-12-06T08:38:42.469261941Z     '\n' +
+2025-12-06T08:38:42.469266201Z     '/* MnetiFi Glassmorphism Dark Theme - Vaultic Inspired */\n' +
+2025-12-06T08:38:42.469268391Z     ':root {\n' +
+2025-12-06T08:38:42.469270491Z     '  --button-outline: rgba(255,255,255, .10);\n' +
+2025-12-06T08:38:42.469272571Z     '  --badge-outline: rgba(255,255,255, .05);\n' +
+2025-12-06T08:38:42.469275301Z     '  --opaque-button-border-intensity: 9;\n' +
+2025-12-06T08:38:42.469277491Z     '  --elevate-1: rgba(255,255,255, .04);\n' +
+2025-12-06T08:38:42.469279551Z     '  --elevate-2: rgba(255,255,255, .09);\n' +
+2025-12-06T08:38:42.469281761Z     '  \n' +
+2025-12-06T08:38:42.469283861Z     '  /* Deep Navy Base */\n' +
+2025-12-06T08:38:42.469286051Z     '  --background: 222 47% 11%;\n' +
+2025-12-06T08:38:42.469288151Z     '  --foreground: 210 40% 98%;\n' +
+2025-12-06T08:38:42.469290281Z     '  \n' +
+2025-12-06T08:38:42.469292441Z     '  /* Glassmorphism Borders */\n' +
+2025-12-06T08:38:42.469294511Z     '  --border: 217 33% 17%;\n' +
+2025-12-06T08:38:42.469296661Z     '  \n' +
+2025-12-06T08:38:42.469298802Z     '  /* Glass Card Surface */\n' +
+2025-12-06T08:38:42.469311162Z     '  --card: 222 47% 13%;\n' +
+2025-12-06T08:38:42.469313412Z     '  --card-foreground: 210 40% 98%;\n' +
+2025-12-06T08:38:42.469315462Z     '  --card-border: 217 33% 20%;\n' +
+2025-12-06T08:38:42.469317902Z     '  \n' +
+2025-12-06T08:38:42.469320052Z     '  /* Sidebar - Glass Panel */\n' +
+2025-12-06T08:38:42.469322142Z     '  --sidebar: 222 47% 12%;\n' +
+2025-12-06T08:38:42.469324232Z     '  --sidebar-foreground: 210 40% 98%;\n' +
+2025-12-06T08:38:42.469326332Z     '  --sidebar-border: 217 33% 18%;\n' +
+2025-12-06T08:38:42.469328392Z     '  --sidebar-primary: 189 94% 43%;\n' +
+2025-12-06T08:38:42.469330482Z     '  --sidebar-primary-foreground: 210 40% 98%;\n' +
+2025-12-06T08:38:42.469332552Z     '  --sidebar-accent: 222 30% 18%;\n' +
+2025-12-06T08:38:42.469334632Z     '  --sidebar-accent-foreground: 210 40% 98%;\n' +
+2025-12-06T08:38:42.469336712Z     '  --sidebar-ring: 189 94% 43%;\n' +
+2025-12-06T08:38:42.469338792Z     '  \n' +
+2025-12-06T08:38:42.469340863Z     '  /* Popover - Glass Surface */\n' +
+2025-12-06T08:38:42.469342952Z     '  --popover: 222 47% 14%;\n' +
+2025-12-06T08:38:42.469345192Z     '  --popover-foreground: 210 40% 98%;\n' +
+2025-12-06T08:38:42.469347312Z     '  --popover-border: 217 33% 22%;\n' +
+2025-12-06T08:38:42.469349353Z     '  \n' +
+2025-12-06T08:38:42.469351463Z     '  /* Primary - Cyan Accent */\n' +
+2025-12-06T08:38:42.469353513Z     '  --primary: 189 94% 43%;\n' +
+2025-12-06T08:38:42.469355633Z     '  --primary-foreground: 222 47% 11%;\n' +
+2025-12-06T08:38:42.469357683Z     '  \n' +
+2025-12-06T08:38:42.469359773Z     '  /* Secondary - Glass Muted */\n' +
+2025-12-06T08:38:42.469361833Z     '  --secondary: 217 33% 17%;\n' +
+2025-12-06T08:38:42.469363903Z     '  --secondary-foreground: 210 40% 98%;\n' +
+2025-12-06T08:38:42.469366283Z     '  \n' +
+2025-12-06T08:38:42.469368383Z     '  /* Muted Text */\n' +
+2025-12-06T08:38:42.469370493Z     '  --muted: 215 20% 20%;\n' +
+2025-12-06T08:38:42.469376423Z     '  --muted-foreground: 215 20% 65%;\n' +
+2025-12-06T08:38:42.469378583Z     '  \n' +
+2025-12-06T08:38:42.469380683Z     '  /* Accent - Subtle Glass */\n' +
+2025-12-06T08:38:42.469382804Z     '  --accent: 217 33% 18%;\n' +
+2025-12-06T08:38:42.469384853Z     '  --accent-foreground: 210 40% 98%;\n' +
+2025-12-06T08:38:42.469386944Z     '  \n' +
+2025-12-06T08:38:42.469389033Z     '  /* Destructive - Magenta */\n' +
+2025-12-06T08:38:42.469391164Z     '  --destructive: 330 85% 60%;\n' +
+2025-12-06T08:38:42.469393324Z     '  --destructive-foreground: 210 40% 98%;\n' +
+2025-12-06T08:38:42.469395404Z     '  \n' +
+2025-12-06T08:38:42.469397504Z     '  /* Input - Recessed Style */\n' +
+2025-12-06T08:38:42.469399964Z     '  --input: 222 47% 8%;\n' +
+2025-12-06T08:38:42.469402034Z     '  \n' +
+2025-12-06T08:38:42.469404154Z     '  /* Ring - Cyan Focus */\n' +
+2025-12-06T08:38:42.469406234Z     '  --ring: 189 94% 43%;\n' +
+2025-12-06T08:38:42.469408344Z     '  \n' +
+2025-12-06T08:38:42.469410724Z     '  /* Charts */\n' +
+2025-12-06T08:38:42.469412814Z     '  --chart-1: 189 94% 50%;\n' +
+2025-12-06T08:38:42.469414954Z     '  --chart-2: 263 70% 50%;\n' +
+2025-12-06T08:38:42.469417024Z     '  --chart-3: 330 85% 60%;\n' +
+2025-12-06T08:38:42.469419134Z     '  --chart-4: 217 91% 60%;\n' +
+2025-12-06T08:38:42.469421224Z     '  --chart-5: 173 58% 39%;\n' +
+2025-12-06T08:38:42.469423314Z     '  \n' +
+2025-12-06T08:38:42.469425444Z     '  --font-sans: Inter, Plus Jakarta Sans, sans-serif;\n' +
+2025-12-06T08:38:42.469427534Z     '  --font-serif: Georgia, serif;\n' +
+2025-12-06T08:38:42.469429654Z     '  --font-mono: Menlo, monospace;\n' +
+2025-12-06T08:38:42.469431785Z     '  --radius: .5rem;\n' +
+2025-12-06T08:38:42.469434105Z     '  \n' +
+2025-12-06T08:38:42.469437005Z     '  /* Glass Shadows */\n' +
+2025-12-06T08:38:42.469440675Z     '  --shadow-2xs: 0px 2px 0px 0px hsl(222 47% 5% / 0.20);\n' +
+2025-12-06T08:38:42.469444775Z     '  --shadow-xs: 0px 2px 0px 0px hsl(222 47% 5% / 0.25);\n' +
+2025-12-06T08:38:42.469457525Z     '  --shadow-sm: 0px 2px 0px 0px hsl(222 47% 5% / 0.25), 0px 1px 2px -1px hsl(222 47% 5% / 0.30);\n' +
+2025-12-06T08:38:42.469461345Z     '  --shadow: 0px 2px 0px 0px hsl(222 47% 5% / 0.25), 0px 1px 2px -1px hsl(222 47% 5% / 0.30);\n' +
+2025-12-06T08:38:42.469467175Z     '  --shadow-md: 0px 2px 0px 0px hsl(222 47% 5% / 0.30), 0px 2px 4px -1px hsl(222 47% 5% / 0.35);\n' +
+2025-12-06T08:38:42.469470466Z     '  --shadow-lg: 0px 2px 0px 0px hsl(222 47% 5% / 0.35), 0px 4px 6px -1px hsl(222 47% 5% / 0.40);\n' +
+2025-12-06T08:38:42.469473475Z     '  --shadow-xl: 0px 2px 0px 0px hsl(222 47% 5% / 0.40), 0px 8px 10px -1px hsl(222 47% 5% / 0.45);\n' +
+2025-12-06T08:38:42.469477196Z     '  --shadow-2xl: 0px 2px 0px 0px hsl(222 47% 5% / 0.50);\n' +
+2025-12-06T08:38:42.469480776Z     '  --tracking-normal: 0em;\n' +
+2025-12-06T08:38:42.469484036Z     '  --spacing: 0.25rem;\n' +
+2025-12-06T08:38:42.469487356Z     '\n' +
+2025-12-06T08:38:42.469490486Z     '  /* Border Color Fallbacks */\n' +
+2025-12-06T08:38:42.469493826Z     '  --sidebar-primary-border: hsl(var(--sidebar-primary));\n' +
+2025-12-06T08:38:42.469497076Z     '  --sidebar-accent-border: hsl(var(--sidebar-accent));\n' +
+2025-12-06T08:38:42.469500216Z     '  --primary-border: hsl(var(--primary));\n' +
+2025-12-06T08:38:42.469529287Z     '  --secondary-border: hsl(var(--secondary));\n' +
+2025-12-06T08:38:42.469537977Z     '  --muted-border: hsl(var(--muted));\n' +
+2025-12-06T08:38:42.469541217Z     '  --accent-border: hsl(var(--accent));\n' +
+2025-12-06T08:38:42.469544407Z     '  --destructive-border: hsl(var(--destructive));\n' +
+2025-12-06T08:38:42.469554148Z     '}\n' +
+2025-12-06T08:38:42.469557777Z     '\n' +
+2025-12-06T08:38:42.469561077Z     '/* Force dark mode always for MnetiFi */\n' +
+2025-12-06T08:38:42.469564498Z     '.dark,\n' +
+2025-12-06T08:38:42.469567728Z     'html {\n' +
+2025-12-06T08:38:42.469570818Z     '  color-scheme: dark;\n' +
+2025-12-06T08:38:42.469573808Z     '}\n' +
+2025-12-06T08:38:42.469576858Z     '\n' +
+2025-12-06T08:38:42.469579718Z     '@layer base {\n' +
+2025-12-06T08:38:42.469582978Z     '  * {\n' +
+2025-12-06T08:38:42.469586148Z     '    @apply border-border;\n' +
+2025-12-06T08:38:42.469589278Z     '  }\n' +
+2025-12-06T08:38:42.469592388Z     '\n' +
+2025-12-06T08:38:42.469595348Z     '  html {\n' +
+2025-12-06T08:38:42.469598678Z     '    @apply dark;\n' +
+2025-12-06T08:38:42.469601678Z     '  }\n' +
+2025-12-06T08:38:42.469604669Z     '\n' +
+2025-12-06T08:38:42.469607919Z     '  body {\n' +
+2025-12-06T08:38:42.469611179Z     '    @apply font-sans antialiased bg-background text-foreground;\n' +
+2025-12-06T08:38:42.469614439Z     '    background-color: #0f172a;\n' +
+2025-12-06T08:38:42.469617739Z     '  }\n' +
+2025-12-06T08:38:42.469620919Z     '}\n' +
+2025-12-06T08:38:42.469624029Z     '\n' +
+2025-12-06T08:38:42.469628049Z     '@layer components {\n' +
+2025-12-06T08:38:42.469631379Z     '  /* Mesh Gradient Background */\n' +
+2025-12-06T08:38:42.469634529Z     '  .mesh-bg {\n' +
+2025-12-06T08:38:42.469637929Z     '    position: fixed;\n' +
+2025-12-06T08:38:42.469641039Z     '    inset: 0;\n' +
+2025-12-06T08:38:42.469644079Z     '    z-index: -1;\n' +
+2025-12-06T08:38:42.469647399Z     '    background-color: #0f172a;\n' +
+2025-12-06T08:38:42.46965018Z     '    overflow: hidden;\n' +
+2025-12-06T08:38:42.46965274Z     '  }\n' +
+2025-12-06T08:38:42.46965443Z     '\n' +
+2025-12-06T08:38:42.46965616Z     '  .mesh-bg::before {\n' +
+2025-12-06T08:38:42.46965919Z     '    content: "";\n' +
+2025-12-06T08:38:42.46966093Z     '    position: absolute;\n' +
+2025-12-06T08:38:42.4696626Z     '    width: 150%;\n' +
+2025-12-06T08:38:42.46966422Z     '    height: 150%;\n' +
+2025-12-06T08:38:42.46966585Z     '    top: -25%;\n' +
+2025-12-06T08:38:42.46966747Z     '    left: -25%;\n' +
+2025-12-06T08:38:42.46966913Z     '    background: \n' +
+2025-12-06T08:38:42.46967084Z     '      radial-gradient(ellipse at 20% 20%, rgba(124, 58, 237, 0.35) 0%, transparent 50%),\n' +
+2025-12-06T08:38:42.46967258Z     '      radial-gradient(ellipse at 80% 20%, rgba(6, 182, 212, 0.3) 0%, transparent 50%),\n' +
+2025-12-06T08:38:42.46967428Z     '      radial-gradient(ellipse at 60% 80%, rgba(236, 72, 153, 0.3) 0%, transparent 50%),\n' +
+2025-12-06T08:38:42.46967602Z     '      radial-gradient(ellipse at 10% 70%, rgba(59, 130, 246, 0.25) 0%, transparent 45%);\n' +
+2025-12-06T08:38:42.46967774Z     '    animation: mesh-drift 45s ease-in-out infinite;\n' +
+2025-12-06T08:38:42.46968081Z     '  }\n' +
+2025-12-06T08:38:42.46968253Z     '\n' +
+2025-12-06T08:38:42.4696842Z     '  @keyframes mesh-drift {\n' +
+2025-12-06T08:38:42.46968592Z     '    0%, 100% {\n' +
+2025-12-06T08:38:42.469687571Z     '      transform: translate(0, 0) rotate(0deg);\n' +
+2025-12-06T08:38:42.469699881Z     '    }\n' +
+2025-12-06T08:38:42.469701691Z     '    25% {\n' +
+2025-12-06T08:38:42.469703411Z     '      transform: translate(3%, 2%) rotate(1deg);\n' +
+2025-12-06T08:38:42.469705161Z     '    }\n' +
+2025-12-06T08:38:42.469706801Z     '    50% {\n' +
+2025-12-06T08:38:42.469708471Z     '      transform: translate(-2%, 4%) rotate(-1deg);\n' +
+2025-12-06T08:38:42.469714031Z     '    }\n' +
+2025-12-06T08:38:42.469715761Z     '    75% {\n' +
+2025-12-06T08:38:42.469717501Z     '      transform: translate(4%, -2%) rotate(0.5deg);\n' +
+2025-12-06T08:38:42.469719181Z     '    }\n' +
+2025-12-06T08:38:42.469720831Z     '  }\n' +
+2025-12-06T08:38:42.469722521Z     '\n' +
+2025-12-06T08:38:42.469724181Z     '  /* Glass Panel */\n' +
+2025-12-06T08:38:42.469725921Z     '  .glass-panel {\n' +
+2025-12-06T08:38:42.469727612Z     '    background: rgba(255, 255, 255, 0.05);\n' +
+2025-12-06T08:38:42.469729341Z     '    backdrop-filter: blur(16px) saturate(180%);\n' +
+2025-12-06T08:38:42.469731281Z     '    -webkit-backdrop-filter: blur(16px) saturate(180%);\n' +
+2025-12-06T08:38:42.469732941Z     '    border-radius: 24px;\n' +
+2025-12-06T08:38:42.469734602Z     '    border: 1px solid rgba(255, 255, 255, 0.1);\n' +
+2025-12-06T08:38:42.469736252Z     '    border-top-color: rgba(255, 255, 255, 0.2);\n' +
+2025-12-06T08:38:42.469737942Z     '    border-left-color: rgba(255, 255, 255, 0.15);\n' +
+2025-12-06T08:38:42.469739582Z     '    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);\n' +
+2025-12-06T08:38:42.469741322Z     '  }\n' +
+2025-12-06T08:38:42.469743012Z     '\n' +
+2025-12-06T08:38:42.469744682Z     '  /* Glass Panel Hover */\n' +
+2025-12-06T08:38:42.469746352Z     '  .glass-panel-hover {\n' +
+2025-12-06T08:38:42.469748042Z     '    transition: all 0.3s ease;\n' +
+2025-12-06T08:38:42.469749732Z     '  }\n' +
+2025-12-06T08:38:42.469751382Z     '\n' +
+2025-12-06T08:38:42.469753042Z     '  .glass-panel-hover:hover {\n' +
+2025-12-06T08:38:42.469754762Z     '    background: rgba(255, 255, 255, 0.08);\n' +
+2025-12-06T08:38:42.469756422Z     '    transform: translateY(-4px);\n' +
+2025-12-06T08:38:42.469758072Z     '    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);\n' +
+2025-12-06T08:38:42.469759732Z     '  }\n' +
+2025-12-06T08:38:42.469761382Z     '\n' +
+2025-12-06T08:38:42.469763022Z     '  /* Glass Input - Recessed Style */\n' +
+2025-12-06T08:38:42.469764752Z     '  .glass-input {\n' +
+2025-12-06T08:38:42.469766462Z     '    background: rgba(0, 0, 0, 0.3);\n' +
+2025-12-06T08:38:42.469775382Z     '    border: 1px solid rgba(255, 255, 255, 0.1);\n' +
+2025-12-06T08:38:42.469778533Z     '    border-radius: 12px;\n' +
+2025-12-06T08:38:42.469781193Z     '    transition: all 0.2s ease;\n' +
+2025-12-06T08:38:42.469783853Z     '  }\n' +
+2025-12-06T08:38:42.469786423Z     '\n' +
+2025-12-06T08:38:42.469789263Z     '  .glass-input:focus {\n' +
+2025-12-06T08:38:42.469791863Z     '    border-color: rgba(255, 255, 255, 0.3);\n' +
+2025-12-06T08:38:42.469794623Z     '    box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.2);\n' +
+2025-12-06T08:38:42.469797503Z     '    outline: none;\n' +
+2025-12-06T08:38:42.469799263Z     '  }\n' +
+2025-12-06T08:38:42.469800893Z     '\n' +
+2025-12-06T08:38:42.469802563Z     '  .glass-input::placeholder {\n' +
+2025-12-06T08:38:42.469804233Z     '    color: rgba(255, 255, 255, 0.3);\n' +
+2025-12-06T08:38:42.469805893Z     '  }\n' +
+2025-12-06T08:38:42.469807563Z     '\n' +
+2025-12-06T08:38:42.469809523Z     '  /* Gradient Text */\n' +
+2025-12-06T08:38:42.469811273Z     '  .gradient-text {\n' +
+2025-12-06T08:38:42.469812954Z     '    background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);\n' +
+2025-12-06T08:38:42.469814614Z     '    -webkit-background-clip: text;\n' +
+2025-12-06T08:38:42.469816303Z     '    -webkit-text-fill-color: transparent;\n' +
+2025-12-06T08:38:42.469817954Z     '    background-clip: text;\n' +
+2025-12-06T08:38:42.469819603Z     '  }\n' +
+2025-12-06T08:38:42.469821264Z     '\n' +
+2025-12-06T08:38:42.469827014Z     '  .gradient-text-accent {\n' +
+2025-12-06T08:38:42.469828904Z     '    background: linear-gradient(135deg, #7c3aed 0%, #ec4899 100%);\n' +
+2025-12-06T08:38:42.469830574Z     '    -webkit-background-clip: text;\n' +
+2025-12-06T08:38:42.469832244Z     '    -webkit-text-fill-color: transparent;\n' +
+2025-12-06T08:38:42.469833914Z     '    background-clip: text;\n' +
+2025-12-06T08:38:42.469835584Z     '  }\n' +
+2025-12-06T08:38:42.469837234Z     '\n' +
+2025-12-06T08:38:42.469838954Z     '  /* Gradient Button */\n' +
+2025-12-06T08:38:42.469840674Z     '  .gradient-btn {\n' +
+2025-12-06T08:38:42.469842414Z     '    background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);\n' +
+2025-12-06T08:38:42.469844104Z     '    border: none;\n' +
+2025-12-06T08:38:42.469845794Z     '    border-radius: 16px;\n' +
+2025-12-06T08:38:42.469847964Z     '    color: white;\n' +
+2025-12-06T08:38:42.469850784Z     '    font-weight: 600;\n' +
+2025-12-06T08:38:42.469853764Z     '    transition: all 0.2s ease;\n' +
+2025-12-06T08:38:42.469856404Z     '    position: relative;\n' +
+2025-12-06T08:38:42.469858884Z     '    overflow: hidden;\n' +
+2025-12-06T08:38:42.469861744Z     '  }\n' +
+2025-12-06T08:38:42.469864315Z     '\n' +
+2025-12-06T08:38:42.469866905Z     '  .gradient-btn::before {\n' +
+2025-12-06T08:38:42.469869465Z     '    content: "";\n' +
+2025-12-06T08:38:42.469872005Z     '    position: absolute;\n' +
+2025-12-06T08:38:42.469874905Z     '    inset: 0;\n' +
+2025-12-06T08:38:42.469877665Z     '    background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 50%);\n' +
+2025-12-06T08:38:42.469879415Z     '    opacity: 0;\n' +
+2025-12-06T08:38:42.469881075Z     '    transition: opacity 0.2s ease;\n' +
+2025-12-06T08:38:42.469882735Z     '  }\n' +
+2025-12-06T08:38:42.469884385Z     '\n' +
+2025-12-06T08:38:42.469886075Z     '  .gradient-btn:hover::before {\n' +
+2025-12-06T08:38:42.469887995Z     '    opacity: 1;\n' +
+2025-12-06T08:38:42.469889655Z     '  }\n' +
+2025-12-06T08:38:42.469891295Z     '\n' +
+2025-12-06T08:38:42.469892965Z     '  .gradient-btn:active {\n' +
+2025-12-06T08:38:42.469895015Z     '    transform: scale(0.98);\n' +
+2025-12-06T08:38:42.469896735Z     '  }\n' +
+2025-12-06T08:38:42.469898396Z     '\n' +
+2025-12-06T08:38:42.469900145Z     '  /* M-Pesa Button */\n' +
+2025-12-06T08:38:42.469901845Z     '  .mpesa-btn {\n' +
+2025-12-06T08:38:42.469903525Z     '    background: linear-gradient(135deg, #4BB617 0%, #5fd423 100%);\n' +
+2025-12-06T08:38:42.469905196Z     '    border: none;\n' +
+2025-12-06T08:38:42.469906946Z     '    border-radius: 16px;\n' +
+2025-12-06T08:38:42.469908616Z     '    color: white;\n' +
+2025-12-06T08:38:42.469910306Z     '    font-weight: 600;\n' +
+2025-12-06T08:38:42.469911966Z     '    transition: all 0.2s ease;\n' +
+2025-12-06T08:38:42.469913686Z     '    box-shadow: 0 4px 20px rgba(75, 182, 23, 0.3);\n' +
+2025-12-06T08:38:42.469915396Z     '  }\n' +
+2025-12-06T08:38:42.469917026Z     '\n' +
+2025-12-06T08:38:42.469918746Z     '  .mpesa-btn:hover {\n' +
+2025-12-06T08:38:42.469920526Z     '    box-shadow: 0 6px 30px rgba(75, 182, 23, 0.4);\n' +
+2025-12-06T08:38:42.469922256Z     '    transform: translateY(-2px);\n' +
+2025-12-06T08:38:42.469923896Z     '  }\n' +
+2025-12-06T08:38:42.469925536Z     '\n' +
+2025-12-06T08:38:42.469927206Z     '  .mpesa-btn:active {\n' +
+2025-12-06T08:38:42.469931376Z     '    transform: scale(0.98) translateY(0);\n' +
+2025-12-06T08:38:42.469933066Z     '  }\n' +
+2025-12-06T08:38:42.469934706Z     '\n' +
+2025-12-06T08:38:42.469936446Z     '  /* Status Indicators */\n' +
+2025-12-06T08:38:42.469941806Z     '  .status-pending {\n' +
+2025-12-06T08:38:42.469943546Z     '    animation: pulse-purple 2s ease-in-out infinite;\n' +
+2025-12-06T08:38:42.469945217Z     '  }\n' +
+2025-12-06T08:38:42.469946866Z     '\n' +
+2025-12-06T08:38:42.469948586Z     '  @keyframes pulse-purple {\n' +
+2025-12-06T08:38:42.469950257Z     '    0%, 100% {\n' +
+2025-12-06T08:38:42.469951947Z     '      box-shadow: 0 0 10px rgba(124, 58, 237, 0.4);\n' +
+2025-12-06T08:38:42.469953657Z     '    }\n' +
+2025-12-06T08:38:42.469955307Z     '    50% {\n' +
+2025-12-06T08:38:42.469956977Z     '      box-shadow: 0 0 20px rgba(124, 58, 237, 0.7);\n' +
+2025-12-06T08:38:42.469958627Z     '    }\n' +
+2025-12-06T08:38:42.469960297Z     '  }\n' +
+2025-12-06T08:38:42.469961947Z     '\n' +
+2025-12-06T08:38:42.469963677Z     '  .status-completed {\n' +
+2025-12-06T08:38:42.469965367Z     '    box-shadow: 0 0 15px rgba(6, 182, 212, 0.4);\n' +
+2025-12-06T08:38:42.469967077Z     '  }\n' +
+2025-12-06T08:38:42.469968717Z     '\n' +
+2025-12-06T08:38:42.469970367Z     '  .status-failed {\n' +
+2025-12-06T08:38:42.469972027Z     '    box-shadow: 0 0 15px rgba(236, 72, 153, 0.4);\n' +
+2025-12-06T08:38:42.469973667Z     '  }\n' +
+2025-12-06T08:38:42.469975317Z     '\n' +
+2025-12-06T08:38:42.469976997Z     '  /* Scrollbar Styling */\n' +
+2025-12-06T08:38:42.469978657Z     '  ::-webkit-scrollbar {\n' +
+2025-12-06T08:38:42.469980407Z     '    width: 8px;\n' +
+2025-12-06T08:38:42.469982127Z     '    height: 8px;\n' +
+2025-12-06T08:38:42.469983817Z     '  }\n' +
+2025-12-06T08:38:42.469985467Z     '\n' +
+2025-12-06T08:38:42.469987227Z     '  ::-webkit-scrollbar-track {\n' +
+2025-12-06T08:38:42.469988887Z     '    background: rgba(255, 255, 255, 0.05);\n' +
+2025-12-06T08:38:42.469990618Z     '    border-radius: 4px;\n' +
+2025-12-06T08:38:42.469992287Z     '  }\n' +
+2025-12-06T08:38:42.469994068Z     '\n' +
+2025-12-06T08:38:42.469995728Z     '  ::-webkit-scrollbar-thumb {\n' +
+2025-12-06T08:38:42.469997438Z     '    background: rgba(255, 255, 255, 0.1);\n' +
+2025-12-06T08:38:42.469999118Z     '    border-radius: 4px;\n' +
+2025-12-06T08:38:42.470000808Z     '  }\n' +
+2025-12-06T08:38:42.470002498Z     '\n' +
+2025-12-06T08:38:42.470004168Z     '  ::-webkit-scrollbar-thumb:hover {\n' +
+2025-12-06T08:38:42.470005858Z     '    background: rgba(255, 255, 255, 0.2);\n' +
+2025-12-06T08:38:42.470007538Z     '  }\n' +
+2025-12-06T08:38:42.470009208Z     '\n' +
+2025-12-06T08:38:42.470010878Z     '  /* Mobile Fallback for Glass */\n' +
+2025-12-06T08:38:42.470012538Z     '  @supports not (backdrop-filter: blur(16px)) {\n' +
+2025-12-06T08:38:42.470014288Z     '    .glass-panel {\n' +
+2025-12-06T08:38:42.470015968Z     '      background: rgba(15, 23, 42, 0.95);\n' +
+2025-12-06T08:38:42.470017658Z     '    }\n' +
+2025-12-06T08:38:42.470019328Z     '  }\n' +
+2025-12-06T08:38:42.470021008Z     '}\n' +
+2025-12-06T08:38:42.470022698Z     '\n' +
+2025-12-06T08:38:42.470024378Z     '@layer utilities {\n' +
+2025-12-06T08:38:42.470036319Z     '  /* Hide ugly search cancel button in Chrome */\n' +
+2025-12-06T08:38:42.470039149Z     '  input[type="search"]::-webkit-search-cancel-button {\n' +
+2025-12-06T08:38:42.470041759Z     '    @apply hidden;\n' +
+2025-12-06T08:38:42.470044219Z     '  }\n' +
+2025-12-06T08:38:42.470046759Z     '\n' +
+2025-12-06T08:38:42.470049799Z     '  /* Placeholder styling for contentEditable div */\n' +
+2025-12-06T08:38:42.470052619Z     '  [contenteditable][data-placeholder]:empty::before {\n' +
+2025-12-06T08:38:42.470054609Z     '    content: attr(data-placeholder);\n' +
+2025-12-06T08:38:42.470059719Z     '    color: hsl(var(--muted-foreground));\n' +
+2025-12-06T08:38:42.470061439Z     '    pointer-events: none;\n' +
+2025-12-06T08:38:42.470063139Z     '  }\n' +
+2025-12-06T08:38:42.470064789Z     '\n' +
+2025-12-06T08:38:42.470066469Z     '  .no-default-hover-elevate {}\n' +
+2025-12-06T08:38:42.470068119Z     '  .no-default-active-elevate {}\n' +
+2025-12-06T08:38:42.470069789Z     '\n' +
+2025-12-06T08:38:42.470071429Z     '  .toggle-elevate::before,\n' +
+2025-12-06T08:38:42.470073069Z     '  .toggle-elevate-2::before {\n' +
+2025-12-06T08:38:42.47007532Z     '    content: "";\n' +
+2025-12-06T08:38:42.470077049Z     '    pointer-events: none;\n' +
+2025-12-06T08:38:42.47007876Z     '    position: absolute;\n' +
+2025-12-06T08:38:42.47008047Z     '    inset: 0px;\n' +
+2025-12-06T08:38:42.47008217Z     '    border-radius: inherit;\n' +
+2025-12-06T08:38:42.47008387Z     '    z-index: -1;\n' +
+2025-12-06T08:38:42.47008553Z     '  }\n' +
+2025-12-06T08:38:42.47008721Z     '\n' +
+2025-12-06T08:38:42.47008887Z     '  .toggle-elevate.toggle-elevated::before {\n' +
+2025-12-06T08:38:42.47009062Z     '    background-color: var(--elevate-2);\n' +
+2025-12-06T08:38:42.4700923Z     '  }\n' +
+2025-12-06T08:38:42.47009403Z     '\n' +
+2025-12-06T08:38:42.47009569Z     '  .border.toggle-elevate::before {\n' +
+2025-12-06T08:38:42.47009744Z     '    inset: -1px;\n' +
+2025-12-06T08:38:42.47009908Z     '  }\n' +
+2025-12-06T08:38:42.47010075Z     '\n' +
+2025-12-06T08:38:42.47010239Z     '  .hover-elevate:not(.no-default-hover-elevate),\n' +
+2025-12-06T08:38:42.47010409Z     '  .active-elevate:not(.no-default-active-elevate),\n' +
+2025-12-06T08:38:42.47010577Z     '  .hover-elevate-2:not(.no-default-hover-elevate),\n' +
+2025-12-06T08:38:42.47010746Z     '  .active-elevate-2:not(.no-default-active-elevate) {\n' +
+2025-12-06T08:38:42.47010919Z     '    position: relative;\n' +
+2025-12-06T08:38:42.47011088Z     '    z-index: 0;\n' +
+2025-12-06T08:38:42.47011254Z     '  }\n' +
+2025-12-06T08:38:42.470114201Z     '\n' +
+2025-12-06T08:38:42.47011587Z     '  .hover-elevate:not(.no-default-hover-elevate)::after,\n' +
+2025-12-06T08:38:42.470117561Z     '  .active-elevate:not(.no-default-active-elevate)::after,\n' +
+2025-12-06T08:38:42.47011925Z     '  .hover-elevate-2:not(.no-default-hover-elevate)::after,\n' +
+2025-12-06T08:38:42.47012097Z     '  .active-elevate-2:not(.no-default-active-elevate)::after {\n' +
+2025-12-06T08:38:42.470122701Z     '    content: "";\n' +
+2025-12-06T08:38:42.470124381Z     '    pointer-events: none;\n' +
+2025-12-06T08:38:42.470126041Z     '    position: absolute;\n' +
+2025-12-06T08:38:42.470127711Z     '    inset: 0px;\n' +
+2025-12-06T08:38:42.470129391Z     '    border-radius: inherit;\n' +
+2025-12-06T08:38:42.470131101Z     '    z-index: 999;\n' +
+2025-12-06T08:38:42.470132761Z     '  }\n' +
+2025-12-06T08:38:42.470134421Z     '\n' +
+2025-12-06T08:38:42.470136101Z     '  .hover-elevate:hover:not(.no-default-hover-elevate)::after,\n' +
+2025-12-06T08:38:42.470137781Z     '  .active-elevate:active:not(.no-default-active-elevate)::after {\n' +
+2025-12-06T08:38:42.470139451Z     '    background-color: var(--elevate-1);\n' +
+2025-12-06T08:38:42.470141131Z     '  }\n' +
+2025-12-06T08:38:42.470142811Z     '\n' +
+2025-12-06T08:38:42.470144481Z     '  .hover-elevate-2:hover:not(.no-default-hover-elevate)::after,\n' +
+2025-12-06T08:38:42.470146171Z     '  .active-elevate-2:active:not(.no-default-active-elevate)::after {\n' +
+2025-12-06T08:38:42.470147871Z     '    background-color: var(--elevate-2);\n' +
+2025-12-06T08:38:42.470151951Z     '  }\n' +
+2025-12-06T08:38:42.470153661Z     '\n' +
+2025-12-06T08:38:42.470155311Z     '  .border.hover-elevate:not(.no-hover-interaction-elevate)::after,\n' +
+2025-12-06T08:38:42.470157042Z     '  .border.active-elevate:not(.no-active-interaction-elevate)::after,\n' +
+2025-12-06T08:38:42.470158742Z     '  .border.hover-elevate-2:not(.no-hover-interaction-elevate)::after,\n' +
+2025-12-06T08:38:42.470160411Z     '  .border.active-elevate-2:not(.no-active-interaction-elevate)::after {\n' +
+2025-12-06T08:38:42.470162111Z     '    inset: -1px;\n' +
+2025-12-06T08:38:42.470163791Z     '  }\n' +
+2025-12-06T08:38:42.470165442Z     '\n' +
+2025-12-06T08:38:42.470167112Z     '  /* Text hierarchy utilities */\n' +
+2025-12-06T08:38:42.470168792Z     '  .text-primary-content {\n' +
+2025-12-06T08:38:42.470170472Z     '    color: #FFFFFF;\n' +
+2025-12-06T08:38:42.470172122Z     '  }\n' +
+2025-12-06T08:38:42.470173772Z     '\n' +
+2025-12-06T08:38:42.470175412Z     '  .text-secondary-content {\n' +
+2025-12-06T08:38:42.470177192Z     '    color: #94a3b8;\n' +
+2025-12-06T08:38:42.470178862Z     '  }\n' +
+2025-12-06T08:38:42.470180492Z     '\n' +
+2025-12-06T08:38:42.470182152Z     '  .text-tertiary-content {\n' +
+2025-12-06T08:38:42.470183812Z     '    color: rgba(255, '... 22 more characters,
+2025-12-06T08:38:42.470185462Z   plugin: 'vite:css',
+2025-12-06T08:38:42.470187132Z   hook: 'transform',
+2025-12-06T08:38:42.470189992Z   id: '/opt/render/project/src/client/src/index.css',
+2025-12-06T08:38:42.470192882Z   watchFiles: [
+2025-12-06T08:38:42.470195752Z     '/opt/render/project/src/client/index.html',
+2025-12-06T08:38:42.470198262Z     '/opt/render/project/src/client/src/main.tsx',
+2025-12-06T08:38:42.470201952Z     '/opt/render/project/src/package.json',
+2025-12-06T08:38:42.470204712Z     '/opt/render/project/src/client/src/App.tsx',
+2025-12-06T08:38:42.470207243Z     '/opt/render/project/src/node_modules/react/jsx-runtime.js',
+2025-12-06T08:38:42.470211303Z     '/opt/render/project/src/node_modules/react-dom/client.js',
+2025-12-06T08:38:42.470213923Z     '/opt/render/project/src/client/src/index.css'
+2025-12-06T08:38:42.470216593Z   ]
+2025-12-06T08:38:42.470219333Z }
+2025-12-06T08:38:42.600271421Z ==> Build failed 😞
+2025-12-06T08:38:42.600286831Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
