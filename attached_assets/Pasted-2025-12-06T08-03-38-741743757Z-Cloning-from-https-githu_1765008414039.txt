@@ -1,0 +1,42 @@
+2025-12-06T08:03:38.741743757Z ==> Cloning from https://github.com/MasterLessin/MnetiFi
+2025-12-06T08:03:40.097722939Z ==> Checking out commit 0c636f09a971411b69e3d25a90c76503bcb315e7 in branch main
+2025-12-06T08:03:41.776790455Z ==> Requesting Node.js version >=20.0.0
+2025-12-06T08:03:42.006085407Z ==> Using Node.js version 25.2.1 via /opt/render/project/src/package.json
+2025-12-06T08:03:42.029761514Z ==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+2025-12-06T08:03:43.984265062Z ==> Running build command 'npm install && npm run build'...
+2025-12-06T08:03:53.157541662Z 
+2025-12-06T08:03:53.157570883Z added 443 packages, and audited 444 packages in 9s
+2025-12-06T08:03:53.157581763Z 
+2025-12-06T08:03:53.157716356Z 62 packages are looking for funding
+2025-12-06T08:03:53.157793918Z   run `npm fund` for details
+2025-12-06T08:03:53.177362924Z 
+2025-12-06T08:03:53.197660667Z 9 vulnerabilities (3 low, 5 moderate, 1 high)
+2025-12-06T08:03:53.197668647Z 
+2025-12-06T08:03:53.197673507Z To address issues that do not require attention, run:
+2025-12-06T08:03:53.197681478Z   npm audit fix
+2025-12-06T08:03:53.197700798Z 
+2025-12-06T08:03:53.197706428Z To address all issues (including breaking changes), run:
+2025-12-06T08:03:53.197712908Z   npm audit fix --force
+2025-12-06T08:03:53.197718218Z 
+2025-12-06T08:03:53.197724419Z Run `npm audit` for details.
+2025-12-06T08:03:53.394266153Z 
+2025-12-06T08:03:53.394290354Z > mnetifi-wifi-billing@1.0.0 build
+2025-12-06T08:03:53.394295144Z > npx tsx script/build.ts
+2025-12-06T08:03:53.394298544Z 
+2025-12-06T08:03:54.713156406Z building client...
+2025-12-06T08:03:54.782401335Z failed to load config from /opt/render/project/src/vite.config.ts
+2025-12-06T08:03:54.78258215Z Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@replit/vite-plugin-runtime-error-modal' imported from /opt/render/project/src/vite.config.ts.timestamp-1765008234732-dcc6ecb14e39.mjs
+2025-12-06T08:03:54.782595Z     at Object.getPackageJSONURL (node:internal/modules/package_json_reader:316:9)
+2025-12-06T08:03:54.78260041Z     at packageResolve (node:internal/modules/esm/resolve:768:81)
+2025-12-06T08:03:54.78260464Z     at moduleResolve (node:internal/modules/esm/resolve:858:18)
+2025-12-06T08:03:54.78260931Z     at defaultResolve (node:internal/modules/esm/resolve:990:11)
+2025-12-06T08:03:54.78261361Z     at nextResolve (node:internal/modules/esm/hooks:769:28)
+2025-12-06T08:03:54.78261856Z     at resolveBase (file:///opt/render/project/src/node_modules/tsx/dist/esm/index.mjs?1765008234046:2:3744)
+2025-12-06T08:03:54.78262416Z     at resolveDirectory (file:///opt/render/project/src/node_modules/tsx/dist/esm/index.mjs?1765008234046:2:4243)
+2025-12-06T08:03:54.78262896Z     at resolveTsPaths (file:///opt/render/project/src/node_modules/tsx/dist/esm/index.mjs?1765008234046:2:4984)
+2025-12-06T08:03:54.782633791Z     at async resolve (file:///opt/render/project/src/node_modules/tsx/dist/esm/index.mjs?1765008234046:2:5355)
+2025-12-06T08:03:54.782638381Z     at async nextResolve (node:internal/modules/esm/hooks:769:22) {
+2025-12-06T08:03:54.782643591Z   code: 'ERR_MODULE_NOT_FOUND'
+2025-12-06T08:03:54.782647861Z }
+2025-12-06T08:03:54.881982356Z ==> Build failed 😞
+2025-12-06T08:03:54.882029457Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
