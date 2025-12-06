@@ -2044,6 +2044,211 @@ export async function registerRoutes(
     }
   });
 
+  // ============== WALLET ROUTES ==============
+
+  // Get wallet balance for a WiFi user
+  app.get("/api/wallet/:wifiUserId", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { wifiUserId } = req.params;
+      const tenantId = req.session?.user?.tenantId || defaultTenantId;
+      
+      const wallet = await storage.getWalletByTenantAndUser(tenantId, wifiUserId);
+      
+      if (!wallet) {
+        return res.json({ 
+          balance: 0, 
+          totalDeposited: 0, 
+          totalSpent: 0,
+          hasWallet: false 
+        });
+      }
+      
+      res.json({
+        ...wallet,
+        hasWallet: true,
+      });
+    } catch (error) {
+      console.error("Error fetching wallet:", error);
+      res.status(500).json({ error: "Failed to fetch wallet" });
+    }
+  });
+
+  // Get wallet transactions for a WiFi user
+  app.get("/api/wallet/:wifiUserId/transactions", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { wifiUserId } = req.params;
+      const tenantId = req.session?.user?.tenantId || defaultTenantId;
+      
+      const wallet = await storage.getWalletByTenantAndUser(tenantId, wifiUserId);
+      
+      if (!wallet) {
+        return res.json([]);
+      }
+      
+      const transactions = await storage.getWalletTransactions(wallet.id, 50);
+      res.json(transactions);
+    } catch (error) {
+      console.error("Error fetching wallet transactions:", error);
+      res.status(500).json({ error: "Failed to fetch wallet transactions" });
+    }
+  });
+
+  // Deposit to wallet (admin only)
+  app.post("/api/wallet/:wifiUserId/deposit", requireAdmin, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { wifiUserId } = req.params;
+      const { amount, description } = req.body;
+      const tenantId = req.session?.user?.tenantId || defaultTenantId;
+      
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ error: "Amount must be greater than 0" });
+      }
+      
+      const result = await storage.depositToWallet(
+        tenantId,
+        wifiUserId,
+        amount,
+        description || "Manual deposit by admin",
+        undefined,
+        "manual"
+      );
+      
+      res.json({
+        success: true,
+        wallet: result.wallet,
+        transaction: result.transaction,
+      });
+    } catch (error) {
+      console.error("Error depositing to wallet:", error);
+      res.status(500).json({ error: "Failed to deposit to wallet" });
+    }
+  });
+
+  // Pay using wallet balance
+  app.post("/api/wallet/:wifiUserId/pay", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { wifiUserId } = req.params;
+      const { planId, amount } = req.body;
+      const tenantId = req.session?.user?.tenantId || defaultTenantId;
+      
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ error: "Amount must be greater than 0" });
+      }
+      
+      const plan = await storage.getPlan(planId);
+      if (!plan) {
+        return res.status(404).json({ error: "Plan not found" });
+      }
+      
+      const result = await storage.deductFromWallet(
+        tenantId,
+        wifiUserId,
+        amount,
+        `Payment for ${plan.name}`,
+        planId,
+        "plan_purchase"
+      );
+      
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+      
+      // Activate the user after successful wallet payment
+      const wifiUser = await storage.getWifiUser(wifiUserId);
+      if (wifiUser) {
+        const expiryTime = new Date(Date.now() + plan.durationSeconds * 1000);
+        await storage.updateWifiUser(wifiUserId, {
+          currentPlanId: planId,
+          expiryTime,
+          status: "ACTIVE",
+        });
+      }
+      
+      res.json({
+        success: true,
+        wallet: result.wallet,
+        transaction: result.transaction,
+        message: `Successfully activated ${plan.name} using wallet balance`,
+      });
+    } catch (error) {
+      console.error("Error processing wallet payment:", error);
+      res.status(500).json({ error: "Failed to process wallet payment" });
+    }
+  });
+
+  // Get all wallets for a tenant (admin view)
+  app.get("/api/wallets", requireAdmin, async (req: AuthenticatedRequest, res) => {
+    try {
+      const tenantId = req.session?.user?.tenantId || defaultTenantId;
+      const wallets = await storage.getWalletsByTenant(tenantId);
+      res.json(wallets);
+    } catch (error) {
+      console.error("Error fetching wallets:", error);
+      res.status(500).json({ error: "Failed to fetch wallets" });
+    }
+  });
+
+  // Customer portal - Get own wallet (using phone number auth)
+  app.get("/api/customer/wallet", async (req, res) => {
+    try {
+      const phoneNumber = req.query.phone as string;
+      const tenantId = req.query.tenantId as string || defaultTenantId;
+      
+      if (!phoneNumber) {
+        return res.status(400).json({ error: "Phone number is required" });
+      }
+      
+      const wifiUser = await storage.getWifiUserByPhone(tenantId, phoneNumber);
+      if (!wifiUser) {
+        return res.json({ balance: 0, hasWallet: false });
+      }
+      
+      const wallet = await storage.getWalletByTenantAndUser(tenantId, wifiUser.id);
+      
+      if (!wallet) {
+        return res.json({ balance: 0, hasWallet: false });
+      }
+      
+      res.json({
+        balance: wallet.balance,
+        totalDeposited: wallet.totalDeposited,
+        totalSpent: wallet.totalSpent,
+        hasWallet: true,
+      });
+    } catch (error) {
+      console.error("Error fetching customer wallet:", error);
+      res.status(500).json({ error: "Failed to fetch wallet" });
+    }
+  });
+
+  // Customer portal - Get wallet transaction history
+  app.get("/api/customer/wallet/transactions", async (req, res) => {
+    try {
+      const phoneNumber = req.query.phone as string;
+      const tenantId = req.query.tenantId as string || defaultTenantId;
+      
+      if (!phoneNumber) {
+        return res.status(400).json({ error: "Phone number is required" });
+      }
+      
+      const wifiUser = await storage.getWifiUserByPhone(tenantId, phoneNumber);
+      if (!wifiUser) {
+        return res.json([]);
+      }
+      
+      const wallet = await storage.getWalletByTenantAndUser(tenantId, wifiUser.id);
+      if (!wallet) {
+        return res.json([]);
+      }
+      
+      const transactions = await storage.getWalletTransactions(wallet.id, 20);
+      res.json(transactions);
+    } catch (error) {
+      console.error("Error fetching customer wallet transactions:", error);
+      res.status(500).json({ error: "Failed to fetch wallet transactions" });
+    }
+  });
+
   return httpServer;
 }
 

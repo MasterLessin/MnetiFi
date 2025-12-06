@@ -1,7 +1,7 @@
 import { jobQueue } from "./job-queue";
 import { MpesaService } from "./mpesa";
 import { storage } from "../storage";
-import { JobType, TransactionStatus, ReconciliationStatus, WifiUserStatus } from "@shared/schema";
+import { JobType, TransactionStatus, ReconciliationStatus, WifiUserStatus, WalletTransactionType } from "@shared/schema";
 import type { Job, Tenant } from "@shared/schema";
 
 export class PaymentWorker {
@@ -261,6 +261,23 @@ export class PaymentWorker {
         wifiUserId: wifiUser.id,
         expiresAt: wifiUser.expiryTime,
       });
+
+      // Handle excess payments - credit to wallet
+      const excessAmount = transaction.amount - plan.price;
+      if (excessAmount > 0 && wifiUser) {
+        try {
+          await storage.creditExcessToWallet(
+            tenantId,
+            wifiUser.id,
+            excessAmount,
+            `Excess payment credited from transaction ${transaction.mpesaReceiptNumber || transaction.id}`,
+            transaction.id
+          );
+          console.log(`[PaymentWorker] Credited KES ${excessAmount} excess to wallet for user ${wifiUser.id}`);
+        } catch (walletError) {
+          console.error("[PaymentWorker] Error crediting excess to wallet:", walletError);
+        }
+      }
     } catch (error) {
       console.error("[PaymentWorker] Error activating user:", error);
     }

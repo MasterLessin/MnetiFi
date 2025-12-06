@@ -571,3 +571,81 @@ export const insertGuestPassRedemptionSchema = createInsertSchema(guestPassRedem
 
 export type GuestPassRedemption = typeof guestPassRedemptions.$inferSelect;
 export type InsertGuestPassRedemption = z.infer<typeof insertGuestPassRedemptionSchema>;
+
+// Wallet Transaction Type
+export const WalletTransactionType = {
+  DEPOSIT: "DEPOSIT",           // Money added to wallet (top-up)
+  PAYMENT: "PAYMENT",           // Money used for plan purchase
+  REFUND: "REFUND",             // Money refunded to wallet
+  EXCESS: "EXCESS",             // Excess payment credited to wallet
+  WITHDRAWAL: "WITHDRAWAL",     // Money withdrawn from wallet
+  BONUS: "BONUS",               // Promotional bonus credit
+} as const;
+export type WalletTransactionTypeValue = typeof WalletTransactionType[keyof typeof WalletTransactionType];
+
+// Wallet - Customer balance tracking
+export const wallets = pgTable("wallets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id),
+  wifiUserId: varchar("wifi_user_id").notNull().references(() => wifiUsers.id),
+  balance: integer("balance").notNull().default(0), // In smallest currency unit
+  totalDeposited: integer("total_deposited").notNull().default(0),
+  totalSpent: integer("total_spent").notNull().default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const walletsRelations = relations(wallets, ({ one, many }) => ({
+  tenant: one(tenants, {
+    fields: [wallets.tenantId],
+    references: [tenants.id],
+  }),
+  wifiUser: one(wifiUsers, {
+    fields: [wallets.wifiUserId],
+    references: [wifiUsers.id],
+  }),
+  transactions: many(walletTransactions),
+}));
+
+export const insertWalletSchema = createInsertSchema(wallets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type Wallet = typeof wallets.$inferSelect;
+export type InsertWallet = z.infer<typeof insertWalletSchema>;
+
+// Wallet Transactions - Track all wallet movements
+export const walletTransactions = pgTable("wallet_transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  walletId: varchar("wallet_id").notNull().references(() => wallets.id),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id),
+  type: text("type").notNull(), // DEPOSIT, PAYMENT, REFUND, EXCESS, WITHDRAWAL, BONUS
+  amount: integer("amount").notNull(), // Positive for credits, negative for debits
+  balanceAfter: integer("balance_after").notNull(), // Balance after this transaction
+  description: text("description"),
+  referenceId: varchar("reference_id"), // Link to payment transaction or M-Pesa receipt
+  referenceType: text("reference_type"), // 'transaction', 'mpesa', 'manual'
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const walletTransactionsRelations = relations(walletTransactions, ({ one }) => ({
+  wallet: one(wallets, {
+    fields: [walletTransactions.walletId],
+    references: [wallets.id],
+  }),
+  tenant: one(tenants, {
+    fields: [walletTransactions.tenantId],
+    references: [tenants.id],
+  }),
+}));
+
+export const insertWalletTransactionSchema = createInsertSchema(walletTransactions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type WalletTransaction = typeof walletTransactions.$inferSelect;
+export type InsertWalletTransaction = z.infer<typeof insertWalletTransactionSchema>;

@@ -1,5 +1,5 @@
 import { 
-  tenants, hotspots, plans, transactions, walledGardens, users, wifiUsers, tickets, smsCampaigns,
+  tenants, hotspots, plans, transactions, walledGardens, users, wifiUsers, tickets, smsCampaigns, wallets, walletTransactions,
   type Tenant, type InsertTenant,
   type Hotspot, type InsertHotspot,
   type Plan, type InsertPlan,
@@ -9,6 +9,9 @@ import {
   type WifiUser, type InsertWifiUser,
   type Ticket, type InsertTicket,
   type SmsCampaign, type InsertSmsCampaign,
+  type Wallet, type InsertWallet,
+  type WalletTransaction, type InsertWalletTransaction,
+  WalletTransactionType,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, sql, inArray } from "drizzle-orm";
@@ -897,6 +900,186 @@ export class DatabaseStorage implements IStorage {
         eq(wifiUsers.tenantId, tenantId),
         inArray(wifiUsers.id, ids)
       ));
+  }
+
+  // ============== WALLET OPERATIONS ==============
+
+  async getWallet(wifiUserId: string): Promise<Wallet | undefined> {
+    const [wallet] = await db.select()
+      .from(wallets)
+      .where(eq(wallets.wifiUserId, wifiUserId));
+    return wallet || undefined;
+  }
+
+  async getWalletByTenantAndUser(tenantId: string, wifiUserId: string): Promise<Wallet | undefined> {
+    const [wallet] = await db.select()
+      .from(wallets)
+      .where(and(
+        eq(wallets.tenantId, tenantId),
+        eq(wallets.wifiUserId, wifiUserId)
+      ));
+    return wallet || undefined;
+  }
+
+  async createWallet(wallet: InsertWallet): Promise<Wallet> {
+    const [created] = await db.insert(wallets).values(wallet as any).returning();
+    return created;
+  }
+
+  async getOrCreateWallet(tenantId: string, wifiUserId: string): Promise<Wallet> {
+    let wallet = await this.getWalletByTenantAndUser(tenantId, wifiUserId);
+    if (!wallet) {
+      wallet = await this.createWallet({
+        tenantId,
+        wifiUserId,
+        balance: 0,
+        totalDeposited: 0,
+        totalSpent: 0,
+        isActive: true,
+      });
+    }
+    return wallet;
+  }
+
+  async updateWalletBalance(walletId: string, newBalance: number): Promise<Wallet | undefined> {
+    const [updated] = await db.update(wallets)
+      .set({ 
+        balance: newBalance,
+        updatedAt: new Date(),
+      })
+      .where(eq(wallets.id, walletId))
+      .returning();
+    return updated || undefined;
+  }
+
+  async addWalletTransaction(transaction: InsertWalletTransaction): Promise<WalletTransaction> {
+    const [created] = await db.insert(walletTransactions).values(transaction as any).returning();
+    return created;
+  }
+
+  async getWalletTransactions(walletId: string, limit: number = 50): Promise<WalletTransaction[]> {
+    return db.select()
+      .from(walletTransactions)
+      .where(eq(walletTransactions.walletId, walletId))
+      .orderBy(desc(walletTransactions.createdAt))
+      .limit(limit);
+  }
+
+  async depositToWallet(
+    tenantId: string, 
+    wifiUserId: string, 
+    amount: number, 
+    description: string,
+    referenceId?: string,
+    referenceType?: string
+  ): Promise<{ wallet: Wallet; transaction: WalletTransaction }> {
+    const wallet = await this.getOrCreateWallet(tenantId, wifiUserId);
+    const newBalance = wallet.balance + amount;
+    
+    await db.update(wallets)
+      .set({
+        balance: newBalance,
+        totalDeposited: wallet.totalDeposited + amount,
+        updatedAt: new Date(),
+      })
+      .where(eq(wallets.id, wallet.id));
+
+    const transaction = await this.addWalletTransaction({
+      walletId: wallet.id,
+      tenantId,
+      type: WalletTransactionType.DEPOSIT,
+      amount,
+      balanceAfter: newBalance,
+      description,
+      referenceId,
+      referenceType,
+    });
+
+    const updatedWallet = await this.getWallet(wifiUserId);
+    return { wallet: updatedWallet!, transaction };
+  }
+
+  async deductFromWallet(
+    tenantId: string,
+    wifiUserId: string,
+    amount: number,
+    description: string,
+    referenceId?: string,
+    referenceType?: string
+  ): Promise<{ success: boolean; wallet?: Wallet; transaction?: WalletTransaction; error?: string }> {
+    const wallet = await this.getWalletByTenantAndUser(tenantId, wifiUserId);
+    
+    if (!wallet) {
+      return { success: false, error: "Wallet not found" };
+    }
+
+    if (wallet.balance < amount) {
+      return { success: false, error: "Insufficient wallet balance" };
+    }
+
+    const newBalance = wallet.balance - amount;
+    
+    await db.update(wallets)
+      .set({
+        balance: newBalance,
+        totalSpent: wallet.totalSpent + amount,
+        updatedAt: new Date(),
+      })
+      .where(eq(wallets.id, wallet.id));
+
+    const transaction = await this.addWalletTransaction({
+      walletId: wallet.id,
+      tenantId,
+      type: WalletTransactionType.PAYMENT,
+      amount: -amount,
+      balanceAfter: newBalance,
+      description,
+      referenceId,
+      referenceType,
+    });
+
+    const updatedWallet = await this.getWallet(wifiUserId);
+    return { success: true, wallet: updatedWallet, transaction };
+  }
+
+  async creditExcessToWallet(
+    tenantId: string,
+    wifiUserId: string,
+    amount: number,
+    description: string,
+    referenceId?: string
+  ): Promise<{ wallet: Wallet; transaction: WalletTransaction }> {
+    const wallet = await this.getOrCreateWallet(tenantId, wifiUserId);
+    const newBalance = wallet.balance + amount;
+    
+    await db.update(wallets)
+      .set({
+        balance: newBalance,
+        totalDeposited: wallet.totalDeposited + amount,
+        updatedAt: new Date(),
+      })
+      .where(eq(wallets.id, wallet.id));
+
+    const transaction = await this.addWalletTransaction({
+      walletId: wallet.id,
+      tenantId,
+      type: WalletTransactionType.EXCESS,
+      amount,
+      balanceAfter: newBalance,
+      description,
+      referenceId,
+      referenceType: "transaction",
+    });
+
+    const updatedWallet = await this.getWallet(wifiUserId);
+    return { wallet: updatedWallet!, transaction };
+  }
+
+  async getWalletsByTenant(tenantId: string): Promise<Wallet[]> {
+    return db.select()
+      .from(wallets)
+      .where(eq(wallets.tenantId, tenantId))
+      .orderBy(desc(wallets.balance));
   }
 }
 
