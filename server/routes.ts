@@ -2097,6 +2097,80 @@ export async function registerRoutes(
     }
   });
 
+  // ============== WHATSAPP CAMPAIGNS ROUTES ==============
+  
+  const { WhatsAppService } = await import("./services/whatsapp");
+  
+  const whatsappCampaignSchema = z.object({
+    name: z.string().min(1, "Campaign name is required").max(100, "Campaign name too long"),
+    message: z.string().min(1, "Message is required").max(1000, "Message too long"),
+    recipients: z.array(z.string().uuid()).min(1, "At least one recipient required"),
+  });
+
+  app.post("/api/whatsapp/send", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const tenantId = req.session.user?.tenantId || defaultTenantId;
+      
+      const validationResult = whatsappCampaignSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          error: validationResult.error.errors[0].message 
+        });
+      }
+      
+      const { name, message, recipients } = validationResult.data;
+
+      const tenant = await storage.getTenant(tenantId);
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant not found" });
+      }
+
+      const users = await storage.getWifiUsersByIds(tenantId, recipients);
+      if (users.length !== recipients.length) {
+        return res.status(400).json({ 
+          error: "Some recipients do not belong to your organization" 
+        });
+      }
+
+      const whatsappService = new WhatsAppService(tenant, {
+        provider: (tenant.whatsappProvider as "meta" | "twilio" | "mock") || "mock",
+        apiKey: tenant.whatsappApiKey || undefined,
+        phoneNumberId: tenant.whatsappPhoneNumberId || undefined,
+        businessAccountId: tenant.whatsappBusinessAccountId || undefined,
+      });
+
+      let sentCount = 0;
+      let failedCount = 0;
+
+      for (const user of users) {
+        try {
+          const result = await whatsappService.sendMessage(user.phoneNumber, message);
+          if (result.success) {
+            console.log(`[WhatsApp Campaign] Sent to ${user.phoneNumber}: ${result.messageId}`);
+            sentCount++;
+          } else {
+            console.error(`[WhatsApp Campaign] Failed to send to ${user.phoneNumber}: ${result.error}`);
+            failedCount++;
+          }
+        } catch (error) {
+          console.error(`[WhatsApp Campaign] Error sending to ${user.phoneNumber}:`, error);
+          failedCount++;
+        }
+      }
+
+      res.status(201).json({
+        name,
+        sentCount,
+        failedCount,
+        recipientCount: recipients.length,
+        status: failedCount === recipients.length ? "failed" : "completed",
+      });
+    } catch (error) {
+      console.error("Error sending WhatsApp campaign:", error);
+      res.status(500).json({ error: "Failed to send WhatsApp messages" });
+    }
+  });
+
   // ============== CUSTOMER PORTAL ROUTES ==============
   
   const customerOtpStore = new Map<string, { code: string; expiresAt: Date }>();

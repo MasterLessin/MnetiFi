@@ -109,6 +109,11 @@ export const tenants = pgTable("tenants", {
   smsApiKey: text("sms_api_key"),
   smsUsername: text("sms_username"),
   smsSenderId: text("sms_sender_id"),
+  // WhatsApp Business API configuration
+  whatsappProvider: text("whatsapp_provider").default("mock"), // mock, meta, twilio
+  whatsappApiKey: text("whatsapp_api_key"),
+  whatsappPhoneNumberId: text("whatsapp_phone_number_id"),
+  whatsappBusinessAccountId: text("whatsapp_business_account_id"),
   tier: text("tier").default("TRIAL"),
   trialExpiresAt: timestamp("trial_expires_at"),
   subscriptionExpiresAt: timestamp("subscription_expires_at"),

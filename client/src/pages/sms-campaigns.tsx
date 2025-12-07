@@ -24,9 +24,14 @@ import {
   Loader2,
   FileText,
   History,
-  Plus
+  Plus,
+  Phone,
+  Smartphone
 } from "lucide-react";
+import { SiWhatsapp } from "react-icons/si";
 import type { WifiUser } from "@shared/schema";
+
+type MessageChannel = "sms" | "whatsapp";
 
 interface SmsTemplate {
   id: string;
@@ -94,6 +99,7 @@ export default function SmsCampaignsPage() {
   const [filterAccountType, setFilterAccountType] = useState<string>("all");
   const [selectAll, setSelectAll] = useState(false);
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
+  const [channel, setChannel] = useState<MessageChannel>("sms");
 
   const { data: users = [], isLoading: usersLoading } = useQuery<WifiUser[]>({
     queryKey: ["/api/wifi-users"],
@@ -103,14 +109,14 @@ export default function SmsCampaignsPage() {
     queryKey: ["/api/sms/campaigns"],
   });
 
-  const sendCampaignMutation = useMutation({
+  const sendSmsMutation = useMutation({
     mutationFn: async (data: { name: string; message: string; recipients: string[] }) => {
       return apiRequest("POST", "/api/sms/campaigns", data);
     },
     onSuccess: () => {
       toast({
-        title: "Campaign Started",
-        description: "Your SMS campaign is being sent to recipients.",
+        title: "SMS Campaign Started",
+        description: "Your SMS messages are being sent to recipients.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/sms/campaigns"] });
       setSelectedUsers([]);
@@ -120,7 +126,30 @@ export default function SmsCampaignsPage() {
     },
     onError: (error: Error) => {
       toast({
-        title: "Failed to Send",
+        title: "Failed to Send SMS",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const sendWhatsAppMutation = useMutation({
+    mutationFn: async (data: { name: string; message: string; recipients: string[] }) => {
+      return apiRequest("POST", "/api/whatsapp/send", data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "WhatsApp Messages Sent",
+        description: "Your WhatsApp messages are being delivered to recipients.",
+      });
+      setSelectedUsers([]);
+      setMessage("");
+      setCampaignName("");
+      setSelectAll(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to Send WhatsApp",
         description: error.message,
         variant: "destructive",
       });
@@ -182,32 +211,47 @@ export default function SmsCampaignsPage() {
       return;
     }
 
-    sendCampaignMutation.mutate({
+    const campaignData = {
       name: campaignName,
       message,
       recipients: selectedUsers,
-    });
+    };
+
+    if (channel === "whatsapp") {
+      sendWhatsAppMutation.mutate(campaignData);
+    } else {
+      sendSmsMutation.mutate(campaignData);
+    }
   };
 
+  const isSending = sendSmsMutation.isPending || sendWhatsAppMutation.isPending;
   const characterCount = message.length;
   const smsCount = Math.ceil(characterCount / 160) || 1;
-  const estimatedCost = selectedUsers.length * smsCount * 0.7; // 0.70 KES per SMS
+  const estimatedCost = channel === "sms" 
+    ? selectedUsers.length * smsCount * 0.7 
+    : selectedUsers.length * 1.5; // WhatsApp is typically more expensive
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-foreground" data-testid="text-page-title">
-            SMS Campaigns
+            Messaging
           </h1>
           <p className="text-muted-foreground">
-            Send bulk SMS messages to your customers
+            Send bulk SMS or WhatsApp messages to your customers
           </p>
         </div>
-        <Badge variant="outline" className="text-cyan-400 border-cyan-400/30">
-          <MessageSquare className="w-3 h-3 mr-1" />
-          Premium Feature
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="text-green-500 border-green-500/30">
+            <SiWhatsapp className="w-3 h-3 mr-1" />
+            WhatsApp
+          </Badge>
+          <Badge variant="outline" className="text-cyan-400 border-cyan-400/30">
+            <Phone className="w-3 h-3 mr-1" />
+            SMS
+          </Badge>
+        </div>
       </div>
 
       <Tabs defaultValue="compose" className="space-y-6">
@@ -356,6 +400,32 @@ export default function SmsCampaignsPage() {
                 </div>
 
                 <div className="space-y-2">
+                  <Label>Channel</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={channel === "sms" ? "default" : "outline"}
+                      className={`flex-1 ${channel === "sms" ? "" : ""}`}
+                      onClick={() => setChannel("sms")}
+                      data-testid="button-channel-sms"
+                    >
+                      <Phone className="w-4 h-4 mr-2" />
+                      SMS
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={channel === "whatsapp" ? "default" : "outline"}
+                      className={`flex-1 ${channel === "whatsapp" ? "bg-green-600 hover:bg-green-700" : ""}`}
+                      onClick={() => setChannel("whatsapp")}
+                      data-testid="button-channel-whatsapp"
+                    >
+                      <SiWhatsapp className="w-4 h-4 mr-2" />
+                      WhatsApp
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="message">Message</Label>
                     <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
@@ -412,40 +482,60 @@ export default function SmsCampaignsPage() {
                 {/* Cost Estimate */}
                 <Card className="bg-white/5 border-white/10">
                   <CardContent className="p-4">
-                    <h4 className="text-sm font-medium mb-3">Cost Estimate</h4>
+                    <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                      Cost Estimate
+                      <Badge variant="outline" className={channel === "whatsapp" ? "text-green-500" : "text-cyan-400"}>
+                        {channel === "whatsapp" ? <SiWhatsapp className="w-3 h-3 mr-1" /> : <Phone className="w-3 h-3 mr-1" />}
+                        {channel.toUpperCase()}
+                      </Badge>
+                    </h4>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Recipients</span>
                         <span>{selectedUsers.length}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">SMS per recipient</span>
-                        <span>{smsCount}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Total SMS</span>
-                        <span>{selectedUsers.length * smsCount}</span>
-                      </div>
+                      {channel === "sms" && (
+                        <>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">SMS per recipient</span>
+                            <span>{smsCount}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Total SMS</span>
+                            <span>{selectedUsers.length * smsCount}</span>
+                          </div>
+                        </>
+                      )}
+                      {channel === "whatsapp" && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Total Messages</span>
+                          <span>{selectedUsers.length}</span>
+                        </div>
+                      )}
                       <div className="border-t border-white/10 pt-2 flex justify-between font-medium">
                         <span>Estimated Cost</span>
-                        <span className="text-cyan-400">Ksh {estimatedCost.toFixed(2)}</span>
+                        <span className={channel === "whatsapp" ? "text-green-500" : "text-cyan-400"}>
+                          Ksh {estimatedCost.toFixed(2)}
+                        </span>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
                 <Button
-                  className="w-full"
+                  className={`w-full ${channel === "whatsapp" ? "bg-green-600 hover:bg-green-700" : ""}`}
                   onClick={handleSendCampaign}
-                  disabled={sendCampaignMutation.isPending || selectedUsers.length === 0 || !message.trim()}
+                  disabled={isSending || selectedUsers.length === 0 || !message.trim()}
                   data-testid="button-send-campaign"
                 >
-                  {sendCampaignMutation.isPending ? (
+                  {isSending ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : channel === "whatsapp" ? (
+                    <SiWhatsapp className="w-4 h-4 mr-2" />
                   ) : (
                     <Send className="w-4 h-4 mr-2" />
                   )}
-                  Send to {selectedUsers.length} Recipients
+                  Send {channel === "whatsapp" ? "WhatsApp" : "SMS"} to {selectedUsers.length} Recipients
                 </Button>
               </CardContent>
             </Card>
