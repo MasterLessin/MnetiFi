@@ -23,8 +23,13 @@ import {
   LogOut,
   Loader2,
   Shield,
-  Zap
+  Zap,
+  Settings,
+  Save,
+  ToggleLeft,
+  ToggleRight
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import type { WifiUser, Plan, Transaction } from "@shared/schema";
 
 interface CustomerData {
@@ -32,6 +37,15 @@ interface CustomerData {
   plan: Plan | null;
   transactions: Transaction[];
   hotspotName: string;
+  sessionToken?: string;
+}
+
+interface CustomerSettings {
+  email: string;
+  fullName: string;
+  phoneNumber: string;
+  paymentPhone: string;
+  autoRenew: boolean;
 }
 
 export default function CustomerPortal() {
@@ -41,11 +55,65 @@ export default function CustomerPortal() {
   const [verificationCode, setVerificationCode] = useState("");
   const [step, setStep] = useState<"phone" | "verify" | "dashboard">("phone");
   const [verificationSent, setVerificationSent] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [settings, setSettings] = useState<CustomerSettings>({
+    email: "",
+    fullName: "",
+    phoneNumber: "",
+    paymentPhone: "",
+    autoRenew: false,
+  });
   const { toast } = useToast();
 
   const { data: plans } = useQuery<Plan[]>({
     queryKey: ["/api/plans"],
     enabled: isLoggedIn,
+  });
+
+  const { data: settingsData, refetch: refetchSettings } = useQuery<CustomerSettings>({
+    queryKey: ["/api/customer/settings", customerData?.user?.id],
+    queryFn: async () => {
+      if (!customerData?.user?.id || !customerData?.sessionToken) {
+        throw new Error("Not authenticated");
+      }
+      const response = await fetch(`/api/customer/settings/${customerData.user.id}?sessionToken=${customerData.sessionToken}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch settings");
+      }
+      return response.json();
+    },
+    enabled: isLoggedIn && !!customerData?.user?.id && !!customerData?.sessionToken,
+  });
+
+  useEffect(() => {
+    if (settingsData) {
+      setSettings(settingsData);
+    }
+  }, [settingsData]);
+
+  const saveSettingsMutation = useMutation({
+    mutationFn: async (data: Partial<CustomerSettings>) => {
+      const response = await apiRequest("PATCH", "/api/customer/settings", {
+        userId: customerData?.user?.id,
+        sessionToken: customerData?.sessionToken,
+        ...data,
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Settings saved",
+        description: "Your payment preferences have been updated.",
+      });
+      refetchSettings();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save settings",
+        variant: "destructive",
+      });
+    },
   });
 
   const requestOtpMutation = useMutation({
@@ -344,6 +412,19 @@ export default function CustomerPortal() {
       </header>
 
       <main className="relative z-10 max-w-6xl mx-auto px-4 py-8">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="mb-6 bg-slate-800/90 border border-slate-700/50">
+            <TabsTrigger value="overview" className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400" data-testid="tab-overview">
+              <Wifi size={16} className="mr-2" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400" data-testid="tab-settings">
+              <Settings size={16} className="mr-2" />
+              Payment Settings
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             <Card className="bg-slate-800/90 backdrop-blur-xl border-slate-700/50">
@@ -562,6 +643,168 @@ export default function CustomerPortal() {
             </Card>
           </div>
         </div>
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card className="bg-slate-800/90 backdrop-blur-xl border-slate-700/50">
+                <CardHeader>
+                  <CardTitle className="text-xl text-white flex items-center gap-2">
+                    <CreditCard size={20} className="text-cyan-400" />
+                    Payment Settings
+                  </CardTitle>
+                  <CardDescription className="text-slate-400">
+                    Manage your M-Pesa payment preferences
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="paymentPhone" className="text-slate-300">M-Pesa Payment Phone</Label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                      <Input
+                        id="paymentPhone"
+                        type="tel"
+                        placeholder="07XX XXX XXX"
+                        value={settings.paymentPhone}
+                        onChange={(e) => setSettings({ ...settings, paymentPhone: e.target.value })}
+                        className="pl-10 bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500"
+                        data-testid="input-payment-phone"
+                      />
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      This number will receive M-Pesa payment prompts for renewals
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-slate-700/30">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-cyan-500/20">
+                        <RefreshCw size={18} className="text-cyan-400" />
+                      </div>
+                      <div>
+                        <p className="text-white font-medium">Auto-Renewal</p>
+                        <p className="text-xs text-slate-400">
+                          Automatically renew your plan before expiry
+                        </p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={settings.autoRenew}
+                      onCheckedChange={(checked) => setSettings({ ...settings, autoRenew: checked })}
+                      data-testid="switch-auto-renew"
+                    />
+                  </div>
+
+                  <Button
+                    onClick={() => saveSettingsMutation.mutate({
+                      paymentPhone: settings.paymentPhone,
+                      autoRenew: settings.autoRenew,
+                    })}
+                    className="w-full bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600"
+                    disabled={saveSettingsMutation.isPending}
+                    data-testid="button-save-payment-settings"
+                  >
+                    {saveSettingsMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 animate-spin" size={18} />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2" size={18} />
+                        Save Payment Settings
+                      </>
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-slate-800/90 backdrop-blur-xl border-slate-700/50">
+                <CardHeader>
+                  <CardTitle className="text-xl text-white flex items-center gap-2">
+                    <User size={20} className="text-cyan-400" />
+                    Profile Information
+                  </CardTitle>
+                  <CardDescription className="text-slate-400">
+                    Update your personal information
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="fullName" className="text-slate-300">Full Name</Label>
+                    <Input
+                      id="fullName"
+                      type="text"
+                      placeholder="Enter your full name"
+                      value={settings.fullName}
+                      onChange={(e) => setSettings({ ...settings, fullName: e.target.value })}
+                      className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500"
+                      data-testid="input-full-name"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-slate-300">Email Address</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="your@email.com"
+                        value={settings.email}
+                        onChange={(e) => setSettings({ ...settings, email: e.target.value })}
+                        className="pl-10 bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500"
+                        data-testid="input-email"
+                      />
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      Receive payment receipts and notifications
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-slate-300">Registered Phone</Label>
+                    <div className="p-3 rounded-lg bg-slate-700/30 border border-slate-600">
+                      <div className="flex items-center gap-2">
+                        <Phone size={16} className="text-slate-400" />
+                        <span className="text-white">{customerData?.user?.phoneNumber}</span>
+                        <Badge variant="outline" className="ml-auto border-cyan-500/30 text-cyan-400 text-xs">
+                          Verified
+                        </Badge>
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      Contact support to change your registered phone
+                    </p>
+                  </div>
+
+                  <Button
+                    onClick={() => saveSettingsMutation.mutate({
+                      fullName: settings.fullName,
+                      email: settings.email,
+                    })}
+                    className="w-full bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600"
+                    disabled={saveSettingsMutation.isPending}
+                    data-testid="button-save-profile"
+                  >
+                    {saveSettingsMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 animate-spin" size={18} />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2" size={18} />
+                        Save Profile
+                      </>
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );

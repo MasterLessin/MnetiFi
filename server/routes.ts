@@ -1793,6 +1793,26 @@ export async function registerRoutes(
   // ============== CUSTOMER PORTAL ROUTES ==============
   
   const customerOtpStore = new Map<string, { code: string; expiresAt: Date }>();
+  
+  // Customer session tokens for authenticated API access
+  const customerSessionStore = new Map<string, { userId: string; phoneNumber: string; expiresAt: Date }>();
+  
+  // Helper to generate session token
+  const generateSessionToken = (): string => {
+    return Math.random().toString(36).substring(2) + Date.now().toString(36);
+  };
+  
+  // Helper to verify customer session
+  const verifyCustomerSession = (token: string | undefined, userId: string): boolean => {
+    if (!token) return false;
+    const session = customerSessionStore.get(token);
+    if (!session) return false;
+    if (session.expiresAt < new Date()) {
+      customerSessionStore.delete(token);
+      return false;
+    }
+    return session.userId === userId;
+  };
 
   app.post("/api/customer/request-otp", async (req, res) => {
     try {
@@ -1904,12 +1924,21 @@ export async function registerRoutes(
       // Get user's transactions
       const transactions = await storage.getTransactionsByWifiUserId(foundUser.id);
 
+      // Generate session token for authenticated API access
+      const sessionToken = generateSessionToken();
+      customerSessionStore.set(sessionToken, {
+        userId: foundUser.id,
+        phoneNumber,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+      });
+
       res.json({
         user: foundUser,
         plan,
         transactions: transactions.slice(0, 20),
         hotspotName: foundHotspot?.locationName || "WiFi Network",
         tenantId: foundTenant.id,
+        sessionToken, // Return session token for authenticated API calls
       });
     } catch (error) {
       console.error("Error verifying OTP:", error);
@@ -1934,6 +1963,109 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error initiating renewal:", error);
       res.status(500).json({ error: "Failed to initiate payment" });
+    }
+  });
+
+  // Customer settings - update profile
+  app.patch("/api/customer/settings", async (req, res) => {
+    try {
+      const { userId, phoneNumber, email, fullName, paymentPhone, autoRenew, sessionToken } = req.body;
+      
+      if (!userId) {
+        return res.status(400).json({ error: "User ID is required" });
+      }
+
+      // Verify session token
+      if (!verifyCustomerSession(sessionToken, userId)) {
+        return res.status(401).json({ error: "Unauthorized. Please log in again." });
+      }
+
+      const wifiUser = await storage.getWifiUser(userId);
+      if (!wifiUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Build update object with only provided fields
+      const updateData: Partial<{
+        phoneNumber: string;
+        email: string;
+        fullName: string;
+        notes: string;
+      }> = {};
+
+      if (email !== undefined) updateData.email = email;
+      if (fullName !== undefined) updateData.fullName = fullName;
+      
+      // Store payment preferences in notes field as JSON (temporary solution)
+      // In a full implementation, these would be separate database columns
+      let preferences: Record<string, unknown> = {};
+      try {
+        if (wifiUser.notes) {
+          preferences = JSON.parse(wifiUser.notes);
+        }
+      } catch {
+        preferences = {};
+      }
+      
+      if (paymentPhone !== undefined) preferences.paymentPhone = paymentPhone;
+      if (autoRenew !== undefined) preferences.autoRenew = autoRenew;
+      
+      updateData.notes = JSON.stringify(preferences);
+
+      const updatedUser = await storage.updateWifiUser(userId, updateData);
+
+      res.json({
+        success: true,
+        message: "Settings updated successfully",
+        user: updatedUser,
+      });
+    } catch (error) {
+      console.error("Error updating customer settings:", error);
+      res.status(500).json({ error: "Failed to update settings" });
+    }
+  });
+
+  // Customer settings - get payment preferences
+  app.get("/api/customer/settings/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const sessionToken = req.query.sessionToken as string | undefined;
+      
+      // Verify session token
+      if (!verifyCustomerSession(sessionToken, userId)) {
+        return res.status(401).json({ error: "Unauthorized. Please log in again." });
+      }
+      
+      const wifiUser = await storage.getWifiUser(userId);
+      if (!wifiUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Parse preferences from notes field
+      let preferences: Record<string, unknown> = {
+        paymentPhone: wifiUser.phoneNumber,
+        autoRenew: false,
+      };
+      
+      try {
+        if (wifiUser.notes) {
+          const parsed = JSON.parse(wifiUser.notes);
+          preferences = { ...preferences, ...parsed };
+        }
+      } catch {
+        // Notes is not JSON, keep defaults
+      }
+
+      res.json({
+        email: wifiUser.email || "",
+        fullName: wifiUser.fullName || "",
+        phoneNumber: wifiUser.phoneNumber,
+        paymentPhone: preferences.paymentPhone || wifiUser.phoneNumber,
+        autoRenew: preferences.autoRenew || false,
+      });
+    } catch (error) {
+      console.error("Error fetching customer settings:", error);
+      res.status(500).json({ error: "Failed to fetch settings" });
     }
   });
 
