@@ -211,6 +211,10 @@ export async function registerRoutes(
         registrationPaymentStatus: registrationPaymentStatus,
       });
 
+      // Generate email verification token
+      const emailVerificationToken = crypto.randomUUID();
+      const emailVerificationExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
       // Hash password and create the admin user for this tenant
       const hashedPassword = await hashPassword(password);
       const user = await storage.createUser({
@@ -219,18 +223,35 @@ export async function registerRoutes(
         password: hashedPassword,
         email,
         role: "admin",
+        isActive: false, // Account inactive until email verified
       });
 
-      let responseMessage = "Account created successfully";
-      let additionalInfo = {};
+      // Update user with email verification token
+      await storage.updateUser(user.id, {
+        emailVerificationToken,
+        emailVerificationExpiry,
+        emailVerified: false,
+      });
+
+      // Log verification link (in production, send via email)
+      const verificationLink = `/verify-email?token=${emailVerificationToken}`;
+      console.log(`[Registration] Email verification required for ${email}`);
+      console.log(`[Registration] Verification token: ${emailVerificationToken}`);
+      console.log(`[Registration] Verification link: ${verificationLink}`);
+
+      let responseMessage = "Account created! Please check your email to verify your account.";
+      let additionalInfo: Record<string, unknown> = {
+        requiresEmailVerification: true,
+        verificationEmailSentTo: email,
+      };
 
       if (paymentMethod === "MPESA" && phoneNumber) {
-        responseMessage = "Account created. Check your phone for M-Pesa payment prompt.";
-        // In production, trigger STK push here
-        console.log(`[Registration] M-Pesa STK push to be sent to ${phoneNumber} for tenant ${tenant.id}`);
+        responseMessage = "Account created! Please verify your email, then check your phone for M-Pesa payment prompt.";
+        console.log(`[Registration] M-Pesa STK push to be sent to ${phoneNumber} for tenant ${tenant.id} after verification`);
       } else if (paymentMethod === "BANK") {
-        responseMessage = "Account created. Please complete bank transfer to activate.";
+        responseMessage = "Account created! Please verify your email, then complete bank transfer to activate.";
         additionalInfo = {
+          ...additionalInfo,
           bankDetails: {
             bank: "Kenya Commercial Bank",
             accountNumber: "1234567890",
@@ -240,8 +261,9 @@ export async function registerRoutes(
           },
         };
       } else if (paymentMethod === "PAYPAL") {
-        responseMessage = "Account created. You will be redirected to PayPal.";
+        responseMessage = "Account created! Please verify your email, then you will be redirected to PayPal.";
         additionalInfo = {
+          ...additionalInfo,
           paypalRedirect: `https://www.paypal.com/checkoutnow?token=${tenant.id}`,
         };
       }
@@ -257,6 +279,7 @@ export async function registerRoutes(
           id: user.id,
           username: user.username,
           email: user.email,
+          emailVerified: false,
         },
         paymentMethod,
         ...additionalInfo,
@@ -264,6 +287,91 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error during registration:", error);
       res.status(500).json({ error: "Failed to create account" });
+    }
+  });
+
+  // Email verification endpoint
+  app.post("/api/auth/verify-email", async (req, res) => {
+    try {
+      const { token } = req.body;
+      
+      if (!token) {
+        return res.status(400).json({ error: "Verification token is required" });
+      }
+
+      const user = await storage.getUserByEmailVerificationToken(token);
+      
+      if (!user) {
+        return res.status(400).json({ error: "Invalid or expired verification token" });
+      }
+
+      if (user.emailVerificationExpiry && new Date(user.emailVerificationExpiry) < new Date()) {
+        return res.status(400).json({ error: "Verification token has expired. Please request a new one." });
+      }
+
+      if (user.emailVerified) {
+        return res.status(400).json({ error: "Email is already verified" });
+      }
+
+      // Activate the user account and mark email as verified
+      await storage.updateUser(user.id, {
+        emailVerified: true,
+        isActive: true,
+        emailVerificationToken: null,
+        emailVerificationExpiry: null,
+      });
+
+      console.log(`[Auth] Email verified for user: ${user.username}`);
+
+      res.json({ 
+        message: "Email verified successfully! You can now log in.",
+        verified: true,
+      });
+    } catch (error) {
+      console.error("Error during email verification:", error);
+      res.status(500).json({ error: "Failed to verify email" });
+    }
+  });
+
+  // Resend verification email endpoint
+  app.post("/api/auth/resend-verification", async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      const user = await storage.getUserByEmail(email);
+      
+      // Always return success to prevent email enumeration
+      if (!user) {
+        return res.json({ message: "If the email exists, a new verification link has been sent" });
+      }
+
+      if (user.emailVerified) {
+        return res.status(400).json({ error: "Email is already verified" });
+      }
+
+      // Generate new verification token
+      const emailVerificationToken = crypto.randomUUID();
+      const emailVerificationExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+      await storage.updateUser(user.id, {
+        emailVerificationToken,
+        emailVerificationExpiry,
+      });
+
+      // Log verification link (in production, send via email)
+      const verificationLink = `/verify-email?token=${emailVerificationToken}`;
+      console.log(`[Auth] Resending verification email for ${email}`);
+      console.log(`[Auth] New verification token: ${emailVerificationToken}`);
+      console.log(`[Auth] Verification link: ${verificationLink}`);
+
+      res.json({ message: "If the email exists, a new verification link has been sent" });
+    } catch (error) {
+      console.error("Error resending verification email:", error);
+      res.status(500).json({ error: "Failed to resend verification email" });
     }
   });
 

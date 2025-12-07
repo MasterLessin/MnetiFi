@@ -58,8 +58,9 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByResetToken(token: string): Promise<User | undefined>;
+  getUserByEmailVerificationToken(token: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  updateUser(id: string, data: Partial<InsertUser & { resetToken?: string | null; resetTokenExpiry?: Date | null }>): Promise<User | undefined>;
+  updateUser(id: string, data: Partial<InsertUser & { resetToken?: string | null; resetTokenExpiry?: Date | null; emailVerificationToken?: string | null; emailVerificationExpiry?: Date | null; emailVerified?: boolean }>): Promise<User | undefined>;
   getAllTenants(): Promise<Tenant[]>;
 
   // WiFi User operations
@@ -269,7 +270,12 @@ export class DatabaseStorage implements IStorage {
     return user || undefined;
   }
 
-  async updateUser(id: string, data: Partial<InsertUser & { resetToken?: string | null; resetTokenExpiry?: Date | null }>): Promise<User | undefined> {
+  async getUserByEmailVerificationToken(token: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.emailVerificationToken, token));
+    return user || undefined;
+  }
+
+  async updateUser(id: string, data: Partial<InsertUser & { resetToken?: string | null; resetTokenExpiry?: Date | null; emailVerificationToken?: string | null; emailVerificationExpiry?: Date | null; emailVerified?: boolean }>): Promise<User | undefined> {
     const [updated] = await db.update(users).set(data as any).where(eq(users.id, id)).returning();
     return updated || undefined;
   }

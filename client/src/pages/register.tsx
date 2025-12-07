@@ -18,6 +18,7 @@ export default function RegisterPage() {
   const { toast } = useToast();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [registrationComplete, setRegistrationComplete] = useState(false);
   
   const [businessName, setBusinessName] = useState("");
   const [subdomain, setSubdomain] = useState("");
@@ -153,25 +154,15 @@ export default function RegisterPage() {
       const data = await response.json();
 
       if (response.ok) {
-        let toastDescription = "";
-        if (paymentMethod === "MPESA") {
-          toastDescription = "Check your phone for M-Pesa payment prompt. Your trial starts immediately!";
-        } else if (paymentMethod === "BANK") {
-          toastDescription = `Account created! Transfer to KCB Acc: 1234567890 using reference: ${data.tenant?.id || "your-tenant-id"}`;
-        } else if (paymentMethod === "PAYPAL") {
-          toastDescription = "Redirecting to PayPal to complete payment...";
-          if (data.paypalRedirect) {
-            setTimeout(() => {
-              window.open(data.paypalRedirect, "_blank");
-            }, 2000);
-          }
+        if (data.requiresEmailVerification) {
+          setRegistrationComplete(true);
+        } else {
+          toast({
+            title: "Account Created!",
+            description: "You can now log in to your account.",
+          });
+          setLocation("/login");
         }
-        
-        toast({
-          title: "Account Created!",
-          description: toastDescription,
-        });
-        setLocation("/login");
       } else {
         toast({
           title: "Registration Failed",

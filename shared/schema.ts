@@ -252,6 +252,9 @@ export const users = pgTable("users", {
   email: text("email"),
   role: text("role").notNull().default("admin"), // superadmin, admin, tech
   isActive: boolean("is_active").default(true),
+  emailVerified: boolean("email_verified").default(false),
+  emailVerificationToken: text("email_verification_token"),
+  emailVerificationExpiry: timestamp("email_verification_expiry"),
   resetToken: text("reset_token"),
   resetTokenExpiry: timestamp("reset_token_expiry"),
   createdAt: timestamp("created_at").defaultNow(),

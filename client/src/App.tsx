@@ -12,6 +12,7 @@ import CustomerPortal from "@/pages/customer-portal";
 import LoginPage from "@/pages/login";
 import RegisterPage from "@/pages/register";
 import ForgotPasswordPage from "@/pages/forgot-password";
+import VerifyEmailPage from "@/pages/verify-email";
 import SuperAdminLoginPage from "@/pages/superadmin-login";
 import SuperAdminForgotPasswordPage from "@/pages/superadmin-forgot-password";
 import SuperAdminRegisterPage from "@/pages/superadmin-register";
@@ -53,6 +54,7 @@ function Router() {
       {/* Auth Pages */}
       <Route path="/login" component={LoginPage} />
       <Route path="/register" component={RegisterPage} />
+      <Route path="/verify-email" component={VerifyEmailPage} />
       <Route path="/forgot-password" component={ForgotPasswordPage} />
 
       {/* Dashboard Routes - Admin area */}
