@@ -40,6 +40,16 @@ interface VoucherLookupResult {
   usedAt: string | null;
 }
 
+interface WiFiCredentials {
+  username: string;
+  password: string | null;
+  expiresAt: string | null;
+  planName: string;
+  planDuration: number | null;
+  autoLoginUrl: string | null;
+  hotspotName: string | null;
+}
+
 export default function CaptivePortal() {
   const { toast } = useToast();
   const [step, setStep] = useState<PaymentStep>("select-plan");
@@ -51,9 +61,11 @@ export default function CaptivePortal() {
   const [lookupPhone, setLookupPhone] = useState("");
   const [lookedUpVouchers, setLookedUpVouchers] = useState<VoucherLookupResult[]>([]);
   const [isLookingUp, setIsLookingUp] = useState(false);
+  const [credentials, setCredentials] = useState<WiFiCredentials | null>(null);
+  const [isLoadingCredentials, setIsLoadingCredentials] = useState(false);
 
   const { data: tenant } = useQuery<Tenant>({
-    queryKey: ["/api/tenant"],
+    queryKey: ["/api/portal/tenant"],
   });
 
   const branding: BrandingConfig = useMemo(() => {
@@ -114,6 +126,21 @@ export default function CaptivePortal() {
     },
   });
 
+  const fetchCredentials = async (transactionId: string) => {
+    setIsLoadingCredentials(true);
+    try {
+      const response = await fetch(`/api/transactions/${transactionId}/credentials`);
+      if (response.ok) {
+        const creds = await response.json() as WiFiCredentials;
+        setCredentials(creds);
+      }
+    } catch (error) {
+      console.error("Failed to fetch credentials:", error);
+    } finally {
+      setIsLoadingCredentials(false);
+    }
+  };
+
   const pollTransactionStatus = async (transactionId: string) => {
     const maxAttempts = 30;
     let attempts = 0;
@@ -132,6 +159,8 @@ export default function CaptivePortal() {
           setTransaction(data);
           setStep("success");
           queryClient.invalidateQueries({ queryKey: ["/api/transactions"] });
+          // Fetch WiFi credentials for auto-connect
+          await fetchCredentials(transactionId);
           return;
         } else if (data.status === "FAILED") {
           setTransaction(data);
@@ -714,22 +743,78 @@ export default function CaptivePortal() {
                 <h3 className="text-xl font-semibold text-white mb-2">
                   Payment Successful
                 </h3>
-                <p className="text-muted-foreground mb-6">
-                  You are now connected to the internet
+                <p className="text-muted-foreground mb-4">
+                  {credentials ? "Your WiFi credentials are ready" : "You are now connected to the internet"}
                 </p>
+
+                {isLoadingCredentials ? (
+                  <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                    <Loader2 size={16} className="animate-spin" />
+                    <span>Loading credentials...</span>
+                  </div>
+                ) : credentials ? (
+                  <div className="p-4 rounded-xl bg-white/5 border border-white/10 mb-4 text-left">
+                    <div className="space-y-3 text-sm">
+                      <div className="flex justify-between gap-2">
+                        <span className="text-muted-foreground">Username:</span>
+                        <span className="font-mono font-medium text-white" data-testid="text-username">{credentials.username}</span>
+                      </div>
+                      {credentials.password && (
+                        <div className="flex justify-between gap-2">
+                          <span className="text-muted-foreground">Password:</span>
+                          <span className="font-mono font-medium text-white" data-testid="text-password">{credentials.password}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between gap-2">
+                        <span className="text-muted-foreground">Plan:</span>
+                        <span className="font-medium text-white">{credentials.planName}</span>
+                      </div>
+                      {credentials.expiresAt && (
+                        <div className="flex justify-between gap-2">
+                          <span className="text-muted-foreground">Expires:</span>
+                          <span className="font-medium text-white">
+                            {new Date(credentials.expiresAt).toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+                      {credentials.hotspotName && (
+                        <div className="flex justify-between gap-2">
+                          <span className="text-muted-foreground">Hotspot:</span>
+                          <span className="font-medium text-white">{credentials.hotspotName}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : null}
+
                 {transaction?.mpesaReceiptNumber && (
-                  <p className="text-sm text-muted-foreground font-mono">
+                  <p className="text-xs text-muted-foreground font-mono mb-4">
                     Receipt: {transaction.mpesaReceiptNumber}
                   </p>
                 )}
-                <Button
-                  className="mt-6"
-                  style={gradientStyle}
-                  data-testid="button-browse"
-                >
-                  Start Browsing
-                  <ArrowRight size={16} className="ml-2" />
-                </Button>
+
+                {credentials?.autoLoginUrl ? (
+                  <Button
+                    className="w-full"
+                    style={gradientStyle}
+                    onClick={() => {
+                      window.location.href = credentials.autoLoginUrl!;
+                    }}
+                    data-testid="button-auto-connect"
+                  >
+                    <Wifi size={16} className="mr-2" />
+                    Connect Now
+                  </Button>
+                ) : (
+                  <Button
+                    className="w-full"
+                    style={gradientStyle}
+                    data-testid="button-browse"
+                  >
+                    Start Browsing
+                    <ArrowRight size={16} className="ml-2" />
+                  </Button>
+                )}
               </motion.div>
             )}
 

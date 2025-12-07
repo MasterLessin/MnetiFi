@@ -548,6 +548,26 @@ export async function registerRoutes(
     }
   });
 
+  // Public tenant info for captive portal (limited info, no auth required)
+  app.get("/api/portal/tenant", async (req, res) => {
+    try {
+      const tenantId = await getPublicTenantId(req);
+      const tenant = await storage.getTenant(tenantId);
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant not found" });
+      }
+      // Return only public/branding info
+      res.json({
+        id: tenant.id,
+        name: tenant.name,
+        brandingConfig: tenant.brandingConfig,
+      });
+    } catch (error) {
+      console.error("Error fetching tenant:", error);
+      res.status(500).json({ error: "Failed to fetch tenant" });
+    }
+  });
+
   // ============== DASHBOARD ROUTES ==============
   
   app.get("/api/dashboard/stats", requireAuthWithTenant, async (req, res) => {
@@ -836,6 +856,62 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error processing callback:", error);
       res.status(500).json({ error: "Failed to process callback" });
+    }
+  });
+
+  // Get WiFi credentials for a completed transaction (for auto-connect)
+  app.get("/api/transactions/:id/credentials", async (req, res) => {
+    try {
+      const transaction = await storage.getTransaction(req.params.id);
+      if (!transaction) {
+        return res.status(404).json({ error: "Transaction not found" });
+      }
+
+      // Only return credentials for completed transactions
+      if (transaction.status !== TransactionStatus.COMPLETED) {
+        return res.status(400).json({ error: "Transaction is not completed yet" });
+      }
+
+      // Get WiFi user by phone or ID
+      let wifiUser = transaction.wifiUserId 
+        ? await storage.getWifiUser(transaction.wifiUserId)
+        : await storage.getWifiUserByPhone(transaction.tenantId, transaction.userPhone);
+
+      if (!wifiUser) {
+        return res.status(404).json({ error: "WiFi user not found" });
+      }
+
+      // Get the plan details
+      const plan = transaction.planId ? await storage.getPlan(transaction.planId) : null;
+
+      // Get hotspot for login URL
+      const hotspots = await storage.getHotspots(transaction.tenantId);
+      const hotspot = wifiUser.currentHotspotId 
+        ? hotspots.find(h => h.id === wifiUser!.currentHotspotId) 
+        : hotspots[0];
+
+      // Build auto-login URL for MikroTik hotspot
+      let autoLoginUrl = null;
+      if (hotspot && wifiUser.username && wifiUser.password) {
+        // MikroTik hotspot auto-login URL format
+        const hotspotIp = hotspot.nasIp || hotspot.routerApiIp;
+        if (hotspotIp) {
+          autoLoginUrl = `http://${hotspotIp}/login?username=${encodeURIComponent(wifiUser.username)}&password=${encodeURIComponent(wifiUser.password)}`;
+        }
+      }
+
+      res.json({
+        username: wifiUser.username || wifiUser.phoneNumber,
+        password: wifiUser.password,
+        expiresAt: wifiUser.expiryTime,
+        planName: plan?.name || "WiFi Access",
+        planDuration: plan?.durationSeconds,
+        autoLoginUrl,
+        hotspotName: hotspot?.locationName,
+      });
+    } catch (error) {
+      console.error("Error fetching credentials:", error);
+      res.status(500).json({ error: "Failed to fetch credentials" });
     }
   });
 
