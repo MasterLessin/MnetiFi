@@ -13,6 +13,7 @@ import {
   FileCheck,
   MessageSquare,
   Activity,
+  Key,
 } from "lucide-react";
 import {
   Sidebar,
@@ -68,6 +69,11 @@ const menuItems = [
     title: "Network Monitoring",
     url: "/dashboard/network-monitoring",
     icon: Activity,
+  },
+  {
+    title: "Vouchers",
+    url: "/dashboard/vouchers",
+    icon: Key,
   },
   {
     title: "Tickets",

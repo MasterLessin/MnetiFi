@@ -1,5 +1,5 @@
 import { 
-  tenants, hotspots, plans, transactions, walledGardens, users, wifiUsers, tickets, smsCampaigns, wallets, walletTransactions,
+  tenants, hotspots, plans, transactions, walledGardens, users, wifiUsers, tickets, smsCampaigns, wallets, walletTransactions, vouchers, voucherBatches,
   type Tenant, type InsertTenant,
   type Hotspot, type InsertHotspot,
   type Plan, type InsertPlan,
@@ -11,7 +11,10 @@ import {
   type SmsCampaign, type InsertSmsCampaign,
   type Wallet, type InsertWallet,
   type WalletTransaction, type InsertWalletTransaction,
+  type Voucher, type InsertVoucher,
+  type VoucherBatch, type InsertVoucherBatch,
   WalletTransactionType,
+  VoucherStatus,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, sql, inArray } from "drizzle-orm";
@@ -101,6 +104,19 @@ export interface IStorage {
   
   // Mark stale pending transactions as failed
   markStaleTransactionsAsFailed(): Promise<number>;
+
+  // Voucher operations
+  getVouchers(tenantId: string): Promise<Voucher[]>;
+  getVoucher(id: string): Promise<Voucher | undefined>;
+  getVoucherByCode(tenantId: string, code: string): Promise<Voucher | undefined>;
+  createVoucher(voucher: InsertVoucher): Promise<Voucher>;
+  createVoucherBatch(batch: InsertVoucherBatch, voucherCodes: string[]): Promise<{ batch: VoucherBatch; vouchers: Voucher[] }>;
+  updateVoucher(id: string, data: Partial<InsertVoucher>): Promise<Voucher | undefined>;
+  redeemVoucher(id: string, wifiUserId: string, macAddress?: string): Promise<Voucher | undefined>;
+  getVoucherBatches(tenantId: string): Promise<VoucherBatch[]>;
+  getVoucherBatch(id: string): Promise<VoucherBatch | undefined>;
+  getVouchersByBatch(batchId: string): Promise<Voucher[]>;
+  deleteVoucher(id: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1097,6 +1113,111 @@ export class DatabaseStorage implements IStorage {
       .from(wallets)
       .where(eq(wallets.tenantId, tenantId))
       .orderBy(desc(wallets.balance));
+  }
+
+  // Voucher operations
+  async getVouchers(tenantId: string): Promise<Voucher[]> {
+    return db.select()
+      .from(vouchers)
+      .where(eq(vouchers.tenantId, tenantId))
+      .orderBy(desc(vouchers.createdAt));
+  }
+
+  async getVoucher(id: string): Promise<Voucher | undefined> {
+    const [voucher] = await db.select().from(vouchers).where(eq(vouchers.id, id));
+    return voucher || undefined;
+  }
+
+  async getVoucherByCode(tenantId: string, code: string): Promise<Voucher | undefined> {
+    const [voucher] = await db.select()
+      .from(vouchers)
+      .where(and(eq(vouchers.tenantId, tenantId), eq(vouchers.code, code)));
+    return voucher || undefined;
+  }
+
+  async createVoucher(voucher: InsertVoucher): Promise<Voucher> {
+    const [created] = await db.insert(vouchers).values(voucher).returning();
+    return created;
+  }
+
+  async createVoucherBatch(batch: InsertVoucherBatch, voucherCodes: string[]): Promise<{ batch: VoucherBatch; vouchers: Voucher[] }> {
+    const [createdBatch] = await db.insert(voucherBatches).values(batch).returning();
+    
+    const voucherInserts: InsertVoucher[] = voucherCodes.map(code => ({
+      tenantId: batch.tenantId,
+      batchId: createdBatch.id,
+      planId: batch.planId,
+      code,
+      status: VoucherStatus.AVAILABLE,
+      validFrom: batch.validFrom,
+      validUntil: batch.validUntil,
+    }));
+
+    const createdVouchers = await db.insert(vouchers).values(voucherInserts).returning();
+    return { batch: createdBatch, vouchers: createdVouchers };
+  }
+
+  async updateVoucher(id: string, data: Partial<InsertVoucher>): Promise<Voucher | undefined> {
+    const [updated] = await db.update(vouchers).set(data).where(eq(vouchers.id, id)).returning();
+    return updated || undefined;
+  }
+
+  async redeemVoucher(id: string, wifiUserId: string, macAddress?: string): Promise<Voucher | undefined> {
+    const voucher = await this.getVoucher(id);
+    if (!voucher || voucher.status !== VoucherStatus.AVAILABLE) {
+      return undefined;
+    }
+
+    const plan = await this.getPlan(voucher.planId);
+    if (!plan) {
+      return undefined;
+    }
+
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + plan.durationSeconds * 1000);
+
+    const [updated] = await db.update(vouchers)
+      .set({
+        status: VoucherStatus.USED,
+        usedBy: wifiUserId,
+        usedAt: now,
+        macAddress,
+        expiresAt,
+      })
+      .where(eq(vouchers.id, id))
+      .returning();
+
+    if (updated && updated.batchId) {
+      await db.update(voucherBatches)
+        .set({ usedCount: sql`${voucherBatches.usedCount} + 1` })
+        .where(eq(voucherBatches.id, updated.batchId));
+    }
+
+    return updated || undefined;
+  }
+
+  async getVoucherBatches(tenantId: string): Promise<VoucherBatch[]> {
+    return db.select()
+      .from(voucherBatches)
+      .where(eq(voucherBatches.tenantId, tenantId))
+      .orderBy(desc(voucherBatches.createdAt));
+  }
+
+  async getVoucherBatch(id: string): Promise<VoucherBatch | undefined> {
+    const [batch] = await db.select().from(voucherBatches).where(eq(voucherBatches.id, id));
+    return batch || undefined;
+  }
+
+  async getVouchersByBatch(batchId: string): Promise<Voucher[]> {
+    return db.select()
+      .from(vouchers)
+      .where(eq(vouchers.batchId, batchId))
+      .orderBy(vouchers.code);
+  }
+
+  async deleteVoucher(id: string): Promise<boolean> {
+    const result = await db.delete(vouchers).where(eq(vouchers.id, id)).returning();
+    return result.length > 0;
   }
 }
 

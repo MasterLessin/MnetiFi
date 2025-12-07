@@ -11,9 +11,11 @@ import {
   insertTenantSchema,
   insertWifiUserSchema,
   insertTicketSchema,
+  insertVoucherBatchSchema,
   ReconciliationStatus,
   TransactionStatus,
   UserRole,
+  VoucherStatus,
   type UserRoleValue,
 } from "@shared/schema";
 import { z } from "zod";
@@ -1178,6 +1180,243 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error closing ticket:", error);
       res.status(500).json({ error: "Failed to close ticket" });
+    }
+  });
+
+  // ============== VOUCHER ROUTES ==============
+  
+  // Generate random voucher code
+  function generateVoucherCode(prefix: string = ""): string {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let code = "";
+    for (let i = 0; i < 8; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return prefix ? `${prefix}-${code}` : code;
+  }
+
+  app.get("/api/vouchers", requireAuthWithTenant, async (req, res) => {
+    try {
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      const vouchersList = await storage.getVouchers(tenantId);
+      res.json(vouchersList);
+    } catch (error) {
+      console.error("Error fetching vouchers:", error);
+      res.status(500).json({ error: "Failed to fetch vouchers" });
+    }
+  });
+
+  app.get("/api/voucher-batches", requireAuthWithTenant, async (req, res) => {
+    try {
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      const batches = await storage.getVoucherBatches(tenantId);
+      res.json(batches);
+    } catch (error) {
+      console.error("Error fetching voucher batches:", error);
+      res.status(500).json({ error: "Failed to fetch voucher batches" });
+    }
+  });
+
+  app.get("/api/voucher-batches/:id", requireAuthWithTenant, async (req, res) => {
+    try {
+      const batch = await storage.getVoucherBatch(req.params.id);
+      if (!batch) {
+        return res.status(404).json({ error: "Voucher batch not found" });
+      }
+      res.json(batch);
+    } catch (error) {
+      console.error("Error fetching voucher batch:", error);
+      res.status(500).json({ error: "Failed to fetch voucher batch" });
+    }
+  });
+
+  app.get("/api/voucher-batches/:id/vouchers", requireAuthWithTenant, async (req, res) => {
+    try {
+      const vouchersList = await storage.getVouchersByBatch(req.params.id);
+      res.json(vouchersList);
+    } catch (error) {
+      console.error("Error fetching vouchers for batch:", error);
+      res.status(500).json({ error: "Failed to fetch vouchers" });
+    }
+  });
+
+  app.post("/api/voucher-batches", requireAuthWithTenant, requireAdmin, async (req, res) => {
+    try {
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      
+      const { name, planId, quantity, prefix, validFrom, validUntil } = req.body;
+      
+      if (!name || !planId || !quantity || quantity < 1) {
+        return res.status(400).json({ error: "Name, plan ID, and quantity are required" });
+      }
+
+      // Generate unique voucher codes
+      const voucherCodes: string[] = [];
+      const usedCodes = new Set<string>();
+      
+      for (let i = 0; i < quantity; i++) {
+        let code: string;
+        do {
+          code = generateVoucherCode(prefix || "");
+        } while (usedCodes.has(code));
+        usedCodes.add(code);
+        voucherCodes.push(code);
+      }
+
+      const batchData = insertVoucherBatchSchema.parse({
+        tenantId,
+        planId,
+        name,
+        prefix: prefix || null,
+        quantity,
+        validFrom: validFrom ? new Date(validFrom) : new Date(),
+        validUntil: validUntil ? new Date(validUntil) : null,
+      });
+
+      const result = await storage.createVoucherBatch(batchData, voucherCodes);
+      res.status(201).json(result);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid data", details: error.errors });
+      }
+      console.error("Error creating voucher batch:", error);
+      res.status(500).json({ error: "Failed to create voucher batch" });
+    }
+  });
+
+  app.get("/api/vouchers/:id", requireAuthWithTenant, async (req, res) => {
+    try {
+      const voucher = await storage.getVoucher(req.params.id);
+      if (!voucher) {
+        return res.status(404).json({ error: "Voucher not found" });
+      }
+      res.json(voucher);
+    } catch (error) {
+      console.error("Error fetching voucher:", error);
+      res.status(500).json({ error: "Failed to fetch voucher" });
+    }
+  });
+
+  app.patch("/api/vouchers/:id", requireAuthWithTenant, requireAdmin, async (req, res) => {
+    try {
+      const voucher = await storage.updateVoucher(req.params.id, req.body);
+      if (!voucher) {
+        return res.status(404).json({ error: "Voucher not found" });
+      }
+      res.json(voucher);
+    } catch (error) {
+      console.error("Error updating voucher:", error);
+      res.status(500).json({ error: "Failed to update voucher" });
+    }
+  });
+
+  app.delete("/api/vouchers/:id", requireAuthWithTenant, requireAdmin, async (req, res) => {
+    try {
+      const deleted = await storage.deleteVoucher(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Voucher not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting voucher:", error);
+      res.status(500).json({ error: "Failed to delete voucher" });
+    }
+  });
+
+  // Public voucher redemption endpoint for captive portal
+  app.post("/api/portal/redeem-voucher", async (req, res) => {
+    try {
+      const { code, phoneNumber, macAddress } = req.body;
+      const tenantId = await getPublicTenantId(req);
+      
+      if (!code) {
+        return res.status(400).json({ error: "Voucher code is required" });
+      }
+
+      // Find voucher by code
+      const voucher = await storage.getVoucherByCode(tenantId, code.toUpperCase().trim());
+      
+      if (!voucher) {
+        return res.status(404).json({ error: "Invalid voucher code" });
+      }
+
+      if (voucher.status !== VoucherStatus.AVAILABLE) {
+        return res.status(400).json({ error: "This voucher has already been used or is no longer valid" });
+      }
+
+      // Check validity dates
+      const now = new Date();
+      if (voucher.validFrom && new Date(voucher.validFrom) > now) {
+        return res.status(400).json({ error: "This voucher is not yet valid" });
+      }
+      if (voucher.validUntil && new Date(voucher.validUntil) < now) {
+        return res.status(400).json({ error: "This voucher has expired" });
+      }
+
+      // Get or create WiFi user
+      let wifiUser = phoneNumber ? await storage.getWifiUserByPhone(tenantId, phoneNumber) : null;
+      
+      if (!wifiUser && phoneNumber) {
+        wifiUser = await storage.createWifiUser({
+          tenantId,
+          phoneNumber,
+          accountType: "HOTSPOT",
+          currentPlanId: voucher.planId,
+          macAddress,
+          status: "ACTIVE",
+        });
+      }
+
+      if (!wifiUser) {
+        return res.status(400).json({ error: "Phone number is required for new users" });
+      }
+
+      // Redeem the voucher
+      const plan = await storage.getPlan(voucher.planId);
+      if (!plan) {
+        return res.status(500).json({ error: "Plan not found" });
+      }
+
+      const redeemed = await storage.redeemVoucher(voucher.id, wifiUser.id, macAddress);
+      
+      if (!redeemed) {
+        return res.status(500).json({ error: "Failed to redeem voucher" });
+      }
+
+      // Update user with expiry time
+      const expiresAt = new Date(now.getTime() + plan.durationSeconds * 1000);
+      await storage.updateWifiUser(wifiUser.id, {
+        currentPlanId: plan.id,
+        expiryTime: expiresAt,
+        macAddress,
+        status: "ACTIVE",
+      });
+
+      res.json({
+        success: true,
+        message: "Voucher redeemed successfully",
+        plan: {
+          name: plan.name,
+          durationSeconds: plan.durationSeconds,
+        },
+        expiresAt,
+        user: {
+          id: wifiUser.id,
+          phoneNumber: wifiUser.phoneNumber,
+        },
+      });
+    } catch (error) {
+      console.error("Error redeeming voucher:", error);
+      res.status(500).json({ error: "Failed to redeem voucher" });
     }
   });
 

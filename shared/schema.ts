@@ -658,3 +658,92 @@ export const insertWalletTransactionSchema = createInsertSchema(walletTransactio
 
 export type WalletTransaction = typeof walletTransactions.$inferSelect;
 export type InsertWalletTransaction = z.infer<typeof insertWalletTransactionSchema>;
+
+// Voucher Status
+export const VoucherStatus = {
+  AVAILABLE: "AVAILABLE",
+  USED: "USED",
+  EXPIRED: "EXPIRED",
+  DISABLED: "DISABLED",
+} as const;
+export type VoucherStatusValue = typeof VoucherStatus[keyof typeof VoucherStatus];
+
+// Voucher Batches - Groups of vouchers created together
+export const voucherBatches = pgTable("voucher_batches", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id),
+  planId: varchar("plan_id").notNull().references(() => plans.id),
+  name: text("name").notNull(),
+  prefix: text("prefix"),
+  quantity: integer("quantity").notNull(),
+  usedCount: integer("used_count").notNull().default(0),
+  validFrom: timestamp("valid_from").defaultNow(),
+  validUntil: timestamp("valid_until"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const voucherBatchesRelations = relations(voucherBatches, ({ one, many }) => ({
+  tenant: one(tenants, {
+    fields: [voucherBatches.tenantId],
+    references: [tenants.id],
+  }),
+  plan: one(plans, {
+    fields: [voucherBatches.planId],
+    references: [plans.id],
+  }),
+  vouchers: many(vouchers),
+}));
+
+export const insertVoucherBatchSchema = createInsertSchema(voucherBatches).omit({
+  id: true,
+  usedCount: true,
+  createdAt: true,
+});
+
+export type VoucherBatch = typeof voucherBatches.$inferSelect;
+export type InsertVoucherBatch = z.infer<typeof insertVoucherBatchSchema>;
+
+// Vouchers - Individual access codes
+export const vouchers = pgTable("vouchers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id),
+  batchId: varchar("batch_id").references(() => voucherBatches.id),
+  planId: varchar("plan_id").notNull().references(() => plans.id),
+  code: text("code").notNull(),
+  status: text("status").notNull().default("AVAILABLE"),
+  usedBy: varchar("used_by").references(() => wifiUsers.id),
+  usedAt: timestamp("used_at"),
+  macAddress: text("mac_address"),
+  expiresAt: timestamp("expires_at"),
+  validFrom: timestamp("valid_from").defaultNow(),
+  validUntil: timestamp("valid_until"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const vouchersRelations = relations(vouchers, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [vouchers.tenantId],
+    references: [tenants.id],
+  }),
+  batch: one(voucherBatches, {
+    fields: [vouchers.batchId],
+    references: [voucherBatches.id],
+  }),
+  plan: one(plans, {
+    fields: [vouchers.planId],
+    references: [plans.id],
+  }),
+  usedByUser: one(wifiUsers, {
+    fields: [vouchers.usedBy],
+    references: [wifiUsers.id],
+  }),
+}));
+
+export const insertVoucherSchema = createInsertSchema(vouchers).omit({
+  id: true,
+  usedAt: true,
+  createdAt: true,
+});
+
+export type Voucher = typeof vouchers.$inferSelect;
+export type InsertVoucher = z.infer<typeof insertVoucherSchema>;
