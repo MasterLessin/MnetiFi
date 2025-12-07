@@ -1,11 +1,11 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Phone, Loader2, CheckCircle, XCircle, ArrowRight, Wifi } from "lucide-react";
+import { Phone, Loader2, CheckCircle, XCircle, ArrowRight, Wifi, Ticket, CreditCard } from "lucide-react";
 import { MeshBackground } from "@/components/mesh-background";
 import { MnetiFiLogo, MpesaLogo } from "@/components/mnetifi-logo";
 import { GlassPanel } from "@/components/glass-panel";
-import { PhoneInput } from "@/components/glass-input";
+import { PhoneInput, GlassInput } from "@/components/glass-input";
 import { PlanCard, PlanCardSkeleton } from "@/components/plan-card";
 import { WalledGardenFooter } from "@/components/walled-garden";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Plan, WalledGarden, Transaction, Tenant } from "@shared/schema";
 
-type PaymentStep = "select-plan" | "enter-phone" | "processing" | "success" | "failed";
+type PaymentStep = "select-plan" | "enter-phone" | "enter-voucher" | "processing" | "success" | "failed" | "voucher-success";
 
 interface BrandingConfig {
   logo?: string;
@@ -21,12 +21,24 @@ interface BrandingConfig {
   secondaryColor?: string;
 }
 
+interface VoucherRedemptionResult {
+  success: boolean;
+  message: string;
+  plan: {
+    name: string;
+    durationSeconds: number;
+  };
+  expiresAt: string;
+}
+
 export default function CaptivePortal() {
   const { toast } = useToast();
   const [step, setStep] = useState<PaymentStep>("select-plan");
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [voucherCode, setVoucherCode] = useState("");
   const [transaction, setTransaction] = useState<Transaction | null>(null);
+  const [voucherResult, setVoucherResult] = useState<VoucherRedemptionResult | null>(null);
 
   const { data: tenant } = useQuery<Tenant>({
     queryKey: ["/api/tenant"],
@@ -56,7 +68,7 @@ export default function CaptivePortal() {
   const paymentMutation = useMutation({
     mutationFn: async (data: { planId: string; phone: string }) => {
       const response = await apiRequest("POST", "/api/transactions/initiate", data);
-      return response as Transaction;
+      return await response.json() as Transaction;
     },
     onSuccess: (data) => {
       setTransaction(data);
@@ -67,6 +79,24 @@ export default function CaptivePortal() {
       toast({
         title: "Payment Failed",
         description: error.message || "Unable to initiate payment. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const voucherMutation = useMutation({
+    mutationFn: async (data: { code: string; phoneNumber: string }) => {
+      const response = await apiRequest("POST", "/api/portal/redeem-voucher", data);
+      return await response.json() as VoucherRedemptionResult;
+    },
+    onSuccess: (data) => {
+      setVoucherResult(data);
+      setStep("voucher-success");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Invalid Voucher",
+        description: error.message || "Unable to redeem voucher. Please check the code and try again.",
         variant: "destructive",
       });
     },
@@ -139,11 +169,46 @@ export default function CaptivePortal() {
     });
   };
 
+  const handleVoucherSubmit = () => {
+    const cleanPhone = phoneNumber.replace(/\D/g, "");
+    if (cleanPhone.length < 9) {
+      toast({
+        title: "Invalid Phone Number",
+        description: "Please enter a valid phone number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    let formattedPhone = cleanPhone;
+    if (cleanPhone.startsWith("0")) {
+      formattedPhone = "254" + cleanPhone.slice(1);
+    } else if (!cleanPhone.startsWith("254")) {
+      formattedPhone = "254" + cleanPhone;
+    }
+
+    if (!voucherCode.trim()) {
+      toast({
+        title: "Missing Voucher Code",
+        description: "Please enter a voucher code",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    voucherMutation.mutate({
+      code: voucherCode.trim().toUpperCase(),
+      phoneNumber: formattedPhone,
+    });
+  };
+
   const handleRetry = () => {
     setStep("select-plan");
     setSelectedPlan(null);
     setPhoneNumber("");
+    setVoucherCode("");
     setTransaction(null);
+    setVoucherResult(null);
   };
 
   const formatPrice = (amount: number) => {
@@ -152,6 +217,12 @@ export default function CaptivePortal() {
       currency: "KES",
       minimumFractionDigits: 0,
     }).format(amount);
+  };
+
+  const formatDuration = (seconds: number): string => {
+    if (seconds < 3600) return `${Math.floor(seconds / 60)} minutes`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours`;
+    return `${Math.floor(seconds / 86400)} days`;
   };
 
   const BrandedLogo = () => {
@@ -208,7 +279,7 @@ export default function CaptivePortal() {
           <div className="text-center mb-8">
             <BrandedLogo />
             <p className="mt-2 text-muted-foreground text-sm">
-              Connect to Wi-Fi with M-Pesa
+              Connect to Wi-Fi
             </p>
           </div>
 
@@ -220,9 +291,24 @@ export default function CaptivePortal() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
               >
-                <h2 className="text-lg font-semibold text-white mb-4">
-                  Choose Your Plan
-                </h2>
+                <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
+                  <h2 className="text-lg font-semibold text-white">
+                    Choose Your Plan
+                  </h2>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedPlan(null);
+                      setStep("enter-voucher");
+                    }}
+                    className="gap-1"
+                    data-testid="button-have-voucher"
+                  >
+                    <Ticket size={16} />
+                    Have a Voucher?
+                  </Button>
+                </div>
 
                 {plansLoading ? (
                   <div className="space-y-4">
@@ -258,7 +344,7 @@ export default function CaptivePortal() {
                 className="space-y-6"
               >
                 <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2">
                     <div>
                       <span className="text-sm text-muted-foreground">Selected Plan</span>
                       <h3 className="text-lg font-semibold text-white">{selectedPlan.name}</h3>
@@ -305,6 +391,100 @@ export default function CaptivePortal() {
                   >
                     <MpesaLogo size={20} />
                     <span className="ml-2">Pay with M-Pesa</span>
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {step === "enter-voucher" && (
+              <motion.div
+                key="enter-voucher"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-6"
+              >
+                <div className="text-center">
+                  <div
+                    className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center"
+                    style={{ backgroundColor: `${branding.primaryColor}20` }}
+                  >
+                    <Ticket size={32} style={{ color: branding.primaryColor }} />
+                  </div>
+                  <h2 className="text-lg font-semibold text-white mb-1">
+                    Redeem Voucher
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Enter your voucher code to connect
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium text-white mb-2 block">Voucher Code</label>
+                    <GlassInput
+                      placeholder="Enter voucher code (e.g., WIFI-XXXXXXXX)"
+                      value={voucherCode}
+                      onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                      className="text-center font-mono text-lg tracking-wider"
+                      data-testid="input-voucher-code"
+                    />
+                  </div>
+
+                  <div>
+                    <PhoneInput
+                      label="Your Phone Number"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      data-testid="input-voucher-phone"
+                    />
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      This number will be linked to your account
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setVoucherCode("");
+                      setStep("select-plan");
+                    }}
+                    className="flex-1"
+                    data-testid="button-voucher-back"
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    style={gradientStyle}
+                    onClick={handleVoucherSubmit}
+                    disabled={voucherMutation.isPending}
+                    data-testid="button-redeem-voucher"
+                  >
+                    {voucherMutation.isPending ? (
+                      <Loader2 size={18} className="animate-spin mr-2" />
+                    ) : (
+                      <Ticket size={18} className="mr-2" />
+                    )}
+                    Redeem Voucher
+                  </Button>
+                </div>
+
+                <div className="text-center pt-4 border-t border-white/10">
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Don't have a voucher?
+                  </p>
+                  <Button
+                    variant="ghost"
+                    onClick={() => setStep("select-plan")}
+                    className="text-sm"
+                    style={{ color: branding.primaryColor }}
+                    data-testid="button-buy-plan"
+                  >
+                    <CreditCard size={16} className="mr-1" />
+                    Buy a plan with M-Pesa
                   </Button>
                 </div>
               </motion.div>
@@ -370,6 +550,58 @@ export default function CaptivePortal() {
                   className="mt-6"
                   style={gradientStyle}
                   data-testid="button-browse"
+                >
+                  Start Browsing
+                  <ArrowRight size={16} className="ml-2" />
+                </Button>
+              </motion.div>
+            )}
+
+            {step === "voucher-success" && voucherResult && (
+              <motion.div
+                key="voucher-success"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="text-center py-8"
+              >
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                  className="w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: `${branding.primaryColor}20` }}
+                >
+                  <CheckCircle size={40} style={{ color: branding.primaryColor }} />
+                </motion.div>
+                <h3 className="text-xl font-semibold text-white mb-2">
+                  Voucher Redeemed
+                </h3>
+                <p className="text-muted-foreground mb-4">
+                  You are now connected to the internet
+                </p>
+                <div className="p-4 rounded-xl bg-white/5 border border-white/10 mb-6 text-left">
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Plan:</span>
+                      <span className="font-medium text-white">{voucherResult.plan.name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Duration:</span>
+                      <span className="font-medium text-white">{formatDuration(voucherResult.plan.durationSeconds)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Expires:</span>
+                      <span className="font-medium text-white">
+                        {new Date(voucherResult.expiresAt).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  className="w-full"
+                  style={gradientStyle}
+                  data-testid="button-browse-voucher"
                 >
                   Start Browsing
                   <ArrowRight size={16} className="ml-2" />
