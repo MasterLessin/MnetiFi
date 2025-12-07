@@ -283,6 +283,7 @@ export const wifiUsers = pgTable("wifi_users", {
   currentPlanId: varchar("current_plan_id").references(() => plans.id),
   currentHotspotId: varchar("current_hotspot_id").references(() => hotspots.id),
   technicianId: varchar("technician_id").references(() => users.id), // Assigned technician
+  zoneId: varchar("zone_id"), // Assigned zone (references zones table)
   expiryTime: timestamp("expiry_time"),
   macAddress: text("mac_address"),
   ipAddress: text("ip_address"),
@@ -752,3 +753,177 @@ export const insertVoucherSchema = createInsertSchema(vouchers).omit({
 
 export type Voucher = typeof vouchers.$inferSelect;
 export type InsertVoucher = z.infer<typeof insertVoucherSchema>;
+
+// Zones - Geographic/logical areas for organizing customers and techs
+export const zones = pgTable("zones", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  color: text("color").default("#22d3ee"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const zonesRelations = relations(zones, ({ one, many }) => ({
+  tenant: one(tenants, {
+    fields: [zones.tenantId],
+    references: [tenants.id],
+  }),
+}));
+
+export const insertZoneSchema = createInsertSchema(zones).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type Zone = typeof zones.$inferSelect;
+export type InsertZone = z.infer<typeof insertZoneSchema>;
+
+// Audit Logs - Track user actions
+export const auditLogs = pgTable("audit_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id),
+  userId: varchar("user_id").references(() => users.id),
+  action: text("action").notNull(),
+  entityType: text("entity_type"),
+  entityId: text("entity_id"),
+  details: jsonb("details").$type<Record<string, unknown>>().default({}),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [auditLogs.tenantId],
+    references: [tenants.id],
+  }),
+  user: one(users, {
+    fields: [auditLogs.userId],
+    references: [users.id],
+  }),
+}));
+
+export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
+
+// Chat Messages - Customer to ISP communication
+export const chatMessages = pgTable("chat_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id),
+  wifiUserId: varchar("wifi_user_id").references(() => wifiUsers.id),
+  userId: varchar("user_id").references(() => users.id),
+  message: text("message").notNull(),
+  isFromCustomer: boolean("is_from_customer").default(true),
+  isRead: boolean("is_read").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [chatMessages.tenantId],
+    references: [tenants.id],
+  }),
+  wifiUser: one(wifiUsers, {
+    fields: [chatMessages.wifiUserId],
+    references: [wifiUsers.id],
+  }),
+  user: one(users, {
+    fields: [chatMessages.userId],
+    references: [users.id],
+  }),
+}));
+
+export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type ChatMessage = typeof chatMessages.$inferSelect;
+export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+
+// Loyalty Points - Customer rewards tracking
+export const loyaltyPoints = pgTable("loyalty_points", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id),
+  wifiUserId: varchar("wifi_user_id").notNull().references(() => wifiUsers.id),
+  points: integer("points").notNull().default(0),
+  totalEarned: integer("total_earned").notNull().default(0),
+  totalRedeemed: integer("total_redeemed").notNull().default(0),
+  lastEarnedAt: timestamp("last_earned_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const loyaltyPointsRelations = relations(loyaltyPoints, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [loyaltyPoints.tenantId],
+    references: [tenants.id],
+  }),
+  wifiUser: one(wifiUsers, {
+    fields: [loyaltyPoints.wifiUserId],
+    references: [wifiUsers.id],
+  }),
+}));
+
+export const insertLoyaltyPointsSchema = createInsertSchema(loyaltyPoints).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type LoyaltyPoints = typeof loyaltyPoints.$inferSelect;
+export type InsertLoyaltyPoints = z.infer<typeof insertLoyaltyPointsSchema>;
+
+// Loyalty Transactions - Point earning/redemption history
+export const loyaltyTransactions = pgTable("loyalty_transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id),
+  loyaltyId: varchar("loyalty_id").notNull().references(() => loyaltyPoints.id),
+  type: text("type").notNull(), // EARNED, REDEEMED
+  points: integer("points").notNull(),
+  description: text("description"),
+  referenceId: text("reference_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [loyaltyTransactions.tenantId],
+    references: [tenants.id],
+  }),
+  loyalty: one(loyaltyPoints, {
+    fields: [loyaltyTransactions.loyaltyId],
+    references: [loyaltyPoints.id],
+  }),
+}));
+
+export const insertLoyaltyTransactionSchema = createInsertSchema(loyaltyTransactions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type InsertLoyaltyTransaction = z.infer<typeof insertLoyaltyTransactionSchema>;
+
+// Login Attempts - Track failed logins for security
+export const loginAttempts = pgTable("login_attempts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  username: text("username").notNull(),
+  ipAddress: text("ip_address"),
+  success: boolean("success").default(false),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertLoginAttemptSchema = createInsertSchema(loginAttempts).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type LoginAttempt = typeof loginAttempts.$inferSelect;
+export type InsertLoginAttempt = z.infer<typeof insertLoginAttemptSchema>;

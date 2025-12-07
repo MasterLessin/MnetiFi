@@ -40,6 +40,7 @@ import SuperAdminUsersPage from "@/pages/superadmin-users";
 import TechDashboard from "@/pages/tech-dashboard";
 import TechPPPoEUsersPage from "@/pages/tech-pppoe-users";
 import TechStaticUsersPage from "@/pages/tech-static-users";
+import ZonesPage from "@/pages/zones";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -177,6 +178,13 @@ function Router() {
         {() => (
           <DashboardLayout>
             <ReportsPage />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path="/dashboard/zones">
+        {() => (
+          <DashboardLayout>
+            <ZonesPage />
           </DashboardLayout>
         )}
       </Route>

@@ -18,6 +18,7 @@ import {
   Key,
   Router,
   BarChart3,
+  MapPin,
 } from "lucide-react";
 import {
   Sidebar,
@@ -110,6 +111,11 @@ const menuItems: MenuItem[] = [
     title: "Walled Garden",
     url: "/dashboard/walled-garden",
     icon: Globe,
+  },
+  {
+    title: "Zones",
+    url: "/dashboard/zones",
+    icon: MapPin,
   },
 ];
 

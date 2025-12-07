@@ -1,5 +1,6 @@
 import { 
   tenants, hotspots, plans, transactions, walledGardens, users, wifiUsers, tickets, smsCampaigns, wallets, walletTransactions, vouchers, voucherBatches,
+  zones, auditLogs, chatMessages, loyaltyPoints, loyaltyTransactions, loginAttempts,
   type Tenant, type InsertTenant,
   type Hotspot, type InsertHotspot,
   type Plan, type InsertPlan,
@@ -13,6 +14,12 @@ import {
   type WalletTransaction, type InsertWalletTransaction,
   type Voucher, type InsertVoucher,
   type VoucherBatch, type InsertVoucherBatch,
+  type Zone, type InsertZone,
+  type AuditLog, type InsertAuditLog,
+  type ChatMessage, type InsertChatMessage,
+  type LoyaltyPoints, type InsertLoyaltyPoints,
+  type LoyaltyTransaction, type InsertLoyaltyTransaction,
+  type LoginAttempt, type InsertLoginAttempt,
   WalletTransactionType,
   VoucherStatus,
 } from "@shared/schema";
@@ -1261,6 +1268,185 @@ export class DatabaseStorage implements IStorage {
   async deleteVoucher(id: string): Promise<boolean> {
     const result = await db.delete(vouchers).where(eq(vouchers.id, id)).returning();
     return result.length > 0;
+  }
+
+  // Zone operations
+  async getZones(tenantId: string): Promise<Zone[]> {
+    return db.select().from(zones).where(eq(zones.tenantId, tenantId)).orderBy(zones.name);
+  }
+
+  async getZone(id: string): Promise<Zone | undefined> {
+    const [zone] = await db.select().from(zones).where(eq(zones.id, id));
+    return zone || undefined;
+  }
+
+  async createZone(zone: InsertZone): Promise<Zone> {
+    const [created] = await db.insert(zones).values(zone).returning();
+    return created;
+  }
+
+  async updateZone(id: string, data: Partial<InsertZone>): Promise<Zone | undefined> {
+    const [updated] = await db.update(zones).set(data).where(eq(zones.id, id)).returning();
+    return updated || undefined;
+  }
+
+  async deleteZone(id: string): Promise<boolean> {
+    const result = await db.delete(zones).where(eq(zones.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Audit log operations
+  async getAuditLogs(tenantId: string, limit = 100): Promise<AuditLog[]> {
+    return db.select().from(auditLogs)
+      .where(eq(auditLogs.tenantId, tenantId))
+      .orderBy(desc(auditLogs.createdAt))
+      .limit(limit);
+  }
+
+  async createAuditLog(log: InsertAuditLog): Promise<AuditLog> {
+    const [created] = await db.insert(auditLogs).values(log).returning();
+    return created;
+  }
+
+  // Chat operations
+  async getChatMessages(tenantId: string, wifiUserId: string): Promise<ChatMessage[]> {
+    return db.select().from(chatMessages)
+      .where(and(
+        eq(chatMessages.tenantId, tenantId),
+        eq(chatMessages.wifiUserId, wifiUserId)
+      ))
+      .orderBy(chatMessages.createdAt);
+  }
+
+  async getUnreadChats(tenantId: string): Promise<{ wifiUserId: string; count: number }[]> {
+    const result = await db.select({
+      wifiUserId: chatMessages.wifiUserId,
+      count: sql<number>`count(*)::int`,
+    })
+      .from(chatMessages)
+      .where(and(
+        eq(chatMessages.tenantId, tenantId),
+        eq(chatMessages.isFromCustomer, true),
+        eq(chatMessages.isRead, false)
+      ))
+      .groupBy(chatMessages.wifiUserId);
+    return result.filter(r => r.wifiUserId !== null) as { wifiUserId: string; count: number }[];
+  }
+
+  async createChatMessage(message: InsertChatMessage): Promise<ChatMessage> {
+    const [created] = await db.insert(chatMessages).values(message).returning();
+    return created;
+  }
+
+  async markMessagesAsRead(tenantId: string, wifiUserId: string): Promise<void> {
+    await db.update(chatMessages)
+      .set({ isRead: true })
+      .where(and(
+        eq(chatMessages.tenantId, tenantId),
+        eq(chatMessages.wifiUserId, wifiUserId),
+        eq(chatMessages.isFromCustomer, true)
+      ));
+  }
+
+  // Loyalty points operations
+  async getLoyaltyPoints(tenantId: string, wifiUserId: string): Promise<LoyaltyPoints | undefined> {
+    const [loyalty] = await db.select().from(loyaltyPoints)
+      .where(and(
+        eq(loyaltyPoints.tenantId, tenantId),
+        eq(loyaltyPoints.wifiUserId, wifiUserId)
+      ));
+    return loyalty || undefined;
+  }
+
+  async getOrCreateLoyaltyPoints(tenantId: string, wifiUserId: string): Promise<LoyaltyPoints> {
+    let loyalty = await this.getLoyaltyPoints(tenantId, wifiUserId);
+    if (!loyalty) {
+      const [created] = await db.insert(loyaltyPoints).values({
+        tenantId,
+        wifiUserId,
+        points: 0,
+        totalEarned: 0,
+        totalRedeemed: 0,
+      }).returning();
+      loyalty = created;
+    }
+    return loyalty;
+  }
+
+  async addLoyaltyPoints(tenantId: string, wifiUserId: string, points: number, description?: string, referenceId?: string): Promise<LoyaltyPoints> {
+    const loyalty = await this.getOrCreateLoyaltyPoints(tenantId, wifiUserId);
+    
+    const [updated] = await db.update(loyaltyPoints)
+      .set({
+        points: sql`${loyaltyPoints.points} + ${points}`,
+        totalEarned: sql`${loyaltyPoints.totalEarned} + ${points}`,
+        lastEarnedAt: new Date(),
+      })
+      .where(eq(loyaltyPoints.id, loyalty.id))
+      .returning();
+
+    await db.insert(loyaltyTransactions).values({
+      tenantId,
+      loyaltyId: loyalty.id,
+      type: "EARNED",
+      points,
+      description,
+      referenceId,
+    });
+
+    return updated;
+  }
+
+  async redeemLoyaltyPoints(tenantId: string, wifiUserId: string, points: number, description?: string): Promise<LoyaltyPoints | null> {
+    const loyalty = await this.getLoyaltyPoints(tenantId, wifiUserId);
+    if (!loyalty || loyalty.points < points) {
+      return null;
+    }
+
+    const [updated] = await db.update(loyaltyPoints)
+      .set({
+        points: sql`${loyaltyPoints.points} - ${points}`,
+        totalRedeemed: sql`${loyaltyPoints.totalRedeemed} + ${points}`,
+      })
+      .where(eq(loyaltyPoints.id, loyalty.id))
+      .returning();
+
+    await db.insert(loyaltyTransactions).values({
+      tenantId,
+      loyaltyId: loyalty.id,
+      type: "REDEEMED",
+      points: -points,
+      description,
+    });
+
+    return updated;
+  }
+
+  async getLoyaltyTransactions(loyaltyId: string): Promise<LoyaltyTransaction[]> {
+    return db.select().from(loyaltyTransactions)
+      .where(eq(loyaltyTransactions.loyaltyId, loyaltyId))
+      .orderBy(desc(loyaltyTransactions.createdAt));
+  }
+
+  // Login attempt operations
+  async recordLoginAttempt(attempt: InsertLoginAttempt): Promise<LoginAttempt> {
+    const [created] = await db.insert(loginAttempts).values(attempt).returning();
+    return created;
+  }
+
+  async getRecentLoginAttempts(username: string, minutes = 15): Promise<LoginAttempt[]> {
+    const since = new Date(Date.now() - minutes * 60 * 1000);
+    return db.select().from(loginAttempts)
+      .where(and(
+        eq(loginAttempts.username, username),
+        gte(loginAttempts.createdAt, since)
+      ))
+      .orderBy(desc(loginAttempts.createdAt));
+  }
+
+  async countFailedLoginAttempts(username: string, minutes = 15): Promise<number> {
+    const attempts = await this.getRecentLoginAttempts(username, minutes);
+    return attempts.filter(a => !a.success).length;
   }
 }
 

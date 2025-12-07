@@ -3021,6 +3021,341 @@ export async function registerRoutes(
     }
   });
 
+  // ============== ZONE ROUTES ==============
+  
+  app.get("/api/zones", requireAuthWithTenant, async (req, res) => {
+    try {
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      const zones = await storage.getZones(tenantId);
+      res.json(zones);
+    } catch (error) {
+      console.error("Error fetching zones:", error);
+      res.status(500).json({ error: "Failed to fetch zones" });
+    }
+  });
+
+  app.get("/api/zones/:id", requireAuthWithTenant, async (req, res) => {
+    try {
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      const zone = await storage.getZone(req.params.id);
+      if (!zone || zone.tenantId !== tenantId) {
+        return res.status(404).json({ error: "Zone not found" });
+      }
+      res.json(zone);
+    } catch (error) {
+      console.error("Error fetching zone:", error);
+      res.status(500).json({ error: "Failed to fetch zone" });
+    }
+  });
+
+  // Zone create/update schema for validation
+  const zoneCreateSchema = z.object({
+    name: z.string().min(1, "Zone name is required").max(100),
+    description: z.string().max(500).optional(),
+    isActive: z.boolean().optional(),
+  });
+
+  const zoneUpdateSchema = zoneCreateSchema.partial();
+
+  app.post("/api/zones", requireAuthWithTenant, requireAdmin, async (req: AuthenticatedRequest, res) => {
+    try {
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      const parsed = zoneCreateSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid data", details: parsed.error.errors });
+      }
+      const zone = await storage.createZone({
+        ...parsed.data,
+        tenantId,
+      });
+      res.status(201).json(zone);
+    } catch (error) {
+      console.error("Error creating zone:", error);
+      res.status(500).json({ error: "Failed to create zone" });
+    }
+  });
+
+  app.patch("/api/zones/:id", requireAuthWithTenant, requireAdmin, async (req: AuthenticatedRequest, res) => {
+    try {
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      // Verify zone belongs to tenant
+      const existingZone = await storage.getZone(req.params.id);
+      if (!existingZone || existingZone.tenantId !== tenantId) {
+        return res.status(404).json({ error: "Zone not found" });
+      }
+      const parsed = zoneUpdateSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid data", details: parsed.error.errors });
+      }
+      const zone = await storage.updateZone(req.params.id, parsed.data);
+      res.json(zone);
+    } catch (error) {
+      console.error("Error updating zone:", error);
+      res.status(500).json({ error: "Failed to update zone" });
+    }
+  });
+
+  app.delete("/api/zones/:id", requireAuthWithTenant, requireAdmin, async (req: AuthenticatedRequest, res) => {
+    try {
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      // Verify zone belongs to tenant
+      const existingZone = await storage.getZone(req.params.id);
+      if (!existingZone || existingZone.tenantId !== tenantId) {
+        return res.status(404).json({ error: "Zone not found" });
+      }
+      const deleted = await storage.deleteZone(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Zone not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting zone:", error);
+      res.status(500).json({ error: "Failed to delete zone" });
+    }
+  });
+
+  // ============== AUDIT LOG ROUTES ==============
+  
+  app.get("/api/audit-logs", requireAuthWithTenant, requireAdmin, async (req: AuthenticatedRequest, res) => {
+    try {
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      const limit = parseInt(req.query.limit as string) || 100;
+      const logs = await storage.getAuditLogs(tenantId, limit);
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching audit logs:", error);
+      res.status(500).json({ error: "Failed to fetch audit logs" });
+    }
+  });
+
+  // ============== CHAT ROUTES ==============
+  
+  // Get chat messages for a specific customer
+  app.get("/api/chat/:wifiUserId", requireAuthWithTenant, async (req, res) => {
+    try {
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      const messages = await storage.getChatMessages(tenantId, req.params.wifiUserId);
+      // Mark messages as read when admin/tech views them
+      await storage.markMessagesAsRead(tenantId, req.params.wifiUserId);
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching chat messages:", error);
+      res.status(500).json({ error: "Failed to fetch chat messages" });
+    }
+  });
+
+  // Get all unread chats
+  app.get("/api/chat-unread", requireAuthWithTenant, async (req, res) => {
+    try {
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      const unread = await storage.getUnreadChats(tenantId);
+      res.json(unread);
+    } catch (error) {
+      console.error("Error fetching unread chats:", error);
+      res.status(500).json({ error: "Failed to fetch unread chats" });
+    }
+  });
+
+  // Send a message (admin/tech reply)
+  app.post("/api/chat/:wifiUserId", requireAuthWithTenant, async (req: AuthenticatedRequest, res) => {
+    try {
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      const { message } = req.body;
+      if (!message) {
+        return res.status(400).json({ error: "Message is required" });
+      }
+      const chatMessage = await storage.createChatMessage({
+        tenantId,
+        wifiUserId: req.params.wifiUserId,
+        message,
+        isFromCustomer: false,
+        userId: req.session?.user?.id,
+      });
+      res.status(201).json(chatMessage);
+    } catch (error) {
+      console.error("Error sending chat message:", error);
+      res.status(500).json({ error: "Failed to send chat message" });
+    }
+  });
+
+  // Customer portal - send a message
+  app.post("/api/customer/chat", async (req, res) => {
+    try {
+      const { phoneNumber, message, tenantId: reqTenantId } = req.body;
+      const tenantId = reqTenantId || defaultTenantId;
+      
+      if (!phoneNumber || !message) {
+        return res.status(400).json({ error: "Phone number and message are required" });
+      }
+      
+      const wifiUser = await storage.getWifiUserByPhone(tenantId, phoneNumber);
+      if (!wifiUser) {
+        return res.status(404).json({ error: "Customer not found" });
+      }
+      
+      const chatMessage = await storage.createChatMessage({
+        tenantId,
+        wifiUserId: wifiUser.id,
+        message,
+        isFromCustomer: true,
+      });
+      res.status(201).json(chatMessage);
+    } catch (error) {
+      console.error("Error sending customer chat message:", error);
+      res.status(500).json({ error: "Failed to send message" });
+    }
+  });
+
+  // Customer portal - get own chat messages
+  app.get("/api/customer/chat", async (req, res) => {
+    try {
+      const phoneNumber = req.query.phone as string;
+      const tenantId = req.query.tenantId as string || defaultTenantId;
+      
+      if (!phoneNumber) {
+        return res.status(400).json({ error: "Phone number is required" });
+      }
+      
+      const wifiUser = await storage.getWifiUserByPhone(tenantId, phoneNumber);
+      if (!wifiUser) {
+        return res.json([]);
+      }
+      
+      const messages = await storage.getChatMessages(tenantId, wifiUser.id);
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching customer chat messages:", error);
+      res.status(500).json({ error: "Failed to fetch messages" });
+    }
+  });
+
+  // ============== LOYALTY POINTS ROUTES ==============
+  
+  // Get loyalty points for a customer
+  app.get("/api/loyalty/:wifiUserId", requireAuthWithTenant, async (req, res) => {
+    try {
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      const loyalty = await storage.getLoyaltyPoints(tenantId, req.params.wifiUserId);
+      res.json(loyalty || { points: 0, totalEarned: 0, totalRedeemed: 0 });
+    } catch (error) {
+      console.error("Error fetching loyalty points:", error);
+      res.status(500).json({ error: "Failed to fetch loyalty points" });
+    }
+  });
+
+  // Get loyalty transactions for a customer
+  app.get("/api/loyalty/:wifiUserId/transactions", requireAuthWithTenant, async (req, res) => {
+    try {
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      const loyalty = await storage.getLoyaltyPoints(tenantId, req.params.wifiUserId);
+      if (!loyalty) {
+        return res.json([]);
+      }
+      const transactions = await storage.getLoyaltyTransactions(loyalty.id);
+      res.json(transactions);
+    } catch (error) {
+      console.error("Error fetching loyalty transactions:", error);
+      res.status(500).json({ error: "Failed to fetch loyalty transactions" });
+    }
+  });
+
+  // Add loyalty points (admin action)
+  app.post("/api/loyalty/:wifiUserId/add", requireAdmin, async (req: AuthenticatedRequest, res) => {
+    try {
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      const { points, description } = req.body;
+      if (!points || points <= 0) {
+        return res.status(400).json({ error: "Valid points amount is required" });
+      }
+      const loyalty = await storage.addLoyaltyPoints(tenantId, req.params.wifiUserId, points, description);
+      res.json(loyalty);
+    } catch (error) {
+      console.error("Error adding loyalty points:", error);
+      res.status(500).json({ error: "Failed to add loyalty points" });
+    }
+  });
+
+  // Redeem loyalty points (admin action)
+  app.post("/api/loyalty/:wifiUserId/redeem", requireAdmin, async (req: AuthenticatedRequest, res) => {
+    try {
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      const { points, description } = req.body;
+      if (!points || points <= 0) {
+        return res.status(400).json({ error: "Valid points amount is required" });
+      }
+      const loyalty = await storage.redeemLoyaltyPoints(tenantId, req.params.wifiUserId, points, description);
+      if (!loyalty) {
+        return res.status(400).json({ error: "Insufficient points balance" });
+      }
+      res.json(loyalty);
+    } catch (error) {
+      console.error("Error redeeming loyalty points:", error);
+      res.status(500).json({ error: "Failed to redeem loyalty points" });
+    }
+  });
+
+  // Customer portal - get own loyalty points
+  app.get("/api/customer/loyalty", async (req, res) => {
+    try {
+      const phoneNumber = req.query.phone as string;
+      const tenantId = req.query.tenantId as string || defaultTenantId;
+      
+      if (!phoneNumber) {
+        return res.status(400).json({ error: "Phone number is required" });
+      }
+      
+      const wifiUser = await storage.getWifiUserByPhone(tenantId, phoneNumber);
+      if (!wifiUser) {
+        return res.json({ points: 0, totalEarned: 0, totalRedeemed: 0 });
+      }
+      
+      const loyalty = await storage.getLoyaltyPoints(tenantId, wifiUser.id);
+      res.json(loyalty || { points: 0, totalEarned: 0, totalRedeemed: 0 });
+    } catch (error) {
+      console.error("Error fetching customer loyalty points:", error);
+      res.status(500).json({ error: "Failed to fetch loyalty points" });
+    }
+  });
+
   return httpServer;
 }
 
