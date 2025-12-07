@@ -41,6 +41,33 @@ async function verifyPassword(password: string, hash: string): Promise<boolean> 
   return bcrypt.compare(password, hash);
 }
 
+// Module-level default tenant ID for public/captive portal routes
+// This is used ONLY for unauthenticated routes that need a fallback tenant
+// Authenticated routes should ALWAYS use getSessionTenantId(req)
+let defaultTenantId: string = "";
+
+// Helper to get tenant ID from request context (for public routes)
+// Priority: 1. Query param tenantId, 2. Subdomain lookup, 3. Default demo tenant
+async function getPublicTenantId(req: any): Promise<string> {
+  // Check query parameter first
+  if (req.query.tenantId && typeof req.query.tenantId === 'string') {
+    return req.query.tenantId;
+  }
+  
+  // Check subdomain from host header
+  const host = req.get('host') || '';
+  const subdomain = host.split('.')[0];
+  if (subdomain && subdomain !== 'www' && subdomain !== 'localhost' && subdomain !== 'mnetifi') {
+    const tenant = await storage.getTenantBySubdomain(subdomain);
+    if (tenant) {
+      return tenant.id;
+    }
+  }
+  
+  // Fall back to default tenant
+  return defaultTenantId;
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -51,8 +78,8 @@ export async function registerRoutes(
     res.status(200).json({ status: "healthy", timestamp: new Date().toISOString() });
   });
 
-  // Initialize default tenant for demo purposes (but routes use session tenantId)
-  await initializeDefaultTenant();
+  // Initialize default tenant for demo purposes and set module-level variable
+  defaultTenantId = await initializeDefaultTenant();
 
   // ============== AUTHENTICATION ROUTES ==============
   
