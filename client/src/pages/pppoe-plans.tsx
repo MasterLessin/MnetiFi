@@ -45,12 +45,7 @@ export default function PPPoEPlansPage() {
   });
 
   const { data: plans, isLoading } = useQuery<Plan[]>({
-    queryKey: ["/api/plans", "PPPOE"],
-    queryFn: async () => {
-      const res = await fetch("/api/plans?type=PPPOE");
-      if (!res.ok) throw new Error("Failed to fetch plans");
-      return res.json();
-    },
+    queryKey: ["/api/plans?type=PPPOE"],
   });
 
   const createMutation = useMutation({
@@ -74,7 +69,7 @@ export default function PPPoEPlansPage() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/plans"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/plans?type=PPPOE"] });
       setIsDialogOpen(false);
       resetForm();
       toast({
@@ -110,7 +105,7 @@ export default function PPPoEPlansPage() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/plans"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/plans?type=PPPOE"] });
       setIsDialogOpen(false);
       setEditingPlan(null);
       resetForm();
@@ -133,7 +128,7 @@ export default function PPPoEPlansPage() {
       return apiRequest("DELETE", `/api/plans/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/plans"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/plans?type=PPPOE"] });
       toast({
         title: "Plan Deleted",
         description: "PPPoE plan has been deleted.",

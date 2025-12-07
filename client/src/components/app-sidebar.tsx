@@ -1,4 +1,5 @@
 import { Link, useLocation } from "wouter";
+import { useState } from "react";
 import {
   LayoutDashboard,
   CreditCard,
@@ -8,12 +9,14 @@ import {
   Settings,
   LogOut,
   ChevronRight,
+  ChevronDown,
   Users,
   Ticket,
   FileCheck,
   MessageSquare,
   Activity,
   Key,
+  Router,
 } from "lucide-react";
 import {
   Sidebar,
@@ -34,7 +37,14 @@ interface AppSidebarProps {
   onLogout?: () => void;
 }
 
-const menuItems = [
+interface MenuItem {
+  title: string;
+  url: string;
+  icon: typeof LayoutDashboard;
+  subItems?: { title: string; url: string; icon: typeof LayoutDashboard }[];
+}
+
+const menuItems: MenuItem[] = [
   {
     title: "Dashboard",
     url: "/dashboard",
@@ -49,6 +59,11 @@ const menuItems = [
     title: "Plans",
     url: "/dashboard/plans",
     icon: CreditCard,
+    subItems: [
+      { title: "Hotspot Plans", url: "/dashboard/hotspot-plans", icon: Wifi },
+      { title: "PPPoE Plans", url: "/dashboard/pppoe-plans", icon: Router },
+      { title: "Static IP Plans", url: "/dashboard/static-plans", icon: Globe },
+    ],
   },
   {
     title: "Hotspots",
@@ -102,6 +117,30 @@ const settingsItems = [
 
 export function AppSidebar({ onLogout }: AppSidebarProps) {
   const [location] = useLocation();
+  
+  const getAutoExpandedItems = () => {
+    return menuItems
+      .filter(item => item.subItems?.some(sub => location === sub.url))
+      .map(item => item.title);
+  };
+  
+  const [expandedItems, setExpandedItems] = useState<string[]>(getAutoExpandedItems);
+
+  const toggleExpand = (title: string) => {
+    setExpandedItems(prev => 
+      prev.includes(title) 
+        ? prev.filter(t => t !== title)
+        : [...prev, title]
+    );
+  };
+
+  const isSubItemActive = (item: MenuItem) => {
+    return item.subItems?.some(sub => location === sub.url) || false;
+  };
+  
+  const isExpanded = (item: MenuItem) => {
+    return expandedItems.includes(item.title) || isSubItemActive(item);
+  };
 
   return (
     <Sidebar className="border-r border-white/10 bg-sidebar/50 backdrop-blur-xl">
@@ -120,26 +159,72 @@ export function AppSidebar({ onLogout }: AppSidebarProps) {
             <SidebarMenu>
               {menuItems.map((item) => {
                 const isActive = location === item.url || 
-                  (item.url !== "/dashboard" && location.startsWith(item.url));
+                  (item.url !== "/dashboard" && location.startsWith(item.url) && !item.subItems);
+                const hasSubItems = item.subItems && item.subItems.length > 0;
+                const itemIsExpanded = isExpanded(item);
                 
                 return (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      className={cn(
-                        "w-full transition-all duration-200",
-                        isActive && "bg-white/10 text-white"
-                      )}
-                      data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
-                    >
-                      <Link href={item.url}>
-                        <item.icon size={18} className={isActive ? "text-cyan-400" : ""} />
-                        <span>{item.title}</span>
-                        {isActive && (
-                          <ChevronRight size={14} className="ml-auto text-muted-foreground" />
+                    {hasSubItems ? (
+                      <>
+                        <SidebarMenuButton
+                          onClick={() => toggleExpand(item.title)}
+                          className={cn(
+                            "w-full transition-all duration-200",
+                            (isActive || isSubItemActive(item)) && "bg-white/10 text-white"
+                          )}
+                          data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
+                        >
+                          <item.icon size={18} className={(isActive || isSubItemActive(item)) ? "text-cyan-400" : ""} />
+                          <span>{item.title}</span>
+                          {itemIsExpanded ? (
+                            <ChevronDown size={14} className="ml-auto text-muted-foreground" />
+                          ) : (
+                            <ChevronRight size={14} className="ml-auto text-muted-foreground" />
+                          )}
+                        </SidebarMenuButton>
+                        {itemIsExpanded && (
+                          <div className="ml-4 mt-1 space-y-1">
+                            {item.subItems?.map((subItem) => {
+                              const isSubActive = location === subItem.url;
+                              return (
+                                <SidebarMenuButton
+                                  key={subItem.title}
+                                  asChild
+                                  className={cn(
+                                    "w-full transition-all duration-200 text-sm",
+                                    isSubActive && "bg-white/10 text-white"
+                                  )}
+                                  data-testid={`nav-${subItem.title.toLowerCase().replace(/\s+/g, "-")}`}
+                                >
+                                  <Link href={subItem.url}>
+                                    <subItem.icon size={16} className={isSubActive ? "text-cyan-400" : ""} />
+                                    <span>{subItem.title}</span>
+                                  </Link>
+                                </SidebarMenuButton>
+                              );
+                            })}
+                          </div>
                         )}
-                      </Link>
-                    </SidebarMenuButton>
+                      </>
+                    ) : (
+                      <SidebarMenuButton
+                        asChild
+                        className={cn(
+                          "w-full transition-all duration-200",
+                          isActive && "bg-white/10 text-white"
+                        )}
+                        data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
+                      >
+                        <Link href={item.url}>
+                          <item.icon size={18} className={isActive ? "text-cyan-400" : ""} />
+                          <span>{item.title}</span>
+                          {isActive && (
+                            <ChevronRight size={14} className="ml-auto text-muted-foreground" />
+                          )}
+                        </Link>
+                      </SidebarMenuButton>
+                    )}
                   </SidebarMenuItem>
                 );
               })}

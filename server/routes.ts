@@ -568,7 +568,14 @@ export async function registerRoutes(
   
   app.get("/api/plans", async (req, res) => {
     try {
-      const plans = await storage.getPlans(defaultTenantId);
+      const planType = req.query.type as string | undefined;
+      let plans = await storage.getPlans(defaultTenantId);
+      
+      // Filter by plan type if specified
+      if (planType && ["HOTSPOT", "PPPOE", "STATIC"].includes(planType)) {
+        plans = plans.filter(p => p.planType === planType);
+      }
+      
       res.json(plans);
     } catch (error) {
       console.error("Error fetching plans:", error);

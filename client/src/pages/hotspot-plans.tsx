@@ -7,10 +7,10 @@ import {
   Pencil,
   Trash2,
   Loader2,
-  Zap,
   Clock,
-  Globe,
   Smartphone,
+  Upload,
+  Download,
 } from "lucide-react";
 import { GlassPanel } from "@/components/glass-panel";
 import { Button } from "@/components/ui/button";
@@ -25,11 +25,18 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { Plan } from "@shared/schema";
 
-export default function StaticPlansPage() {
+export default function HotspotPlansPage() {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
@@ -37,43 +44,42 @@ export default function StaticPlansPage() {
     name: "",
     description: "",
     price: "",
-    speedMbps: "",
+    durationSeconds: "3600",
     uploadLimit: "",
     downloadLimit: "",
     maxDevices: "1",
   });
 
   const { data: plans, isLoading } = useQuery<Plan[]>({
-    queryKey: ["/api/plans?type=STATIC"],
+    queryKey: ["/api/plans?type=HOTSPOT"],
   });
 
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
       const price = parseInt(data.price) || 0;
-      const speedMbps = parseInt(data.speedMbps) || 0;
+      const durationSeconds = parseInt(data.durationSeconds) || 3600;
       const maxDevices = parseInt(data.maxDevices) || 1;
-      if (price <= 0 || speedMbps <= 0) {
-        throw new Error("Price and speed must be valid positive numbers");
+      if (price <= 0) {
+        throw new Error("Price must be a valid positive number");
       }
       return apiRequest("POST", "/api/plans", {
         name: data.name,
         description: data.description,
         price,
-        planType: "STATIC",
-        speedMbps,
-        durationSeconds: 30 * 24 * 60 * 60, // 30 days
-        uploadLimit: data.uploadLimit || `${speedMbps}M`,
-        downloadLimit: data.downloadLimit || `${speedMbps}M`,
+        planType: "HOTSPOT",
+        durationSeconds,
+        uploadLimit: data.uploadLimit || undefined,
+        downloadLimit: data.downloadLimit || undefined,
         maxDevices,
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/plans?type=STATIC"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/plans?type=HOTSPOT"] });
       setIsDialogOpen(false);
       resetForm();
       toast({
         title: "Plan Created",
-        description: "Static IP plan has been created successfully.",
+        description: "Hotspot plan has been created successfully.",
       });
     },
     onError: (error: Error) => {
@@ -88,29 +94,29 @@ export default function StaticPlansPage() {
   const updateMutation = useMutation({
     mutationFn: async (data: typeof formData & { id: string }) => {
       const price = parseInt(data.price) || 0;
-      const speedMbps = parseInt(data.speedMbps) || 0;
+      const durationSeconds = parseInt(data.durationSeconds) || 3600;
       const maxDevices = parseInt(data.maxDevices) || 1;
-      if (price <= 0 || speedMbps <= 0) {
-        throw new Error("Price and speed must be valid positive numbers");
+      if (price <= 0) {
+        throw new Error("Price must be a valid positive number");
       }
       return apiRequest("PATCH", `/api/plans/${data.id}`, {
         name: data.name,
         description: data.description,
         price,
-        speedMbps,
-        uploadLimit: data.uploadLimit || `${speedMbps}M`,
-        downloadLimit: data.downloadLimit || `${speedMbps}M`,
+        durationSeconds,
+        uploadLimit: data.uploadLimit || undefined,
+        downloadLimit: data.downloadLimit || undefined,
         maxDevices,
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/plans?type=STATIC"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/plans?type=HOTSPOT"] });
       setIsDialogOpen(false);
       setEditingPlan(null);
       resetForm();
       toast({
         title: "Plan Updated",
-        description: "Static IP plan has been updated successfully.",
+        description: "Hotspot plan has been updated successfully.",
       });
     },
     onError: (error: Error) => {
@@ -127,10 +133,10 @@ export default function StaticPlansPage() {
       return apiRequest("DELETE", `/api/plans/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/plans?type=STATIC"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/plans?type=HOTSPOT"] });
       toast({
         title: "Plan Deleted",
-        description: "Static IP plan has been deleted.",
+        description: "Hotspot plan has been deleted.",
       });
     },
     onError: (error: Error) => {
@@ -147,7 +153,7 @@ export default function StaticPlansPage() {
       name: "",
       description: "",
       price: "",
-      speedMbps: "",
+      durationSeconds: "3600",
       uploadLimit: "",
       downloadLimit: "",
       maxDevices: "1",
@@ -166,7 +172,7 @@ export default function StaticPlansPage() {
       name: plan.name,
       description: plan.description || "",
       price: plan.price.toString(),
-      speedMbps: plan.speedMbps?.toString() || "",
+      durationSeconds: plan.durationSeconds.toString(),
       uploadLimit: plan.uploadLimit || "",
       downloadLimit: plan.downloadLimit || "",
       maxDevices: plan.maxDevices?.toString() || "1",
@@ -191,14 +197,28 @@ export default function StaticPlansPage() {
     }).format(amount);
   };
 
+  const formatDuration = (seconds: number) => {
+    if (seconds < 3600) return `${Math.floor(seconds / 60)} min`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)} hour${seconds >= 7200 ? "s" : ""}`;
+    return `${Math.floor(seconds / 86400)} day${seconds >= 172800 ? "s" : ""}`;
+  };
+
+  const durationPresets = [
+    { label: "30 min", value: "1800" },
+    { label: "1 hour", value: "3600" },
+    { label: "3 hours", value: "10800" },
+    { label: "1 day", value: "86400" },
+    { label: "7 days", value: "604800" },
+    { label: "30 days", value: "2592000" },
+  ];
+
   return (
-    <div className="p-6 space-y-6" data-testid="static-plans-page">
-      {/* Header */}
+    <div className="p-6 space-y-6" data-testid="hotspot-plans-page">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Static IP Plans</h1>
+          <h1 className="text-2xl font-bold text-white">Hotspot Plans</h1>
           <p className="text-muted-foreground">
-            Manage dedicated IP packages with different speeds
+            Manage time-based WiFi packages for captive portal customers
           </p>
         </div>
         <Button className="gradient-btn" onClick={handleOpenCreate} data-testid="button-create-plan">
@@ -207,7 +227,6 @@ export default function StaticPlansPage() {
         </Button>
       </div>
 
-      {/* Plans Grid */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
@@ -251,39 +270,49 @@ export default function StaticPlansPage() {
                 </div>
 
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center">
-                    <Wifi size={24} className="text-purple-400" />
+                  <div className="w-12 h-12 rounded-xl bg-green-500/20 flex items-center justify-center">
+                    <Wifi size={24} className="text-green-400" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-white">{plan.name}</h3>
-                    <Badge variant="outline" className="text-xs bg-purple-500/20 text-purple-400 border-purple-500/30">
-                      Static IP
+                    <Badge variant="outline" className="text-xs bg-green-500/20 text-green-400 border-green-500/30">
+                      Hotspot
                     </Badge>
                   </div>
                 </div>
 
                 <div className="mb-4">
-                  <p className="text-3xl font-bold gradient-text-accent">
+                  <p className="text-3xl font-bold gradient-text">
                     {formatCurrency(plan.price)}
                   </p>
-                  <p className="text-sm text-muted-foreground">per month</p>
+                  <p className="text-sm text-muted-foreground">
+                    for {formatDuration(plan.durationSeconds)}
+                  </p>
                 </div>
 
                 <div className="space-y-2 text-sm">
-                  {plan.speedMbps && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Clock size={14} className="text-green-400" />
+                    <span>{formatDuration(plan.durationSeconds)} validity</span>
+                  </div>
+                  {plan.uploadLimit && (
                     <div className="flex items-center gap-2 text-muted-foreground">
-                      <Zap size={14} className="text-purple-400" />
-                      <span>{plan.speedMbps} Mbps Speed</span>
+                      <Upload size={14} className="text-cyan-400" />
+                      <span>{plan.uploadLimit} upload</span>
                     </div>
                   )}
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Globe size={14} className="text-cyan-400" />
-                    <span>Dedicated IP Address</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Clock size={14} className="text-amber-400" />
-                    <span>30 Days Validity</span>
-                  </div>
+                  {plan.downloadLimit && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Download size={14} className="text-purple-400" />
+                      <span>{plan.downloadLimit} download</span>
+                    </div>
+                  )}
+                  {plan.maxDevices && plan.maxDevices > 1 && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Smartphone size={14} className="text-amber-400" />
+                      <span>{plan.maxDevices} devices</span>
+                    </div>
+                  )}
                   {plan.description && (
                     <p className="text-muted-foreground mt-2">{plan.description}</p>
                   )}
@@ -295,9 +324,9 @@ export default function StaticPlansPage() {
       ) : (
         <GlassPanel size="lg" className="text-center py-12">
           <Wifi size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
-          <h3 className="text-lg font-semibold text-white mb-2">No Static IP Plans</h3>
+          <h3 className="text-lg font-semibold text-white mb-2">No Hotspot Plans</h3>
           <p className="text-muted-foreground mb-4">
-            Create your first Static IP plan to start managing dedicated IP customers
+            Create your first hotspot plan to start accepting payments
           </p>
           <Button className="gradient-btn" onClick={handleOpenCreate}>
             <Plus size={18} className="mr-2" />
@@ -306,19 +335,18 @@ export default function StaticPlansPage() {
         </GlassPanel>
       )}
 
-      {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="bg-card border-white/10">
           <DialogHeader>
             <DialogTitle className="text-white">
-              {editingPlan ? "Edit Static IP Plan" : "Create Static IP Plan"}
+              {editingPlan ? "Edit Hotspot Plan" : "Create Hotspot Plan"}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label>Plan Name</Label>
               <Input
-                placeholder="e.g., Business 10 Mbps"
+                placeholder="e.g., Daily WiFi"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
@@ -328,25 +356,53 @@ export default function StaticPlansPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Speed (Mbps)</Label>
-                <Input
-                  type="number"
-                  placeholder="10"
-                  value={formData.speedMbps}
-                  onChange={(e) => setFormData({ ...formData, speedMbps: e.target.value })}
-                  required
-                  data-testid="input-speed"
-                />
+                <Label>Duration</Label>
+                <Select
+                  value={formData.durationSeconds}
+                  onValueChange={(value) => setFormData({ ...formData, durationSeconds: value })}
+                >
+                  <SelectTrigger data-testid="select-duration">
+                    <SelectValue placeholder="Select duration" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {durationPresets.map((preset) => (
+                      <SelectItem key={preset.value} value={preset.value}>
+                        {preset.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
-                <Label>Price (KES/month)</Label>
+                <Label>Price (KES)</Label>
                 <Input
                   type="number"
-                  placeholder="2500"
+                  placeholder="50"
                   value={formData.price}
                   onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                   required
                   data-testid="input-price"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Upload Limit (e.g., 2M)</Label>
+                <Input
+                  placeholder="2M"
+                  value={formData.uploadLimit}
+                  onChange={(e) => setFormData({ ...formData, uploadLimit: e.target.value })}
+                  data-testid="input-upload-limit"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Download Limit (e.g., 5M)</Label>
+                <Input
+                  placeholder="5M"
+                  value={formData.downloadLimit}
+                  onChange={(e) => setFormData({ ...formData, downloadLimit: e.target.value })}
+                  data-testid="input-download-limit"
                 />
               </div>
             </div>

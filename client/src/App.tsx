@@ -20,6 +20,7 @@ import Dashboard from "@/pages/dashboard";
 import PlansPage from "@/pages/plans";
 import PPPoEPlansPage from "@/pages/pppoe-plans";
 import StaticPlansPage from "@/pages/static-plans";
+import HotspotPlansPage from "@/pages/hotspot-plans";
 import HotspotsPage from "@/pages/hotspots";
 import TransactionsPage from "@/pages/transactions";
 import WalledGardenPage from "@/pages/walled-garden-page";
@@ -84,6 +85,13 @@ function Router() {
         {() => (
           <DashboardLayout>
             <StaticPlansPage />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path="/dashboard/hotspot-plans">
+        {() => (
+          <DashboardLayout>
+            <HotspotPlansPage />
           </DashboardLayout>
         )}
       </Route>
