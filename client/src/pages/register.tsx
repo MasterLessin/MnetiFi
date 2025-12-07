@@ -181,6 +181,105 @@ export default function RegisterPage() {
     }
   };
 
+  if (registrationComplete) {
+    return (
+      <>
+        <MeshBackground />
+        <div className="min-h-screen flex items-center justify-center p-4 relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="w-full max-w-md"
+          >
+            <GlassPanel size="lg" className="text-center">
+              <div className="mb-6">
+                <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                  <Mail size={40} className="text-cyan-400" />
+                </div>
+                <h1 className="text-2xl font-bold text-white mb-2" data-testid="text-verify-title">
+                  Verify Your Email
+                </h1>
+                <p className="text-muted-foreground mb-4">
+                  We've sent a verification link to:
+                </p>
+                <p className="text-cyan-400 font-medium mb-6" data-testid="text-email-sent">
+                  {email}
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-white/5 border border-white/10 mb-6 text-left">
+                <h3 className="font-medium text-white mb-2">Next Steps:</h3>
+                <ol className="text-sm text-muted-foreground space-y-2">
+                  <li className="flex items-start gap-2">
+                    <span className="text-cyan-400 font-medium">1.</span>
+                    Check your inbox for the verification email
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-cyan-400 font-medium">2.</span>
+                    Click the verification link to activate your account
+                  </li>
+                  {paymentMethod === "MPESA" && (
+                    <li className="flex items-start gap-2">
+                      <span className="text-cyan-400 font-medium">3.</span>
+                      After verification, you'll receive an M-Pesa payment prompt
+                    </li>
+                  )}
+                  {paymentMethod === "PAYPAL" && (
+                    <li className="flex items-start gap-2">
+                      <span className="text-cyan-400 font-medium">3.</span>
+                      After verification, you'll be redirected to PayPal
+                    </li>
+                  )}
+                  {paymentMethod === "BANK" && (
+                    <li className="flex items-start gap-2">
+                      <span className="text-cyan-400 font-medium">3.</span>
+                      After verification, complete bank transfer to activate
+                    </li>
+                  )}
+                </ol>
+              </div>
+
+              <p className="text-xs text-muted-foreground mb-4">
+                Didn't receive the email? Check your spam folder or{" "}
+                <button 
+                  className="text-cyan-400 hover:underline"
+                  onClick={async () => {
+                    try {
+                      const res = await fetch("/api/auth/resend-verification", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ email }),
+                      });
+                      if (res.ok) {
+                        toast({ title: "Verification email resent!", description: "Check your inbox" });
+                      } else {
+                        const data = await res.json();
+                        toast({ title: "Error", description: data.error, variant: "destructive" });
+                      }
+                    } catch {
+                      toast({ title: "Error", description: "Failed to resend email", variant: "destructive" });
+                    }
+                  }}
+                  data-testid="button-resend-verification"
+                >
+                  click here to resend
+                </button>
+              </p>
+
+              <Link href="/login">
+                <Button variant="outline" className="w-full border-white/20" data-testid="link-back-to-login">
+                  <ArrowLeft size={16} className="mr-2" />
+                  Back to Login
+                </Button>
+              </Link>
+            </GlassPanel>
+          </motion.div>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       <MeshBackground />
