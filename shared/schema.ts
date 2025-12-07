@@ -93,6 +93,7 @@ export const tenants = pgTable("tenants", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   subdomain: text("subdomain").notNull().unique(),
+  website: text("website"),
   email: text("email"),
   phone: text("phone"),
   brandingConfig: jsonb("branding_config").$type<{

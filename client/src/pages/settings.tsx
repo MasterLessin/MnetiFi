@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Building2, Key, Palette, Save, Eye, EyeOff, Upload, Wifi, MessageSquare } from "lucide-react";
+import { Building2, Key, Palette, Save, Eye, EyeOff, Upload, Wifi, MessageSquare, Globe, Mail, Phone } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { GlassPanel } from "@/components/glass-panel";
 import { GlassInput } from "@/components/glass-input";
@@ -31,6 +31,9 @@ export default function SettingsPage() {
   const [formData, setFormData] = useState({
     name: "",
     subdomain: "",
+    website: "",
+    email: "",
+    phone: "",
     mpesaShortcode: "",
     mpesaPasskey: "",
     mpesaConsumerKey: "",
@@ -52,6 +55,9 @@ export default function SettingsPage() {
       setFormData({
         name: tenant.name || "",
         subdomain: tenant.subdomain || "",
+        website: tenant.website || "",
+        email: tenant.email || "",
+        phone: tenant.phone || "",
         mpesaShortcode: tenant.mpesaShortcode || "",
         mpesaPasskey: tenant.mpesaPasskey || "",
         mpesaConsumerKey: tenant.mpesaConsumerKey || "",
@@ -129,12 +135,41 @@ export default function SettingsPage() {
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               data-testid="input-org-name"
             />
+            <div className="space-y-2">
+              <GlassInput
+                label="Subdomain"
+                placeholder="yourcompany"
+                value={formData.subdomain}
+                onChange={(e) => setFormData({ ...formData, subdomain: e.target.value })}
+                data-testid="input-subdomain"
+              />
+              <p className="text-xs text-muted-foreground">
+                Your portal will be: <span className="text-cyan-400">{formData.subdomain || 'yourcompany'}.mnetifi.com</span>
+              </p>
+            </div>
             <GlassInput
-              label="Subdomain"
-              placeholder="yourcompany"
-              value={formData.subdomain}
-              onChange={(e) => setFormData({ ...formData, subdomain: e.target.value })}
-              data-testid="input-subdomain"
+              label="Website"
+              placeholder="https://www.yourcompany.com"
+              value={formData.website}
+              onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+              icon={<Globe size={16} />}
+              data-testid="input-website"
+            />
+            <GlassInput
+              label="Email Address"
+              placeholder="info@yourcompany.com"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              icon={<Mail size={16} />}
+              data-testid="input-email"
+            />
+            <GlassInput
+              label="Phone Number"
+              placeholder="+254 700 123 456"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              icon={<Phone size={16} />}
+              data-testid="input-phone"
             />
           </div>
         </GlassPanel>
