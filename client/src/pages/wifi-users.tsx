@@ -18,6 +18,7 @@ import {
   ArrowRightLeft,
   UserCircle,
   Eye,
+  Download,
 } from "lucide-react";
 import { GlassPanel } from "@/components/glass-panel";
 import { GlassInput, GlassTextarea } from "@/components/glass-input";
@@ -48,6 +49,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import type { WifiUser, InsertWifiUser, Plan, Hotspot, User } from "@shared/schema";
 import { formatDistanceToNow, format } from "date-fns";
+import { exportToCSV } from "@/lib/export-utils";
 
 const accountTypeLabels = {
   HOTSPOT: "Hotspot",
@@ -228,6 +230,41 @@ export default function WifiUsersPage() {
   const plansMap = new Map(plans?.map((p) => [p.id, p]) || []);
   const hotspotsMap = new Map(hotspots?.map((h) => [h.id, h]) || []);
 
+  const handleExport = () => {
+    if (!filteredUsers || filteredUsers.length === 0) {
+      toast({
+        title: "No Data",
+        description: "No users to export with current filters.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    exportToCSV(
+      filteredUsers,
+      [
+        { key: "fullName", header: "Full Name" },
+        { key: "phoneNumber", header: "Phone Number" },
+        { key: "email", header: "Email" },
+        { key: "accountType", header: "Account Type", formatter: (val) => accountTypeLabels[val as keyof typeof accountTypeLabels] || val },
+        { key: "status", header: "Status" },
+        { key: "username", header: "Username" },
+        { key: "macAddress", header: "MAC Address" },
+        { key: "ipAddress", header: "IP Address" },
+        { key: "currentPlanId", header: "Plan", formatter: (val) => val ? plansMap.get(val)?.name || "" : "" },
+        { key: "currentHotspotId", header: "Hotspot", formatter: (val) => val ? hotspotsMap.get(val)?.locationName || "" : "" },
+        { key: "expiryTime", header: "Expiry Date", formatter: (val) => val ? format(new Date(val), "yyyy-MM-dd HH:mm") : "" },
+        { key: "createdAt", header: "Created", formatter: (val) => val ? format(new Date(val), "yyyy-MM-dd HH:mm") : "" },
+      ],
+      "wifi_users"
+    );
+
+    toast({
+      title: "Export Complete",
+      description: `Exported ${filteredUsers.length} user(s) to CSV.`,
+    });
+  };
+
   return (
     <div className="p-6 space-y-6" data-testid="wifi-users-page">
       <div className="flex items-center justify-between flex-wrap gap-4">
@@ -237,14 +274,24 @@ export default function WifiUsersPage() {
             Manage customer accounts - Hotspot, PPPoE, and Static IP users
           </p>
         </div>
-        <Button
-          className="gradient-btn"
-          onClick={() => handleOpenDialog()}
-          data-testid="button-add-user"
-        >
-          <Plus size={18} className="mr-2" />
-          Add User
-        </Button>
+        <div className="flex gap-3">
+          <Button
+            variant="ghost"
+            onClick={handleExport}
+            data-testid="button-export-users"
+          >
+            <Download size={18} className="mr-2" />
+            Export
+          </Button>
+          <Button
+            className="gradient-btn"
+            onClick={() => handleOpenDialog()}
+            data-testid="button-add-user"
+          >
+            <Plus size={18} className="mr-2" />
+            Add User
+          </Button>
+        </div>
       </div>
 
       <GlassPanel size="sm" className="flex flex-wrap gap-4 items-center">

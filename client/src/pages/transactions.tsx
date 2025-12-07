@@ -10,10 +10,14 @@ import { Button } from "@/components/ui/button";
 import { queryClient } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import type { Transaction, Plan, TransactionStatusType } from "@shared/schema";
+import { format } from "date-fns";
+import { exportToCSV } from "@/lib/export-utils";
+import { useToast } from "@/hooks/use-toast";
 
 type FilterStatus = TransactionStatusType | "ALL";
 
 export default function TransactionsPage() {
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("ALL");
 
@@ -41,6 +45,36 @@ export default function TransactionsPage() {
 
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ["/api/transactions"] });
+  };
+
+  const handleExport = () => {
+    if (!filteredTransactions || filteredTransactions.length === 0) {
+      toast({
+        title: "No Data",
+        description: "No transactions to export with current filters.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    exportToCSV(
+      filteredTransactions,
+      [
+        { key: "userPhone", header: "Phone Number" },
+        { key: "amount", header: "Amount (KES)" },
+        { key: "status", header: "Status" },
+        { key: "mpesaReceiptNumber", header: "M-Pesa Receipt" },
+        { key: "planId", header: "Plan", formatter: (val) => val ? plansMap.get(val)?.name || "" : "" },
+        { key: "reconciliationStatus", header: "Reconciliation Status" },
+        { key: "createdAt", header: "Date", formatter: (val) => val ? format(new Date(val), "yyyy-MM-dd HH:mm:ss") : "" },
+      ],
+      "transactions"
+    );
+
+    toast({
+      title: "Export Complete",
+      description: `Exported ${filteredTransactions.length} transaction(s) to CSV.`,
+    });
   };
 
   const statusFilters: { label: string; value: FilterStatus }[] = [
@@ -78,7 +112,7 @@ export default function TransactionsPage() {
             <RefreshCw size={18} className={cn("mr-2", isFetching && "animate-spin")} />
             Refresh
           </Button>
-          <Button variant="ghost" data-testid="button-export">
+          <Button variant="ghost" onClick={handleExport} data-testid="button-export">
             <Download size={18} className="mr-2" />
             Export
           </Button>
