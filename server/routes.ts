@@ -1339,6 +1339,43 @@ export async function registerRoutes(
     }
   });
 
+  // Public voucher lookup by phone for captive portal
+  app.get("/api/portal/vouchers", async (req, res) => {
+    try {
+      const phone = req.query.phone as string;
+      const tenantId = await getPublicTenantId(req);
+      
+      if (!phone) {
+        return res.status(400).json({ error: "Phone number is required" });
+      }
+
+      // Normalize phone number
+      let normalizedPhone = phone.replace(/\D/g, "");
+      if (normalizedPhone.startsWith("0")) {
+        normalizedPhone = "254" + normalizedPhone.slice(1);
+      } else if (!normalizedPhone.startsWith("254")) {
+        normalizedPhone = "254" + normalizedPhone;
+      }
+
+      const userVouchers = await storage.getVouchersByPhone(tenantId, normalizedPhone);
+      
+      // Return only relevant info for portal display
+      const vouchersWithDetails = userVouchers.map(v => ({
+        id: v.id,
+        code: v.code,
+        planName: v.planName,
+        status: v.status,
+        expiresAt: v.expiresAt,
+        usedAt: v.usedAt,
+      }));
+
+      res.json(vouchersWithDetails);
+    } catch (error) {
+      console.error("Error looking up vouchers:", error);
+      res.status(500).json({ error: "Failed to lookup vouchers" });
+    }
+  });
+
   // Public voucher redemption endpoint for captive portal
   app.post("/api/portal/redeem-voucher", async (req, res) => {
     try {

@@ -116,6 +116,7 @@ export interface IStorage {
   getVoucherBatches(tenantId: string): Promise<VoucherBatch[]>;
   getVoucherBatch(id: string): Promise<VoucherBatch | undefined>;
   getVouchersByBatch(batchId: string): Promise<Voucher[]>;
+  getVouchersByPhone(tenantId: string, phoneNumber: string): Promise<(Voucher & { planName?: string })[]>;
   deleteVoucher(id: string): Promise<boolean>;
 }
 
@@ -1213,6 +1214,45 @@ export class DatabaseStorage implements IStorage {
       .from(vouchers)
       .where(eq(vouchers.batchId, batchId))
       .orderBy(vouchers.code);
+  }
+
+  async getVouchersByPhone(tenantId: string, phoneNumber: string): Promise<(Voucher & { planName?: string })[]> {
+    const wifiUser = await db.select().from(wifiUsers)
+      .where(and(
+        eq(wifiUsers.tenantId, tenantId),
+        eq(wifiUsers.phoneNumber, phoneNumber)
+      ))
+      .limit(1);
+    
+    if (!wifiUser.length) {
+      return [];
+    }
+
+    const userVouchers = await db.select({
+      id: vouchers.id,
+      tenantId: vouchers.tenantId,
+      batchId: vouchers.batchId,
+      planId: vouchers.planId,
+      code: vouchers.code,
+      status: vouchers.status,
+      usedBy: vouchers.usedBy,
+      usedAt: vouchers.usedAt,
+      macAddress: vouchers.macAddress,
+      expiresAt: vouchers.expiresAt,
+      validFrom: vouchers.validFrom,
+      validUntil: vouchers.validUntil,
+      createdAt: vouchers.createdAt,
+      planName: plans.name,
+    })
+      .from(vouchers)
+      .leftJoin(plans, eq(vouchers.planId, plans.id))
+      .where(and(
+        eq(vouchers.tenantId, tenantId),
+        eq(vouchers.usedBy, wifiUser[0].id)
+      ))
+      .orderBy(desc(vouchers.usedAt));
+
+    return userVouchers;
   }
 
   async deleteVoucher(id: string): Promise<boolean> {

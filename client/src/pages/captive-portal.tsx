@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Plan, WalledGarden, Transaction, Tenant } from "@shared/schema";
 
-type PaymentStep = "select-plan" | "enter-phone" | "enter-voucher" | "processing" | "success" | "failed" | "voucher-success";
+type PaymentStep = "select-plan" | "enter-phone" | "enter-voucher" | "lookup-vouchers" | "processing" | "success" | "failed" | "voucher-success";
 
 interface BrandingConfig {
   logo?: string;
@@ -31,6 +31,15 @@ interface VoucherRedemptionResult {
   expiresAt: string;
 }
 
+interface VoucherLookupResult {
+  id: string;
+  code: string;
+  planName: string | null;
+  status: string;
+  expiresAt: string | null;
+  usedAt: string | null;
+}
+
 export default function CaptivePortal() {
   const { toast } = useToast();
   const [step, setStep] = useState<PaymentStep>("select-plan");
@@ -39,6 +48,9 @@ export default function CaptivePortal() {
   const [voucherCode, setVoucherCode] = useState("");
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [voucherResult, setVoucherResult] = useState<VoucherRedemptionResult | null>(null);
+  const [lookupPhone, setLookupPhone] = useState("");
+  const [lookedUpVouchers, setLookedUpVouchers] = useState<VoucherLookupResult[]>([]);
+  const [isLookingUp, setIsLookingUp] = useState(false);
 
   const { data: tenant } = useQuery<Tenant>({
     queryKey: ["/api/tenant"],
@@ -202,6 +214,46 @@ export default function CaptivePortal() {
     });
   };
 
+  const handleLookupVouchers = async () => {
+    const cleanPhone = lookupPhone.replace(/\D/g, "");
+    if (cleanPhone.length < 9) {
+      toast({
+        title: "Invalid Phone Number",
+        description: "Please enter a valid phone number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    let formattedPhone = cleanPhone;
+    if (cleanPhone.startsWith("0")) {
+      formattedPhone = "254" + cleanPhone.slice(1);
+    } else if (!cleanPhone.startsWith("254")) {
+      formattedPhone = "254" + cleanPhone;
+    }
+
+    setIsLookingUp(true);
+    try {
+      const response = await fetch(`/api/portal/vouchers?phone=${formattedPhone}`);
+      const data = await response.json() as VoucherLookupResult[];
+      setLookedUpVouchers(data);
+      if (data.length === 0) {
+        toast({
+          title: "No Vouchers Found",
+          description: "No vouchers found for this phone number. You can purchase a plan or enter a voucher code.",
+        });
+      }
+    } catch {
+      toast({
+        title: "Lookup Failed",
+        description: "Unable to lookup vouchers. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLookingUp(false);
+    }
+  };
+
   const handleRetry = () => {
     setStep("select-plan");
     setSelectedPlan(null);
@@ -209,6 +261,8 @@ export default function CaptivePortal() {
     setVoucherCode("");
     setTransaction(null);
     setVoucherResult(null);
+    setLookupPhone("");
+    setLookedUpVouchers([]);
   };
 
   const formatPrice = (amount: number) => {
@@ -332,6 +386,22 @@ export default function CaptivePortal() {
                     <p>No plans available</p>
                   </div>
                 )}
+
+                <div className="text-center pt-4 border-t border-white/10 mt-4">
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Already purchased?
+                  </p>
+                  <Button
+                    variant="ghost"
+                    onClick={() => setStep("lookup-vouchers")}
+                    className="text-sm"
+                    style={{ color: branding.primaryColor }}
+                    data-testid="button-find-vouchers"
+                  >
+                    <Phone size={16} className="mr-1" />
+                    Find My Vouchers
+                  </Button>
+                </div>
               </motion.div>
             )}
 
@@ -485,6 +555,112 @@ export default function CaptivePortal() {
                   >
                     <CreditCard size={16} className="mr-1" />
                     Buy a plan with M-Pesa
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {step === "lookup-vouchers" && (
+              <motion.div
+                key="lookup-vouchers"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-6"
+              >
+                <div className="text-center">
+                  <div
+                    className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center"
+                    style={{ backgroundColor: `${branding.primaryColor}20` }}
+                  >
+                    <Phone size={32} style={{ color: branding.primaryColor }} />
+                  </div>
+                  <h2 className="text-lg font-semibold text-white mb-1">
+                    Find My Vouchers
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Enter your phone number to find your existing vouchers
+                  </p>
+                </div>
+
+                <div>
+                  <PhoneInput
+                    label="Phone Number"
+                    value={lookupPhone}
+                    onChange={(e) => setLookupPhone(e.target.value)}
+                    data-testid="input-lookup-phone"
+                  />
+                </div>
+
+                <Button
+                  className="w-full"
+                  style={gradientStyle}
+                  onClick={handleLookupVouchers}
+                  disabled={isLookingUp}
+                  data-testid="button-lookup"
+                >
+                  {isLookingUp ? (
+                    <Loader2 size={18} className="animate-spin mr-2" />
+                  ) : (
+                    <Phone size={18} className="mr-2" />
+                  )}
+                  Find Vouchers
+                </Button>
+
+                {lookedUpVouchers.length > 0 && (
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-medium text-white">Your Vouchers</h3>
+                    {lookedUpVouchers.map((v) => (
+                      <div
+                        key={v.id}
+                        className="p-3 rounded-xl bg-white/5 border border-white/10"
+                      >
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <span className="font-mono text-sm text-white">{v.code}</span>
+                          <span
+                            className={`text-xs px-2 py-0.5 rounded-full ${
+                              v.status === "USED"
+                                ? "bg-green-500/20 text-green-400"
+                                : v.status === "EXPIRED"
+                                ? "bg-red-500/20 text-red-400"
+                                : "bg-yellow-500/20 text-yellow-400"
+                            }`}
+                          >
+                            {v.status}
+                          </span>
+                        </div>
+                        <div className="text-xs text-muted-foreground space-y-1">
+                          {v.planName && <p>Plan: {v.planName}</p>}
+                          {v.expiresAt && (
+                            <p>Expires: {new Date(v.expiresAt).toLocaleString()}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex gap-3">
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setLookupPhone("");
+                      setLookedUpVouchers([]);
+                      setStep("select-plan");
+                    }}
+                    className="flex-1"
+                    data-testid="button-lookup-back"
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setStep("enter-voucher")}
+                    className="flex-1"
+                    data-testid="button-enter-code"
+                  >
+                    <Ticket size={16} className="mr-1" />
+                    Enter Code
                   </Button>
                 </div>
               </motion.div>
