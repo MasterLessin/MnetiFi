@@ -85,6 +85,10 @@ export async function registerRoutes(
 
   // ============== AUTHENTICATION ROUTES ==============
   
+  // Login attempt rate limiting settings
+  const MAX_FAILED_ATTEMPTS = 5;
+  const LOCKOUT_DURATION_MINUTES = 15;
+
   app.post("/api/auth/login", async (req, res) => {
     try {
       const { username, password } = req.body;
@@ -93,9 +97,30 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Username and password are required" });
       }
 
+      // Get client IP and user agent for logging
+      const ipAddress = req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || 'unknown';
+      const userAgent = req.headers['user-agent'] || 'unknown';
+
+      // Check for account lockout due to too many failed attempts
+      const failedAttempts = await storage.countFailedLoginAttempts(username, LOCKOUT_DURATION_MINUTES);
+      if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
+        console.log(`[Auth] Account locked for ${username} - too many failed attempts (${failedAttempts})`);
+        return res.status(429).json({ 
+          error: "Account temporarily locked due to too many failed login attempts. Please try again later.",
+          lockedUntil: new Date(Date.now() + LOCKOUT_DURATION_MINUTES * 60 * 1000).toISOString(),
+        });
+      }
+
       const user = await storage.getUserByUsername(username);
       
       if (!user) {
+        // Record failed attempt for non-existent user (prevents user enumeration timing attacks)
+        await storage.recordLoginAttempt({
+          username,
+          ipAddress,
+          success: false,
+          userAgent,
+        });
         return res.status(401).json({ error: "Invalid username or password" });
       }
 
@@ -115,12 +140,32 @@ export async function registerRoutes(
       }
 
       if (!passwordValid) {
-        return res.status(401).json({ error: "Invalid username or password" });
+        // Record failed login attempt
+        await storage.recordLoginAttempt({
+          username,
+          ipAddress,
+          success: false,
+          userAgent,
+        });
+        const remainingAttempts = MAX_FAILED_ATTEMPTS - failedAttempts - 1;
+        console.log(`[Auth] Failed login for ${username} - ${remainingAttempts} attempts remaining`);
+        return res.status(401).json({ 
+          error: "Invalid username or password",
+          remainingAttempts: remainingAttempts > 0 ? remainingAttempts : 0,
+        });
       }
 
       if (!user.isActive) {
         return res.status(403).json({ error: "Account is disabled" });
       }
+
+      // Record successful login attempt
+      await storage.recordLoginAttempt({
+        username,
+        ipAddress,
+        success: true,
+        userAgent,
+      });
 
       req.session.user = {
         id: user.id,
@@ -129,6 +174,8 @@ export async function registerRoutes(
         tenantId: user.tenantId,
         email: user.email,
       };
+
+      console.log(`[Auth] Successful login for ${username} from ${ipAddress}`);
 
       res.json({
         user: {
