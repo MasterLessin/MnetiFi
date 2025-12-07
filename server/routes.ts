@@ -1394,12 +1394,52 @@ export async function registerRoutes(
 
       // Update user with expiry time
       const expiresAt = new Date(now.getTime() + plan.durationSeconds * 1000);
-      await storage.updateWifiUser(wifiUser.id, {
+      
+      // Only generate new credentials if user doesn't have them
+      const needsCredentials = !wifiUser.username || !wifiUser.password;
+      const username = wifiUser.username || wifiUser.phoneNumber.replace(/\+/g, '');
+      const password = wifiUser.password || Math.random().toString(36).substring(2, 10);
+      
+      const updateData: any = {
         currentPlanId: plan.id,
         expiryTime: expiresAt,
         macAddress,
         status: "ACTIVE",
-      });
+      };
+      
+      // Only update credentials if newly generated
+      if (needsCredentials) {
+        updateData.username = username;
+        updateData.password = password;
+      }
+      
+      await storage.updateWifiUser(wifiUser.id, updateData);
+
+      // Activate user on MikroTik router
+      let routerActivated = false;
+      try {
+        const hotspots = await storage.getHotspots(tenantId);
+        if (hotspots && hotspots.length > 0) {
+          const hotspot = hotspots[0];
+          const mikrotik = await createMikrotikService(hotspot);
+          if (mikrotik) {
+            const result = await mikrotik.addHotspotUser(
+              username,
+              password,
+              plan.name,
+              `Voucher: ${code}, Phone: ${phoneNumber}`
+            );
+            if (result.success) {
+              console.log(`[Voucher] Activated ${username} on router ${hotspot.locationName}`);
+              routerActivated = true;
+            } else {
+              console.warn(`[Voucher] Router activation failed: ${result.error}`);
+            }
+          }
+        }
+      } catch (routerError) {
+        console.error("[Voucher] Error activating on router:", routerError);
+      }
 
       res.json({
         success: true,
@@ -1413,6 +1453,11 @@ export async function registerRoutes(
           id: wifiUser.id,
           phoneNumber: wifiUser.phoneNumber,
         },
+        credentials: {
+          username,
+          password,
+        },
+        routerActivated,
       });
     } catch (error) {
       console.error("Error redeeming voucher:", error);

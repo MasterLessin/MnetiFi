@@ -1,8 +1,9 @@
 import { jobQueue } from "./job-queue";
 import { MpesaService } from "./mpesa";
+import { createMikrotikService, MikrotikService } from "./mikrotik";
 import { storage } from "../storage";
 import { JobType, TransactionStatus, ReconciliationStatus, WifiUserStatus, WalletTransactionType } from "@shared/schema";
-import type { Job, Tenant } from "@shared/schema";
+import type { Job, Tenant, Plan, WifiUser } from "@shared/schema";
 
 export class PaymentWorker {
   private isRunning = false;
@@ -278,8 +279,100 @@ export class PaymentWorker {
           console.error("[PaymentWorker] Error crediting excess to wallet:", walletError);
         }
       }
+
+      // Activate user on MikroTik router
+      await this.activateUserOnRouter(tenantId, wifiUser, plan);
     } catch (error) {
       console.error("[PaymentWorker] Error activating user:", error);
+    }
+  }
+
+  private async activateUserOnRouter(tenantId: string, wifiUser: WifiUser, plan: Plan): Promise<boolean> {
+    try {
+      // Get hotspots for this tenant
+      const hotspots = await storage.getHotspots(tenantId);
+      if (!hotspots || hotspots.length === 0) {
+        console.log(`[PaymentWorker] No hotspots configured for tenant ${tenantId} - skipping router activation`);
+        return false;
+      }
+
+      // Use the user's current hotspot or the first available one
+      const hotspot = wifiUser.currentHotspotId 
+        ? hotspots.find(h => h.id === wifiUser.currentHotspotId) || hotspots[0]
+        : hotspots[0];
+
+      const mikrotik = await createMikrotikService(hotspot);
+      if (!mikrotik) {
+        console.log(`[PaymentWorker] MikroTik service not available for hotspot ${hotspot.locationName}`);
+        return false;
+      }
+
+      // Only generate new credentials if user doesn't have them
+      const username = wifiUser.username || wifiUser.phoneNumber.replace(/\+/g, '');
+      const password = wifiUser.password || Math.random().toString(36).substring(2, 10);
+      const needsCredentialUpdate = !wifiUser.username || !wifiUser.password;
+
+      // Build rate limit string from plan
+      const rateLimit = MikrotikService.buildRateLimit(plan);
+
+      // Handle based on plan/account type
+      const accountType = plan.planType || wifiUser.accountType || "HOTSPOT";
+      let result;
+      
+      switch (accountType) {
+        case "PPPOE":
+          // Create profile with rate limit first (if it doesn't exist)
+          await mikrotik.createUserProfile(plan.name, rateLimit, plan.durationSeconds);
+          result = await mikrotik.addPPPoEUser(
+            username,
+            password,
+            "pppoe",
+            plan.name
+          );
+          break;
+          
+        case "STATIC":
+          // For static IP, add ARP/MAC binding
+          if (wifiUser.macAddress && wifiUser.ipAddress) {
+            result = await mikrotik.addStaticBinding(
+              wifiUser.macAddress,
+              wifiUser.ipAddress,
+              `Static IP for ${username}, Plan: ${plan.name}`
+            );
+          } else {
+            console.log(`[PaymentWorker] Static IP user ${username} missing MAC or IP address`);
+            return false;
+          }
+          break;
+          
+        default: // HOTSPOT
+          result = await mikrotik.addHotspotUser(
+            username,
+            password,
+            plan.name,
+            `Plan: ${plan.name}, Phone: ${wifiUser.phoneNumber}`
+          );
+          break;
+      }
+
+      if (result.success) {
+        // Only update credentials if they were newly generated
+        if (needsCredentialUpdate) {
+          await storage.updateWifiUser(wifiUser.id, {
+            username,
+            password,
+            currentHotspotId: hotspot.id,
+          });
+        }
+        console.log(`[PaymentWorker] Successfully activated ${username} (${accountType}) on router ${hotspot.locationName}`);
+        return true;
+      } else {
+        console.error(`[PaymentWorker] Failed to activate user on router: ${result.error}`);
+        return false;
+      }
+    } catch (error) {
+      console.error("[PaymentWorker] Error activating user on router:", error);
+      return false;
     }
   }
 
