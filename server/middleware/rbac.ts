@@ -105,3 +105,33 @@ export function requireTenantAccess(req: Request, res: Response, next: NextFunct
   (req as AuthenticatedRequest).user = req.session.user;
   next();
 }
+
+// Helper function to get tenant ID from session
+export function getSessionTenantId(req: Request): string | null {
+  return req.session?.user?.tenantId || null;
+}
+
+// Combined middleware that requires auth AND tenant access, returns tenantId
+export function requireAuthWithTenant(req: Request, res: Response, next: NextFunction) {
+  if (!req.session?.user) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+
+  const userRole = req.session.user.role as UserRoleValue;
+  
+  // Superadmins can access any tenant - they should provide tenantId in query/body
+  if (userRole === UserRole.SUPERADMIN) {
+    (req as AuthenticatedRequest).user = req.session.user;
+    return next();
+  }
+
+  if (!req.session.user.tenantId) {
+    return res.status(403).json({ 
+      error: "Access denied",
+      message: "User is not associated with any tenant"
+    });
+  }
+
+  (req as AuthenticatedRequest).user = req.session.user;
+  next();
+}

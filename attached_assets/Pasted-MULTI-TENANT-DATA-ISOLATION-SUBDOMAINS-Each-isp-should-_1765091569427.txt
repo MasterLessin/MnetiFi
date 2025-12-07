@@ -1,0 +1,33 @@
+MULTI TENANT DATA ISOLATION SUBDOMAINS
+Each isp should access their dashboards/accounts via a subdomain like ispabc.mnetifi.com
+Fo the captive portal clients to access it via isp subdomain eg ispabc.mnetifi.com/hotspotportal
+
+MIKROTIK ROUTER CONFIGURATIONS
+When an isp has multiple routers the hotspot voucher work across all their routers.
+Techs should be able to manage router settings under their isps and the ones allocated to them by the isp
+
+MPESA INTERGRATION
+The system should support both customer7key secret for stk push and also shortcode credentials for paybill or till.
+The isp should selectively select their account type, whether its paybill or till.
+
+HOTSPOT AND VOUCHER SYSTEM
+voucher timer starts at first time use and still expires based on the purchased time which is counted from the time the voucher is first used. Example if a 24hr voucher is bought at 6am and is first used at 4pm the same day or the next, it will expire the next day at 4pm. There should be a section where isps choose after how long unused vouchers are considered not valid. Options should be from 1 day and above.
+For multi device vouchers isps should be a ble to set device limit per voucher.
+Voucher codes should be short between 6 to 8 characters
+The hotspots inthe isp systems should auto detect the isp and redirect to the isp hotspot purchase interface.
+
+TECH ACCOUNT MANAGEMENT
+When techs create pppoe/static clients they should input custom username.
+For zone/are assignment it should be geographical which is set with the isp according to the location the isp is in
+
+SMS/WHATSAPP CONFIGURATION
+Whatsapp should be 3rd party intergrated but there should also be officialwhatsapp business integration once approved by meta
+The 90% usage warning should be sent via sms and whatsapp. This is customized by the isp.
+
+SaaS BILLING TIERS
+Isps that dont pay should just be prevented from accessing the dashboard. Their clients should not be disconnected or tampered with
+Isps can change tier mid month. And this change auto renews their payment date, which will begin afresh from the day they make the full payment of the tier they want
+
+SECURITY
+For the audi logs everything should be recorded from logins,customer creations,plan changes,settings changes,everything that will become useful when it comes to troubleshooting
+The 2FA should be sms or authenticator app based on the preference of the user. Both should be available.

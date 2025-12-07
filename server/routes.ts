@@ -27,6 +27,8 @@ import {
   requireAdmin, 
   requireTech,
   requireTenantAccess,
+  requireAuthWithTenant,
+  getSessionTenantId,
   type AuthenticatedRequest 
 } from "./middleware/rbac";
 
@@ -39,9 +41,6 @@ async function verifyPassword(password: string, hash: string): Promise<boolean> 
   return bcrypt.compare(password, hash);
 }
 
-// Default tenant ID for demo (in production, this would come from auth/subdomain)
-let defaultTenantId: string = "";
-
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -52,8 +51,8 @@ export async function registerRoutes(
     res.status(200).json({ status: "healthy", timestamp: new Date().toISOString() });
   });
 
-  // Initialize default tenant if not exists
-  defaultTenantId = await initializeDefaultTenant();
+  // Initialize default tenant for demo purposes (but routes use session tenantId)
+  await initializeDefaultTenant();
 
   // ============== AUTHENTICATION ROUTES ==============
   
@@ -378,9 +377,13 @@ export async function registerRoutes(
 
   // ============== TENANT ROUTES ==============
   
-  app.get("/api/tenant", async (req, res) => {
+  app.get("/api/tenant", requireAuthWithTenant, async (req, res) => {
     try {
-      const tenant = await storage.getTenant(defaultTenantId);
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      const tenant = await storage.getTenant(tenantId);
       if (!tenant) {
         return res.status(404).json({ error: "Tenant not found" });
       }
@@ -391,9 +394,13 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/tenant", async (req, res) => {
+  app.patch("/api/tenant", requireAuthWithTenant, requireAdmin, async (req, res) => {
     try {
-      const tenant = await storage.updateTenant(defaultTenantId, req.body);
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      const tenant = await storage.updateTenant(tenantId, req.body);
       if (!tenant) {
         return res.status(404).json({ error: "Tenant not found" });
       }
@@ -406,9 +413,13 @@ export async function registerRoutes(
 
   // ============== DASHBOARD ROUTES ==============
   
-  app.get("/api/dashboard/stats", async (req, res) => {
+  app.get("/api/dashboard/stats", requireAuthWithTenant, async (req, res) => {
     try {
-      const stats = await storage.getDashboardStats(defaultTenantId);
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      const stats = await storage.getDashboardStats(tenantId);
       res.json(stats);
     } catch (error) {
       console.error("Error fetching dashboard stats:", error);
