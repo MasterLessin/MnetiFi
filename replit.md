@@ -4,10 +4,48 @@
 MnetiFi is a multi-tenant Wi-Fi hotspot billing system designed for ISPs with M-Pesa (Safaricom Daraja) integration. The platform features a premium "Vaultic" Glassmorphism design aesthetic with animated mesh gradient backgrounds.
 
 ## Project Status
-- **Current Phase**: All Core Stages Complete (1-7) + Authentication System + Landing Page + Tech Portal
-- **Last Updated**: December 5, 2025
+- **Current Phase**: All Core Stages Complete (1-7) + Authentication + Landing Page + Tech Portal + Security & Customer Experience Features
+- **Last Updated**: December 7, 2025
 
 ## Recent Updates
+
+### Security & Customer Experience Enhancements (December 7, 2025)
+
+#### Chat UI
+- Admin-customer messaging system at `/dashboard/chat`
+- Real-time message display with unread indicators
+- Message history and conversation management
+- API endpoints: GET/POST `/api/chat-messages`
+
+#### Loyalty Points System
+- Points display and transaction history at `/dashboard/loyalty`
+- Point awards and redemption functionality
+- Balance tracking and tier display
+- API endpoints: GET/POST `/api/loyalty-points`
+
+#### Two-Factor Authentication (2FA)
+- Optional TOTP-based 2FA using authenticator apps
+- QR code setup with manual secret entry fallback
+- Login flow with 2FA verification step
+- Security settings page at `/dashboard/security`
+- API endpoints: 
+  - `POST /api/auth/2fa/setup` - Generate secret and QR code
+  - `POST /api/auth/2fa/verify` - Verify and enable 2FA
+  - `POST /api/auth/2fa/disable` - Disable 2FA (requires password + code)
+  - `GET /api/auth/2fa/status` - Check 2FA status
+  - `POST /api/auth/2fa/login-verify` - Verify 2FA code during login
+
+#### Password Strength Validation
+- Enforces 8+ characters, uppercase, lowercase, numbers, and special characters
+- Both frontend and backend validation to prevent bypass
+- Applied to ISP registration and Super Admin registration
+
+#### Automated Expiry Warnings
+- SMS reminders at 24 hours, 6 hours, and 1 hour before subscription expires
+- Integrated into payment worker background process
+- Runs every 5 minutes to check for expiring users
+
+
 
 ### Landing Page
 - Public-facing website at `/` showcasing MnetiFi platform
