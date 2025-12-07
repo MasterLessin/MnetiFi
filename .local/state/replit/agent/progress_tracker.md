@@ -241,10 +241,16 @@ Verification Results:
    - Added `defaultTenantId` module-level variable to fix LSP errors
    - Added `getPublicTenantId()` helper for captive portal routes
    - Server running successfully with all routes functional
-[ ] Task 2: Add website/subdomain field for tenants
-[ ] Task 3: Update registration with email verification
-[ ] Task 4: Create customer settings page
-[ ] Task 5: Enhance technician system
+[x] Task 2: Add website/subdomain field for tenants (previous session)
+[x] Task 3: Update registration with email verification (previous session)
+[x] Task 4: Create customer settings page (previous session)
+[x] Task 5: Assign customers to technicians
+   - Added `technicianId` field to `wifiUsers` schema
+   - Added `technician` relation in wifiUsersRelations
+   - Added `getTechnicians()` storage method
+   - Added `/api/users/technicians` API endpoint
+   - Updated wifi-users.tsx with technician select dropdown
+   - Schema pushed to database successfully
 [ ] Task 6: Build WiFi voucher/code generation
 [ ] Task 7: Enhance captive portal
 [ ] Task 8: Verify MikroTik integration

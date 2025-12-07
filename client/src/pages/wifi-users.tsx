@@ -46,7 +46,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
-import type { WifiUser, InsertWifiUser, Plan, Hotspot } from "@shared/schema";
+import type { WifiUser, InsertWifiUser, Plan, Hotspot, User } from "@shared/schema";
 import { formatDistanceToNow, format } from "date-fns";
 
 const accountTypeLabels = {
@@ -79,6 +79,7 @@ export default function WifiUsersPage() {
     macAddress: "",
     ipAddress: "",
     notes: "",
+    technicianId: "",
   });
 
   const { data: wifiUsers, isLoading } = useQuery<WifiUser[]>({
@@ -91,6 +92,10 @@ export default function WifiUsersPage() {
 
   const { data: hotspots } = useQuery<Hotspot[]>({
     queryKey: ["/api/hotspots"],
+  });
+
+  const { data: technicians } = useQuery<User[]>({
+    queryKey: ["/api/users/technicians"],
   });
 
   const saveMutation = useMutation({
@@ -178,6 +183,7 @@ export default function WifiUsersPage() {
         notes: user.notes || "",
         currentPlanId: user.currentPlanId || undefined,
         currentHotspotId: user.currentHotspotId || undefined,
+        technicianId: user.technicianId || undefined,
       });
     } else {
       setEditingUser(null);
@@ -585,6 +591,27 @@ export default function WifiUsersPage() {
                   {hotspots?.map((hotspot) => (
                     <SelectItem key={hotspot.id} value={hotspot.id}>
                       {hotspot.locationName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+                Assigned Technician
+              </label>
+              <Select 
+                value={formData.technicianId || ""} 
+                onValueChange={(value) => setFormData({ ...formData, technicianId: value || undefined })}
+              >
+                <SelectTrigger className="bg-white/5 border-white/10" data-testid="select-technician">
+                  <SelectValue placeholder="Select a technician (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {technicians?.map((tech) => (
+                    <SelectItem key={tech.id} value={tech.id}>
+                      {tech.username} {tech.email ? `(${tech.email})` : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>

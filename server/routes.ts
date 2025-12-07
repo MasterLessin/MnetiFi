@@ -698,6 +698,22 @@ export async function registerRoutes(
     }
   });
 
+  // ============== TECHNICIAN ROUTES ==============
+  
+  app.get("/api/users/technicians", async (req, res) => {
+    try {
+      const tenantId = getSessionTenantId(req) || defaultTenantId;
+      if (!tenantId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      const technicians = await storage.getTechnicians(tenantId);
+      res.json(technicians);
+    } catch (error) {
+      console.error("Error fetching technicians:", error);
+      res.status(500).json({ error: "Failed to fetch technicians" });
+    }
+  });
+
   // ============== TRANSACTION ROUTES ==============
   
   app.get("/api/transactions", async (req, res) => {

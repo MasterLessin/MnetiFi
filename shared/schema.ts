@@ -277,6 +277,7 @@ export const wifiUsers = pgTable("wifi_users", {
   accountType: text("account_type").notNull().default("HOTSPOT"), // HOTSPOT, PPPOE, STATIC
   currentPlanId: varchar("current_plan_id").references(() => plans.id),
   currentHotspotId: varchar("current_hotspot_id").references(() => hotspots.id),
+  technicianId: varchar("technician_id").references(() => users.id), // Assigned technician
   expiryTime: timestamp("expiry_time"),
   macAddress: text("mac_address"),
   ipAddress: text("ip_address"),
@@ -300,6 +301,10 @@ export const wifiUsersRelations = relations(wifiUsers, ({ one, many }) => ({
   currentHotspot: one(hotspots, {
     fields: [wifiUsers.currentHotspotId],
     references: [hotspots.id],
+  }),
+  technician: one(users, {
+    fields: [wifiUsers.technicianId],
+    references: [users.id],
   }),
   tickets: many(tickets),
 }));
