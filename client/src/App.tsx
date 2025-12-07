@@ -41,6 +41,9 @@ import TechDashboard from "@/pages/tech-dashboard";
 import TechPPPoEUsersPage from "@/pages/tech-pppoe-users";
 import TechStaticUsersPage from "@/pages/tech-static-users";
 import ZonesPage from "@/pages/zones";
+import ChatPage from "@/pages/chat";
+import LoyaltyPage from "@/pages/loyalty";
+import SecuritySettingsPage from "@/pages/security-settings";
 import VoucherVerifyPage from "@/pages/voucher-verify";
 import NotFound from "@/pages/not-found";
 
@@ -189,6 +192,27 @@ function Router() {
         {() => (
           <DashboardLayout>
             <ZonesPage />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path="/dashboard/chat">
+        {() => (
+          <DashboardLayout>
+            <ChatPage />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path="/dashboard/loyalty">
+        {() => (
+          <DashboardLayout>
+            <LoyaltyPage />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path="/dashboard/security">
+        {() => (
+          <DashboardLayout>
+            <SecuritySettingsPage />
           </DashboardLayout>
         )}
       </Route>

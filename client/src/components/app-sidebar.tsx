@@ -19,6 +19,7 @@ import {
   Router,
   BarChart3,
   MapPin,
+  Star,
 } from "lucide-react";
 import {
   Sidebar,
@@ -116,6 +117,16 @@ const menuItems: MenuItem[] = [
     title: "Zones",
     url: "/dashboard/zones",
     icon: MapPin,
+  },
+  {
+    title: "Chat",
+    url: "/dashboard/chat",
+    icon: MessageSquare,
+  },
+  {
+    title: "Loyalty Points",
+    url: "/dashboard/loyalty",
+    icon: Star,
   },
 ];
 

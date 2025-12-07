@@ -167,6 +167,16 @@ export async function registerRoutes(
         userAgent,
       });
 
+      // Check if 2FA is enabled
+      if (user.twoFactorEnabled) {
+        console.log(`[Auth] 2FA required for ${username} from ${ipAddress}`);
+        return res.json({
+          requiresTwoFactor: true,
+          userId: user.id,
+          message: "Two-factor authentication required",
+        });
+      }
+
       req.session.user = {
         id: user.id,
         username: user.username,
@@ -209,6 +219,197 @@ export async function registerRoutes(
     });
   });
 
+  // ============== TWO-FACTOR AUTHENTICATION ROUTES ==============
+  
+  // Generate 2FA secret and QR code
+  app.post("/api/auth/2fa/setup", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const userId = req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (user.twoFactorEnabled) {
+        return res.status(400).json({ error: "2FA is already enabled" });
+      }
+
+      // Generate TOTP secret
+      const { authenticator } = await import("otplib");
+      const secret = authenticator.generateSecret();
+      
+      // Generate QR code URL
+      const qrcode = await import("qrcode");
+      const otpAuthUrl = authenticator.keyuri(user.username, "MnetiFi", secret);
+      const qrCodeDataUrl = await qrcode.toDataURL(otpAuthUrl);
+
+      // Store secret temporarily (not enabled yet until verified)
+      await storage.updateUser(userId, { twoFactorSecret: secret });
+
+      res.json({
+        secret,
+        qrCode: qrCodeDataUrl,
+        message: "Scan the QR code with your authenticator app, then verify with a code",
+      });
+    } catch (error) {
+      console.error("Error setting up 2FA:", error);
+      res.status(500).json({ error: "Failed to set up 2FA" });
+    }
+  });
+
+  // Verify and enable 2FA
+  app.post("/api/auth/2fa/verify", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const userId = req.session?.user?.id;
+      const { code } = req.body;
+
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      if (!code) {
+        return res.status(400).json({ error: "Verification code is required" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || !user.twoFactorSecret) {
+        return res.status(400).json({ error: "2FA setup not initiated" });
+      }
+
+      // Verify the TOTP code
+      const { authenticator } = await import("otplib");
+      const isValid = authenticator.verify({ token: code, secret: user.twoFactorSecret });
+
+      if (!isValid) {
+        return res.status(400).json({ error: "Invalid verification code" });
+      }
+
+      // Enable 2FA
+      await storage.updateUser(userId, { twoFactorEnabled: true });
+
+      console.log(`[Auth] 2FA enabled for user ${user.username}`);
+      res.json({ success: true, message: "2FA enabled successfully" });
+    } catch (error) {
+      console.error("Error verifying 2FA:", error);
+      res.status(500).json({ error: "Failed to verify 2FA" });
+    }
+  });
+
+  // Disable 2FA
+  app.post("/api/auth/2fa/disable", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const userId = req.session?.user?.id;
+      const { password, code } = req.body;
+
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (!user.twoFactorEnabled) {
+        return res.status(400).json({ error: "2FA is not enabled" });
+      }
+
+      // Verify password
+      const passwordValid = await verifyPassword(password, user.password);
+      if (!passwordValid) {
+        return res.status(401).json({ error: "Invalid password" });
+      }
+
+      // Verify the TOTP code
+      const { authenticator } = await import("otplib");
+      const isValid = authenticator.verify({ token: code, secret: user.twoFactorSecret || "" });
+      if (!isValid) {
+        return res.status(400).json({ error: "Invalid verification code" });
+      }
+
+      // Disable 2FA
+      await storage.updateUser(userId, { twoFactorEnabled: false, twoFactorSecret: null });
+
+      console.log(`[Auth] 2FA disabled for user ${user.username}`);
+      res.json({ success: true, message: "2FA disabled successfully" });
+    } catch (error) {
+      console.error("Error disabling 2FA:", error);
+      res.status(500).json({ error: "Failed to disable 2FA" });
+    }
+  });
+
+  // Check 2FA status
+  app.get("/api/auth/2fa/status", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const userId = req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      res.json({ enabled: user.twoFactorEnabled || false });
+    } catch (error) {
+      console.error("Error checking 2FA status:", error);
+      res.status(500).json({ error: "Failed to check 2FA status" });
+    }
+  });
+
+  // Verify 2FA code during login
+  app.post("/api/auth/2fa/login-verify", async (req, res) => {
+    try {
+      const { userId, code } = req.body;
+
+      if (!userId || !code) {
+        return res.status(400).json({ error: "User ID and code are required" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || !user.twoFactorEnabled || !user.twoFactorSecret) {
+        return res.status(400).json({ error: "Invalid request" });
+      }
+
+      // Verify the TOTP code
+      const { authenticator } = await import("otplib");
+      const isValid = authenticator.verify({ token: code, secret: user.twoFactorSecret });
+
+      if (!isValid) {
+        return res.status(401).json({ error: "Invalid verification code" });
+      }
+
+      // Create session
+      req.session.user = {
+        id: user.id,
+        username: user.username,
+        role: user.role as UserRoleValue,
+        tenantId: user.tenantId,
+        email: user.email,
+      };
+
+      console.log(`[Auth] 2FA login verified for ${user.username}`);
+      res.json({
+        success: true,
+        user: {
+          id: user.id,
+          username: user.username,
+          role: user.role,
+          email: user.email,
+          tenantId: user.tenantId,
+        },
+      });
+    } catch (error) {
+      console.error("Error verifying 2FA login:", error);
+      res.status(500).json({ error: "Failed to verify 2FA" });
+    }
+  });
+
   // Registration endpoint for new ISPs
   app.post("/api/auth/register", async (req, res) => {
     try {
@@ -220,6 +421,19 @@ export async function registerRoutes(
 
       if (!paymentMethod || !["MPESA", "BANK", "PAYPAL"].includes(paymentMethod)) {
         return res.status(400).json({ error: "Valid payment method is required" });
+      }
+
+      // Validate password strength on server side
+      const hasMinLength = password.length >= 8;
+      const hasUppercase = /[A-Z]/.test(password);
+      const hasLowercase = /[a-z]/.test(password);
+      const hasNumber = /[0-9]/.test(password);
+      const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+      
+      if (!hasMinLength || !hasUppercase || !hasLowercase || !hasNumber || !hasSpecial) {
+        return res.status(400).json({ 
+          error: "Password must be at least 8 characters and include uppercase, lowercase, number, and special character" 
+        });
       }
 
       // Check if subdomain already exists
@@ -514,6 +728,19 @@ export async function registerRoutes(
 
       if (setupKey !== SUPERADMIN_SETUP_KEY) {
         return res.status(403).json({ error: "Invalid setup key" });
+      }
+
+      // Validate password strength on server side
+      const hasMinLength = password.length >= 8;
+      const hasUppercase = /[A-Z]/.test(password);
+      const hasLowercase = /[a-z]/.test(password);
+      const hasNumber = /[0-9]/.test(password);
+      const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+      
+      if (!hasMinLength || !hasUppercase || !hasLowercase || !hasNumber || !hasSpecial) {
+        return res.status(400).json({ 
+          error: "Password must be at least 8 characters and include uppercase, lowercase, number, and special character" 
+        });
       }
 
       // Check if username already exists

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { User, Lock, Loader2, ArrowRight, Building2 } from "lucide-react";
+import { User, Lock, Loader2, ArrowRight, Building2, Shield, ArrowLeft } from "lucide-react";
 import { MeshBackground } from "@/components/mesh-background";
 import { MnetiFiLogo } from "@/components/mnetifi-logo";
 import { GlassPanel } from "@/components/glass-panel";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 export default function LoginPage() {
   const [, setLocation] = useLocation();
@@ -17,6 +18,9 @@ export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [requires2FA, setRequires2FA] = useState(false);
+  const [userId2FA, setUserId2FA] = useState<string | null>(null);
+  const [twoFactorCode, setTwoFactorCode] = useState("");
 
   useEffect(() => {
     const session = localStorage.getItem("admin_session");
@@ -52,15 +56,25 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        localStorage.setItem("admin_session", JSON.stringify({
-          user: data.user,
-          lastActivity: new Date().toISOString(),
-        }));
-        toast({
-          title: "Welcome back!",
-          description: `Logged in as ${data.user.username}`,
-        });
-        setLocation("/dashboard");
+        // Check if 2FA is required
+        if (data.requiresTwoFactor) {
+          setRequires2FA(true);
+          setUserId2FA(data.userId);
+          toast({
+            title: "Two-Factor Authentication",
+            description: "Please enter your authentication code",
+          });
+        } else {
+          localStorage.setItem("admin_session", JSON.stringify({
+            user: data.user,
+            lastActivity: new Date().toISOString(),
+          }));
+          toast({
+            title: "Welcome back!",
+            description: `Logged in as ${data.user.username}`,
+          });
+          setLocation("/dashboard");
+        }
       } else {
         toast({
           title: "Login Failed",
@@ -79,6 +93,54 @@ export default function LoginPage() {
     }
   };
 
+  const handle2FAVerify = async () => {
+    if (twoFactorCode.length !== 6 || !userId2FA) return;
+    
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/auth/2fa/login-verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: userId2FA, code: twoFactorCode }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        localStorage.setItem("admin_session", JSON.stringify({
+          user: data.user,
+          lastActivity: new Date().toISOString(),
+        }));
+        toast({
+          title: "Welcome back!",
+          description: `Logged in as ${data.user.username}`,
+        });
+        setLocation("/dashboard");
+      } else {
+        toast({
+          title: "Verification Failed",
+          description: data.error || "Invalid code",
+          variant: "destructive",
+        });
+        setTwoFactorCode("");
+      }
+    } catch (error) {
+      toast({
+        title: "Verification Failed",
+        description: "Unable to verify code",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleBack = () => {
+    setRequires2FA(false);
+    setUserId2FA(null);
+    setTwoFactorCode("");
+  };
+
   return (
     <>
       <MeshBackground />
@@ -90,6 +152,72 @@ export default function LoginPage() {
           className="w-full max-w-md"
         >
           <GlassPanel size="lg" className="text-center">
+            {requires2FA ? (
+              <>
+                <div className="mb-8">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                    <Shield className="w-8 h-8 text-cyan-400" />
+                  </div>
+                  <h1 className="text-2xl font-bold text-white mb-2">Two-Factor Authentication</h1>
+                  <p className="text-muted-foreground">
+                    Enter the 6-digit code from your authenticator app
+                  </p>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="flex justify-center">
+                    <InputOTP
+                      maxLength={6}
+                      value={twoFactorCode}
+                      onChange={setTwoFactorCode}
+                      onComplete={handle2FAVerify}
+                      data-testid="input-2fa-code"
+                    >
+                      <InputOTPGroup>
+                        <InputOTPSlot index={0} />
+                        <InputOTPSlot index={1} />
+                        <InputOTPSlot index={2} />
+                        <InputOTPSlot index={3} />
+                        <InputOTPSlot index={4} />
+                        <InputOTPSlot index={5} />
+                      </InputOTPGroup>
+                    </InputOTP>
+                  </div>
+
+                  <Button
+                    type="button"
+                    className="w-full gradient-btn"
+                    onClick={handle2FAVerify}
+                    disabled={isLoading || twoFactorCode.length !== 6}
+                    data-testid="button-verify-2fa"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 size={18} className="mr-2 animate-spin" />
+                        Verifying...
+                      </>
+                    ) : (
+                      <>
+                        <Shield size={18} className="mr-2" />
+                        Verify Code
+                      </>
+                    )}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="w-full text-muted-foreground"
+                    onClick={handleBack}
+                    data-testid="button-back-login"
+                  >
+                    <ArrowLeft size={18} className="mr-2" />
+                    Back to Login
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
             <div className="mb-8">
               <MnetiFiLogo size="lg" className="mx-auto mb-4" />
               <div className="flex items-center justify-center gap-2 mb-2">
@@ -187,6 +315,8 @@ export default function LoginPage() {
                 </Link>
               </p>
             </div>
+            </>
+            )}
           </GlassPanel>
         </motion.div>
       </div>

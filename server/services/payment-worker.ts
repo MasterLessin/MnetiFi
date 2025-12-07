@@ -11,10 +11,13 @@ export class PaymentWorker {
   private stuckJobInterval: ReturnType<typeof setInterval> | null = null;
   private expiryCheckInterval: ReturnType<typeof setInterval> | null = null;
   private trialCheckInterval: ReturnType<typeof setInterval> | null = null;
+  private expiryWarningInterval: ReturnType<typeof setInterval> | null = null;
   private readonly POLL_INTERVAL_MS = 5000;
   private readonly STUCK_CHECK_INTERVAL_MS = 60000;
   private readonly EXPIRY_CHECK_INTERVAL_MS = 30000;
   private readonly TRIAL_CHECK_INTERVAL_MS = 60000; // Check trials every minute
+  private readonly EXPIRY_WARNING_INTERVAL_MS = 300000; // Check for expiry warnings every 5 minutes
+  private notifiedUsers: Set<string> = new Set(); // Track users already notified to avoid duplicates
 
   start(): void {
     if (this.isRunning) {
@@ -41,9 +44,14 @@ export class PaymentWorker {
       await this.checkAndExpireTrials();
     }, this.TRIAL_CHECK_INTERVAL_MS);
 
+    this.expiryWarningInterval = setInterval(async () => {
+      await this.sendExpiryWarnings();
+    }, this.EXPIRY_WARNING_INTERVAL_MS);
+
     this.processNextJob();
     this.checkAndMarkExpiredUsers();
     this.checkAndExpireTrials();
+    this.sendExpiryWarnings();
   }
 
   private async resetStuckJobs(): Promise<void> {
@@ -74,6 +82,10 @@ export class PaymentWorker {
       clearInterval(this.trialCheckInterval);
       this.trialCheckInterval = null;
     }
+    if (this.expiryWarningInterval) {
+      clearInterval(this.expiryWarningInterval);
+      this.expiryWarningInterval = null;
+    }
     this.isRunning = false;
     console.log("[PaymentWorker] Stopped");
   }
@@ -102,6 +114,59 @@ export class PaymentWorker {
       }
     } catch (error) {
       console.error("[PaymentWorker] Error checking expired users:", error);
+    }
+  }
+
+  private async sendExpiryWarnings(): Promise<void> {
+    try {
+      // Get all active tenants
+      const allTenants = await storage.getAllTenants();
+      const activeTenants = allTenants.filter((t: Tenant) => t.saasBillingStatus === "ACTIVE" || t.saasBillingStatus === "TRIAL");
+      
+      for (const tenant of activeTenants) {
+        // Get users expiring within 24 hours
+        const expiringUsers = await storage.getExpiringWifiUsers(tenant.id, 1); // 1 day
+        
+        for (const user of expiringUsers) {
+          // Skip if already notified
+          const notificationKey = `${user.id}_24h`;
+          if (this.notifiedUsers.has(notificationKey)) {
+            continue;
+          }
+
+          // Calculate hours remaining
+          const hoursRemaining = user.expiryTime 
+            ? Math.max(0, Math.ceil((new Date(user.expiryTime).getTime() - Date.now()) / (1000 * 60 * 60)))
+            : 0;
+
+          // Only send if expiring within 24 hours
+          if (hoursRemaining <= 24 && hoursRemaining > 0) {
+            try {
+              // Import SMS service dynamically to avoid circular deps
+              const { SmsService } = await import("./sms");
+              const smsService = new SmsService(tenant);
+              
+              const result = await smsService.sendExpiryReminder(user, hoursRemaining);
+              
+              if (result.success) {
+                console.log(`[PaymentWorker] Sent expiry warning to ${user.phoneNumber} (${hoursRemaining}h remaining)`);
+                this.notifiedUsers.add(notificationKey);
+                
+                // Clean up old notification keys after 48 hours
+                setTimeout(() => {
+                  this.notifiedUsers.delete(notificationKey);
+                }, 48 * 60 * 60 * 1000);
+              } else {
+                console.warn(`[PaymentWorker] Failed to send expiry warning to ${user.phoneNumber}: ${result.error}`);
+              }
+            } catch (smsError) {
+              console.error(`[PaymentWorker] SMS error for ${user.phoneNumber}:`, smsError);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error("[PaymentWorker] Error sending expiry warnings:", error);
     }
   }
 

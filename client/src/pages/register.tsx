@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useLocation, Link } from "wouter";
 import { motion } from "framer-motion";
-import { User, Lock, Mail, Building2, Loader2, ArrowRight, ArrowLeft, Check, Wifi, CreditCard, Building, Phone } from "lucide-react";
+import { User, Lock, Mail, Building2, Loader2, ArrowRight, ArrowLeft, Check, Wifi, CreditCard, Building, Phone, X, AlertCircle } from "lucide-react";
 import { SiPaypal } from "react-icons/si";
 import { MeshBackground } from "@/components/mesh-background";
 import { MnetiFiLogo, MpesaLogo } from "@/components/mnetifi-logo";
@@ -10,6 +10,51 @@ import { GlassInput } from "@/components/glass-input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { Progress } from "@/components/ui/progress";
+
+interface PasswordStrength {
+  score: number;
+  label: string;
+  color: string;
+  requirements: {
+    minLength: boolean;
+    hasUppercase: boolean;
+    hasLowercase: boolean;
+    hasNumber: boolean;
+    hasSpecial: boolean;
+  };
+}
+
+function checkPasswordStrength(password: string): PasswordStrength {
+  const requirements = {
+    minLength: password.length >= 8,
+    hasUppercase: /[A-Z]/.test(password),
+    hasLowercase: /[a-z]/.test(password),
+    hasNumber: /[0-9]/.test(password),
+    hasSpecial: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+  };
+
+  const score = Object.values(requirements).filter(Boolean).length;
+
+  let label = "Very Weak";
+  let color = "bg-red-500";
+
+  if (score === 5) {
+    label = "Strong";
+    color = "bg-green-500";
+  } else if (score === 4) {
+    label = "Good";
+    color = "bg-cyan-500";
+  } else if (score === 3) {
+    label = "Fair";
+    color = "bg-yellow-500";
+  } else if (score === 2) {
+    label = "Weak";
+    color = "bg-orange-500";
+  }
+
+  return { score, label, color, requirements };
+}
 
 type PaymentMethod = "MPESA" | "BANK" | "PAYPAL" | null;
 
@@ -28,6 +73,8 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(null);
   const [phoneNumber, setPhoneNumber] = useState("");
+
+  const passwordStrength = useMemo(() => checkPasswordStrength(password), [password]);
 
   const validateStep1 = () => {
     if (!businessName.trim()) {
@@ -82,10 +129,11 @@ export default function RegisterPage() {
       });
       return false;
     }
-    if (password.length < 6) {
+    const { requirements } = passwordStrength;
+    if (!requirements.minLength || !requirements.hasUppercase || !requirements.hasLowercase || !requirements.hasNumber || !requirements.hasSpecial) {
       toast({
-        title: "Password too short",
-        description: "Password must be at least 6 characters",
+        title: "Password too weak",
+        description: "Password must be at least 8 characters and include uppercase, lowercase, number, and special character",
         variant: "destructive",
       });
       return false;
@@ -386,13 +434,53 @@ export default function RegisterPage() {
                 <GlassInput
                   label="Password"
                   type="password"
-                  placeholder="Create a password"
+                  placeholder="Create a strong password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   icon={<Lock size={16} />}
                   data-testid="input-password"
                 />
+                
+                {password && (
+                  <div className="space-y-2 text-left">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Password strength:</span>
+                      <span className={`font-medium ${
+                        passwordStrength.score >= 4 ? 'text-green-400' : 
+                        passwordStrength.score >= 3 ? 'text-yellow-400' : 'text-red-400'
+                      }`}>
+                        {passwordStrength.label}
+                      </span>
+                    </div>
+                    <Progress 
+                      value={(passwordStrength.score / 5) * 100} 
+                      className="h-1.5"
+                    />
+                    <div className="grid grid-cols-2 gap-1 text-xs">
+                      <div className={`flex items-center gap-1 ${passwordStrength.requirements.minLength ? 'text-green-400' : 'text-muted-foreground'}`}>
+                        {passwordStrength.requirements.minLength ? <Check size={12} /> : <X size={12} />}
+                        8+ characters
+                      </div>
+                      <div className={`flex items-center gap-1 ${passwordStrength.requirements.hasUppercase ? 'text-green-400' : 'text-muted-foreground'}`}>
+                        {passwordStrength.requirements.hasUppercase ? <Check size={12} /> : <X size={12} />}
+                        Uppercase
+                      </div>
+                      <div className={`flex items-center gap-1 ${passwordStrength.requirements.hasLowercase ? 'text-green-400' : 'text-muted-foreground'}`}>
+                        {passwordStrength.requirements.hasLowercase ? <Check size={12} /> : <X size={12} />}
+                        Lowercase
+                      </div>
+                      <div className={`flex items-center gap-1 ${passwordStrength.requirements.hasNumber ? 'text-green-400' : 'text-muted-foreground'}`}>
+                        {passwordStrength.requirements.hasNumber ? <Check size={12} /> : <X size={12} />}
+                        Number
+                      </div>
+                      <div className={`flex items-center gap-1 ${passwordStrength.requirements.hasSpecial ? 'text-green-400' : 'text-muted-foreground'}`}>
+                        {passwordStrength.requirements.hasSpecial ? <Check size={12} /> : <X size={12} />}
+                        Special char
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <GlassInput
                   label="Confirm Password"
