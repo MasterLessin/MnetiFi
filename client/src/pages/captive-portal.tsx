@@ -29,6 +29,12 @@ interface VoucherRedemptionResult {
     durationSeconds: number;
   };
   expiresAt: string;
+  credentials?: {
+    username: string;
+    password: string;
+  };
+  autoLoginUrl: string | null;
+  hotspotName: string | null;
 }
 
 interface VoucherLookupResult {
@@ -839,34 +845,66 @@ export default function CaptivePortal() {
                   Voucher Redeemed
                 </h3>
                 <p className="text-muted-foreground mb-4">
-                  You are now connected to the internet
+                  {voucherResult.credentials ? "Your WiFi credentials are ready" : "You are now connected to the internet"}
                 </p>
                 <div className="p-4 rounded-xl bg-white/5 border border-white/10 mb-6 text-left">
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
+                  <div className="space-y-3 text-sm">
+                    {voucherResult.credentials && (
+                      <>
+                        <div className="flex justify-between gap-2">
+                          <span className="text-muted-foreground">Username:</span>
+                          <span className="font-mono font-medium text-white" data-testid="text-voucher-username">{voucherResult.credentials.username}</span>
+                        </div>
+                        <div className="flex justify-between gap-2">
+                          <span className="text-muted-foreground">Password:</span>
+                          <span className="font-mono font-medium text-white" data-testid="text-voucher-password">{voucherResult.credentials.password}</span>
+                        </div>
+                      </>
+                    )}
+                    <div className="flex justify-between gap-2">
                       <span className="text-muted-foreground">Plan:</span>
                       <span className="font-medium text-white">{voucherResult.plan.name}</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between gap-2">
                       <span className="text-muted-foreground">Duration:</span>
                       <span className="font-medium text-white">{formatDuration(voucherResult.plan.durationSeconds)}</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between gap-2">
                       <span className="text-muted-foreground">Expires:</span>
                       <span className="font-medium text-white">
                         {new Date(voucherResult.expiresAt).toLocaleString()}
                       </span>
                     </div>
+                    {voucherResult.hotspotName && (
+                      <div className="flex justify-between gap-2">
+                        <span className="text-muted-foreground">Hotspot:</span>
+                        <span className="font-medium text-white">{voucherResult.hotspotName}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
-                <Button
-                  className="w-full"
-                  style={gradientStyle}
-                  data-testid="button-browse-voucher"
-                >
-                  Start Browsing
-                  <ArrowRight size={16} className="ml-2" />
-                </Button>
+                {voucherResult.autoLoginUrl ? (
+                  <Button
+                    className="w-full"
+                    style={gradientStyle}
+                    onClick={() => {
+                      window.location.href = voucherResult.autoLoginUrl!;
+                    }}
+                    data-testid="button-voucher-auto-connect"
+                  >
+                    <Wifi size={16} className="mr-2" />
+                    Connect Now
+                  </Button>
+                ) : (
+                  <Button
+                    className="w-full"
+                    style={gradientStyle}
+                    data-testid="button-browse-voucher"
+                  >
+                    Start Browsing
+                    <ArrowRight size={16} className="ml-2" />
+                  </Button>
+                )}
               </motion.div>
             )}
 

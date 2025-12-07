@@ -1562,8 +1562,9 @@ export async function registerRoutes(
       // Update user with expiry time
       const expiresAt = new Date(now.getTime() + plan.durationSeconds * 1000);
       
-      // Only generate new credentials if user doesn't have them
-      const needsCredentials = !wifiUser.username || !wifiUser.password;
+      // Always ensure user has valid credentials for auto-connect
+      const needsUsername = !wifiUser.username;
+      const needsPassword = !wifiUser.password;
       const username = wifiUser.username || wifiUser.phoneNumber.replace(/\+/g, '');
       const password = wifiUser.password || Math.random().toString(36).substring(2, 10);
       
@@ -1574,20 +1575,32 @@ export async function registerRoutes(
         status: "ACTIVE",
       };
       
-      // Only update credentials if newly generated
-      if (needsCredentials) {
+      // Update credentials if missing (for existing users without complete credentials)
+      if (needsUsername) {
         updateData.username = username;
+      }
+      if (needsPassword) {
         updateData.password = password;
       }
       
       await storage.updateWifiUser(wifiUser.id, updateData);
 
-      // Activate user on MikroTik router
+      // Activate user on MikroTik router and get auto-login URL
       let routerActivated = false;
+      let autoLoginUrl: string | null = null;
+      let hotspotName: string | null = null;
       try {
         const hotspots = await storage.getHotspots(tenantId);
         if (hotspots && hotspots.length > 0) {
           const hotspot = hotspots[0];
+          hotspotName = hotspot.locationName;
+          
+          // Build auto-login URL for MikroTik hotspot
+          const hotspotIp = hotspot.nasIp || hotspot.routerApiIp;
+          if (hotspotIp) {
+            autoLoginUrl = `http://${hotspotIp}/login?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
+          }
+          
           const mikrotik = await createMikrotikService(hotspot);
           if (mikrotik) {
             const result = await mikrotik.addHotspotUser(
@@ -1624,6 +1637,8 @@ export async function registerRoutes(
           username,
           password,
         },
+        autoLoginUrl,
+        hotspotName,
         routerActivated,
       });
     } catch (error) {
