@@ -17,6 +17,7 @@ import {
   Activity,
   Key,
   Router,
+  BarChart3,
 } from "lucide-react";
 import {
   Sidebar,
@@ -99,6 +100,11 @@ const menuItems: MenuItem[] = [
     title: "Reconciliation",
     url: "/dashboard/reconciliation",
     icon: FileCheck,
+  },
+  {
+    title: "Reports",
+    url: "/dashboard/reports",
+    icon: BarChart3,
   },
   {
     title: "Walled Garden",

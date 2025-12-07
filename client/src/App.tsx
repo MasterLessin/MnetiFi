@@ -32,6 +32,7 @@ import SettingsPage from "@/pages/settings";
 import SmsCampaignsPage from "@/pages/sms-campaigns";
 import NetworkMonitoringPage from "@/pages/network-monitoring";
 import VouchersPage from "@/pages/vouchers";
+import ReportsPage from "@/pages/reports";
 import SuperAdminDashboard from "@/pages/superadmin-dashboard";
 import SuperAdminTenantsPage from "@/pages/superadmin-tenants";
 import SuperAdminTenantDetailsPage from "@/pages/superadmin-tenant-details";
@@ -169,6 +170,13 @@ function Router() {
         {() => (
           <DashboardLayout>
             <VouchersPage />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path="/dashboard/reports">
+        {() => (
+          <DashboardLayout>
+            <ReportsPage />
           </DashboardLayout>
         )}
       </Route>
