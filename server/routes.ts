@@ -1632,6 +1632,65 @@ export async function registerRoutes(
     }
   });
 
+  // Public voucher verification endpoint - check voucher status without redeeming
+  app.get("/api/portal/verify-voucher/:code", async (req, res) => {
+    try {
+      const { code } = req.params;
+      const tenantId = await getPublicTenantId(req);
+      
+      if (!code) {
+        return res.status(400).json({ error: "Voucher code is required" });
+      }
+
+      const voucher = await storage.getVoucherByCode(tenantId, code.toUpperCase().trim());
+      
+      if (!voucher) {
+        return res.status(404).json({ 
+          valid: false,
+          error: "Voucher not found",
+          code: code.toUpperCase().trim()
+        });
+      }
+
+      const plan = voucher.planId ? await storage.getPlan(voucher.planId) : null;
+      const now = new Date();
+      
+      let status: "available" | "used" | "expired" | "not_yet_valid" = "available";
+      let statusMessage = "Voucher is valid and ready to use";
+      
+      if (voucher.status !== "AVAILABLE") {
+        status = "used";
+        statusMessage = "This voucher has already been used";
+      } else if (voucher.validFrom && new Date(voucher.validFrom) > now) {
+        status = "not_yet_valid";
+        statusMessage = `This voucher will be valid from ${new Date(voucher.validFrom).toLocaleDateString()}`;
+      } else if (voucher.validUntil && new Date(voucher.validUntil) < now) {
+        status = "expired";
+        statusMessage = "This voucher has expired";
+      }
+
+      res.json({
+        valid: status === "available",
+        code: voucher.code,
+        status,
+        statusMessage,
+        plan: plan ? {
+          name: plan.name,
+          price: plan.price,
+          durationSeconds: plan.durationSeconds,
+          speedLimit: plan.downloadLimit ? `${plan.downloadLimit}/${plan.uploadLimit}` : undefined,
+        } : null,
+        validFrom: voucher.validFrom,
+        validUntil: voucher.validUntil,
+        usedAt: voucher.usedAt,
+        usedBy: voucher.usedBy,
+      });
+    } catch (error) {
+      console.error("Error verifying voucher:", error);
+      res.status(500).json({ error: "Failed to verify voucher" });
+    }
+  });
+
   // ============== TECH ROUTES ==============
   // These routes are for technicians to manage PPPoE and Static IP users
   

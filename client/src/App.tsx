@@ -41,6 +41,7 @@ import TechDashboard from "@/pages/tech-dashboard";
 import TechPPPoEUsersPage from "@/pages/tech-pppoe-users";
 import TechStaticUsersPage from "@/pages/tech-static-users";
 import ZonesPage from "@/pages/zones";
+import VoucherVerifyPage from "@/pages/voucher-verify";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -51,6 +52,9 @@ function Router() {
       
       {/* Captive Portal - Public facing */}
       <Route path="/portal" component={CaptivePortal} />
+      
+      {/* Voucher Verification - Public facing */}
+      <Route path="/verify-voucher" component={VoucherVerifyPage} />
       
       {/* Customer Portal - Self-service for WiFi users */}
       <Route path="/my-account" component={CustomerPortal} />
