@@ -1252,7 +1252,10 @@ export class DatabaseStorage implements IStorage {
       ))
       .orderBy(desc(vouchers.usedAt));
 
-    return userVouchers;
+    return userVouchers.map(v => ({
+      ...v,
+      planName: v.planName ?? undefined,
+    }));
   }
 
   async deleteVoucher(id: string): Promise<boolean> {
