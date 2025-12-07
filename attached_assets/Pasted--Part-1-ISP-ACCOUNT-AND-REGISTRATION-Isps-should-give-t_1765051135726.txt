@@ -1,0 +1,153 @@
+
+
+
+Part 1
+ISP ACCOUNT AND REGISTRATION.
+Isps should give the following details during registration, business name,subdomain,username, emails address, password and a confirmation
+Email verification is compulsory to ensure the platforms security
+The trial period should remain 24hrs and can be set by the super admin.
+After the trial period the account is auto suspended and whenever they try to access their account they are informed of what happened and offered a payment gateway with various tiers superadmin[mnetifi] platform offers.
+Isps can upgrade and downgrade their subscription tiers.
+
+MICROTIK ROUTER CONFIGURATION
+Isps should configure their own microtik router credentials, (IP ,username ,passport,port).
+Yes one isp can have multiple routers.
+Yes router connections should be tested during setup to ensure the connection is stable and okay
+Techs should have access to router managements is their region,area or zone. Or alternatively admin can assign them also to whichever.
+Mpesa and payment integration
+Isps should configure their own daraja api credentials
+Create the system to accommodate both paybill and or till number.
+The platform should strictly use mpesa as a mode of payment between isps and their clients.
+Manual payments should be retried, also give options for manual reconciliations.
+	SMS Configuration
+Isps should be able to configure their own sms provider. Also integrate a system where isps can use api keys to send their clients whatsapp messages
+Isps should input their own api keys and sender ids. They can also use customer purchase records to use those numbers to broadcast messages or send individual with either sms or even whatsapp. Make sure the two features have their own separate customization panels in the same category. User friendly ui.
+Sms or whatsapp message configurations should be customized by the isp like payments received, expiry reminder, welcome message and can be scheduled to enhance time management.
+Isps can customize their own sms or whatsapp templates or even choose from pre created templates that have incorporated the isps branding
+
+	CUSTOMER/CLIENT MANAGEMENT	
+Customer information that should be captured should be like name frommpesa message,phone number,location,mac address, if they are using hotspot the router they used should also be indicated, if ppoe or static the tech or isp can add more details in text form to better organize information helpful with managing a client.
+Customers should be assigned to specific techs and oly the admin can re assign a tech from one client to another
+Ppoe names are generated as per the isps preference.
+Ppoe data plans and hotspot dataplans are separate on the isps dashboard for better customization and management.
+Clients should have a self service portal they access by using their phone numbers that are in the isps database, for both ppoe and hotspot users. The customer portal should have isp chat section,payment history and rewards section where they are rewarded based on their loyalty to the isp
+Yes customers can be transferred among techs.
+
+	TECH ACCOUNT MANAGEMENT
+An isp can have lots of techs but is a premium feature . the basic package allows only 1 account. The premium allows unlimited
+The details needed to create a tech are names, phone number email,id number
+Techs should have passwords to access their accounts.
+Yes tech can be deactivated without being deleted
+Yes techs should be able to see their stats like client s managing, installations done.
+Techs cannot belong to multiple isps. They are only under one isp.
+The details they see on their accounts should be also linked to the isps account for accurate record keeping.
+	PLANS AND PRICING
+Yes isps can create unlimited customer plans though they should be warned of this option and managing their bandwith allocation to various clients. They can customize various speeds and bandwidth allocations suited for their clients..
+Plan types that should be supported are ppoe/static or hotspot and should have their own sections on the isp and tech platforms. Techs can only create accounts for clients under ppoe/static plans. Hotspots are only strictly created by isps and used directly by clients.
+Isps can be able to choose weather plans have bandwidth limits or not.
+Plans should support burst rates.
+Plans are not shared.(family plans)
+The durations should be flexible and customized by the isp.
+	BRANDING AND WHITE LABELING 
+Isps should be able to customize their logo, colors, company name, tagline. Also be able to upload their logo and be used.
+The captive portal should be full castomizable from bg, to text color, t&c, button colors
+receipts/invoices should show isp branding
+The admin dashboard should show the isp branding. Consult designer on the best place to put it.
+	DATA STORAGE & ISOLATION
+At the moment lets used shared with strict tenant_id but as the platform grows well migrate  to separate dbs
+The duration of transaction history should be customizable.
+Isps should be able to export their documents as csv/excel
+There should be automatic backups for isps as data recovery options
+
+	SUPER ADMIN CAPABILITIES
+Superadmin can be able to see stats fro other isps like revenue/stats for saas billing.
+Superadmin can be able to impersonate an isp for troubleshooting
+Superadmin can be able to suspend/block non-paying isps
+Is shouldn block customers if an isp hasnt payed me yet.
+Isps billing is monthly. We have a 24hrs trial. 500ksh for ppoe and static or hotspot only. And an all inclusive for 1500.
+
+	SECURITY AND ACCESS CONTROL
+Yes sessions should expire after an inactivity of like 20 minutes.
+There should be a 2fa authentication but needs to be activated in the account settings. Not compulsory when creating the account.
+Login attenmps should be rate limited and the user to be inform of such in good time.
+There should be an audit of all actions taken in the platform
+The platform should hae a strong password policy to improve security
+
+	REPORTING AND ANALYTICS.
+Isps should be able to produce various reports like, revenue,users active, expiring users, tech performance
+Reports should be executable.
+Techs should see limited reports.
+
+
+Part 2 
+Tech should only be created with the isp. And the details is his dashboard reflect what the isp has given him permission to do.
+Techs are assigned to zones or areas and customers inherit the zone
+Techs can:create a new customer and view clients in his zone and help edit their account details.
+Tech when they log in can also view a list of their assigned customers,quick stats like active, expired, pending. They can a add new installations
+Each isp should have a unique subdomain.
+The super admin can view, manage any isp data when troubleshooting.
+The captive portal should be unique to each asp so they can customize their own unique prices, offers settings etc.
+
+	PART 3
+HOTSPOT
+Voucher purchase flow
+Customers purchase the hotspot voucher via mpesa captive portal
+Yes vouchers can be prepurchased.
+One phone number can buy multiple vouchers but before buying they should be prompted and show the unexpired vouchers they have. To choose weather to use or buy another.
+Vouchers are only bought for the number used to purchase it unless the user has purchased a voucher with multiple devices accepted.
+There should not be any purchase limits on the vouchers
+
+	Voucher code generation
+The voucher codes should be alphanumeric
+The code should be unique across all isps
+The code should be case sensitive.
+Validity of the codes depend on the expiration of the voucher from time of purchase according to the hotspot package the client chose.
+
+	Voucher sms notification
+The sms should contain the wifi code,plan paid for, start and end times,contact infor of the isp
+The sms should contain isp branding 
+If sms fails inform admin by taking a ticket for incomplete payments. Can also show retry options
+
+	Voucher redemption (captive portal)
+Users can enter the voucher code,or number used to purchase voucher. But when buying the process should be automatic and immediately the payment goes through the device is connected immediately.
+No the portal does not show vouchers before bought, theyare a secret and only shown when purchasing the voucher via mpesa as that will be the account number.
+If a code is invalid there is a notification on screen notifying user of this and remain in the same page.
+If a code is expired then the selected device cannot access the internet.
+Vouchers can be used on many devices as long as the voucher bought has multiple users accepted but if not dont.
+
+	Voucher status check
+Yes customers can check validity of a voucher without being redeeming.
+Yes costumes can chek on vouchers by using their number
+It should show multiple vouchers if available.
+It should show time remaining to expiry
+Yes customers can be able to view purchase history
+
+	
+Voucher usage and expiry
+The voucher timer starts at first use, given that time allocated for that voucher does not exceed from the time bought. 
+Expiry is based on time bought and duration of voucher. If the voucher is bought at 6am and it for 24hrs and the user starts to use it at  4pm the voucher will still expire at 6am the next day.
+Vouchers cannot be paused
+There should be a warning when 90% of the time they have used is done via sms or even whatsapp messages if the api is available.
+
+	Voucher Types
+hotspotVouchers are time based. 
+
+	Tech/Admin voucher management 
+Isp admins can generate multiple vouchers
+Techs cannot generate or access the tools for creating hotspot vouchers
+Yes ther should be voucher batches to keep record of where voucher came from
+Yes admin can see all purchased vouchers active and expired,unsued etc
+Admins/isps can modify/extend vouchers
+	
+	Intergration with mikrotik
+Voucher redemption should create a hotspot user in the mikrotik
+The hotspot username should be the code generated
+Will having a password limit access to my client since its not the same as vouchercode
+The bandwidth limit should be applied as oer voucher plan. Qos enforcement.
+The system should do auto disconnecting when hotspot voucher is expired and reconnect on the viceversa
+
+	Edge Cases
+If customers lose their voucher code they can retrieve it by phone number or ther customer account/portal or via sms or whatsapp
+If customer tries to use on multiple devices “already in use on another device”
+If payment succeeds and voucher generation fails ther should be manual intervention from isp.
+Yes voucher can be used by devices even if they didnt buy it and still enforces device limit parameters per voucher.

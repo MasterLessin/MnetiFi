@@ -1,0 +1,73 @@
+https://github.com/MasterLessin/MnetiFi.git here is the deployed site on render mnetifi.onrender.com  "here is my github link. thisis a multitenant isp billing system. what i have noticed is that when it comes to registering multiple isp businesses after account creation it show the account of the first isp that created their account instead of having their own fresh account. give me a prompt that will rectify this error. every isp business registering and using our platform should have new account an be able to customize it to fit their own preferences from apis to their users. every single aspect of this platform.  there shouldnt be any sharing of isp data." give me a prompt i will use in replit to rectify this.
+
+The issue you've described is a classic problem in multi-tenant applications where data scoping is missing, causing data bleed between tenants. The core fix involves enforcing a tenant_id or isp_id on all critical database tables and ensuring every data query uses this ID to filter results.
+
+Here is a comprehensive prompt you can use in your Replit environment to guide the necessary refactoring. This prompt outlines the architectural changes required for true multi-tenancy.
+
+🛠️ Multi-Tenant Architecture Refactor Prompt
+Goal: Refactor the MnetiFi multi-tenant ISP billing system (mnetifi.onrender.com, GitHub: MasterLessin/MnetiFi) to achieve complete data isolation and proper tenant-specific customization. Every registered ISP business must have its own fresh account, and absolutely no data, configuration, or user information should be shared or visible across tenants.
+
+Problem Statement: Currently, after account creation, subsequent ISP businesses are viewing data belonging to the first registered tenant. This indicates a missing or failed implementation of a global tenant-scoping mechanism.
+
+Phase 1: Database Schema Migration (Data Scoping)
+Action: Introduce a Tenant Identifier and apply it universally.
+
+Create a Tenants Table:
+
+Create a new table (e.g., isp_tenants or simply Tenants).
+
+Fields: id (Primary Key, the new Tenant ID), name, registration_date, is_active, etc.
+
+Add tenant_id to All Critical Tables:
+
+Modify every relevant data table (e.g., Users, Customers, Billing_Records, Invoices, API_Keys, Settings, etc.) to include a new column: tenant_id.
+
+Set this tenant_id column as a Foreign Key referencing the Tenants table's id.
+
+Enforce Unique Constraints (Scoped):
+
+Update all unique constraints to be composite keys that include tenant_id.
+
+Example: A user's email address is unique per tenant. The new unique constraint should be on (tenant_id, email).
+
+Phase 2: Application Logic and Middleware (Enforcement)
+Action: Implement a mechanism to identify the current tenant and enforce the tenant_id filter on all operations.
+
+Tenant Context Middleware:
+
+Create a global middleware function or request filter that runs after user authentication.
+
+Upon successful login, retrieve the authenticated user's associated tenant_id.
+
+Store this tenant_id in a request-scoped context object (e.g., req.tenantId in Node.js/Express, or similar context variable in other frameworks). This ID is the Current Tenant Context.
+
+Universal Query Scoping:
+
+Crucial Step: Modify all data access layer functions (Repository/DAO layer) for SELECT, UPDATE, and DELETE operations.
+
+Every single query must be dynamically filtered using the Current Tenant Context.
+
+Example: A query to fetch customers should transform from SELECT * FROM Customers to SELECT * FROM Customers WHERE tenant_id = <current_tenant_id>.
+
+Implement safeguards to ensure that if the tenant_id is missing from the request context, the query fails or returns an empty set (preventing accidental full table access).
+
+Tenant Registration Logic:
+
+Update the ISP registration endpoint to perform two steps: a. Create a new record in the Tenants table, generating a new, unique tenant_id. b. Create the initial administrative user, associating this new user with the generated tenant_id.
+
+Phase 3: Customization and Configuration Isolation
+Action: Ensure all tenant-specific settings and configurations are isolated.
+
+Scoped Settings Table:
+
+Ensure any table holding global configuration, API keys (e.g., for payment gateways, SMS services), color schemes, or branding elements is also keyed by tenant_id.
+
+When a user accesses the Settings page, only the configurations tied to their specific tenant_id are loaded and editable.
+
+API Endpoint Customization:
+
+If any APIs (or webhooks) are used for tenant-specific integration, ensure that the API key provided is linked to a specific tenant_id. The application should immediately set the request context based on the API key's associated tenant_id before processing the request.
+
+Commit Message Suggestion: feat: Implement true multi-tenancy and data isolation using tenant_id scoping
+
+Verify: After deployment, confirm that when Tenant A logs in, they cannot access /customers for Tenant B, and vice-versa.
