@@ -8,16 +8,22 @@ interface SessionUser {
   id: string;
   username: string;
   role: string;
+  tenantId?: string;
+  email?: string;
 }
 
 interface Session {
   user: SessionUser;
   lastActivity: string;
+  subscriptionTier?: string;
+  trialExpiresAt?: string;
 }
 
 export function useSession() {
   const [, setLocation] = useLocation();
   const [user, setUser] = useState<SessionUser | null>(null);
+  const [subscriptionTier, setSubscriptionTier] = useState<string>("BASIC");
+  const [trialExpiresAt, setTrialExpiresAt] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const checkSession = useCallback(() => {
@@ -41,6 +47,8 @@ export function useSession() {
       }
 
       setUser(session.user);
+      setSubscriptionTier(session.subscriptionTier || "BASIC");
+      setTrialExpiresAt(session.trialExpiresAt || null);
       setIsLoading(false);
       return true;
     } catch {
@@ -97,11 +105,11 @@ export function useSession() {
     };
   }, [checkSession, updateActivity, setLocation]);
 
-  return { user, isLoading, logout, checkSession, updateActivity };
+  return { user, isLoading, logout, checkSession, updateActivity, subscriptionTier, trialExpiresAt };
 }
 
 export function useRequireAuth() {
-  const { user, isLoading, logout, updateActivity } = useSession();
+  const { user, isLoading, logout, updateActivity, subscriptionTier, trialExpiresAt } = useSession();
   const [, setLocation] = useLocation();
 
   useEffect(() => {
@@ -110,5 +118,5 @@ export function useRequireAuth() {
     }
   }, [user, isLoading, setLocation]);
 
-  return { user, isLoading, logout, updateActivity };
+  return { user, isLoading, logout, updateActivity, subscriptionTier, trialExpiresAt };
 }

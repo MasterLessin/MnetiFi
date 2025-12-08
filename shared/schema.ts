@@ -58,7 +58,8 @@ export const TierFeatures = {
     "zones",
     "settings",
     "walled-garden",
-    "portal"
+    "portal",
+    "tickets",
   ],
   PREMIUM: [
     "dashboard",
@@ -75,11 +76,13 @@ export const TierFeatures = {
     "portal",
     "technicians",
     "sms-campaigns",
+    "network-monitoring",
     "chat",
     "loyalty",
     "security",
     "reconciliation",
-    "tickets"
+    "tickets",
+    "reports",
   ]
 } as const;
 

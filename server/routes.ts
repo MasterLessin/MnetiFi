@@ -413,14 +413,21 @@ export async function registerRoutes(
   // Registration endpoint for new ISPs
   app.post("/api/auth/register", async (req, res) => {
     try {
-      const { businessName, subdomain, username, email, password, paymentMethod, phoneNumber } = req.body;
+      const { businessName, subdomain, username, email, password, subscriptionTier, paymentMethod, phoneNumber } = req.body;
       
       if (!businessName || !subdomain || !username || !email || !password) {
         return res.status(400).json({ error: "All fields are required" });
       }
 
-      if (!paymentMethod || !["MPESA", "BANK", "PAYPAL"].includes(paymentMethod)) {
-        return res.status(400).json({ error: "Valid payment method is required" });
+      // Validate subscription tier
+      const tier = subscriptionTier || "BASIC";
+      if (!["BASIC", "PREMIUM"].includes(tier)) {
+        return res.status(400).json({ error: "Invalid subscription tier" });
+      }
+
+      // Payment method only required for PREMIUM tier
+      if (tier === "PREMIUM" && (!paymentMethod || !["MPESA", "BANK", "PAYPAL"].includes(paymentMethod))) {
+        return res.status(400).json({ error: "Valid payment method is required for premium tier" });
       }
 
       // Validate password strength on server side
@@ -454,40 +461,79 @@ export async function registerRoutes(
         return res.status(409).json({ error: "Email already registered" });
       }
 
-      // Determine payment status based on method
-      let registrationPaymentStatus = "PENDING";
-      if (paymentMethod === "MPESA") {
-        registrationPaymentStatus = "PENDING"; // Will be updated after STK push
-      } else if (paymentMethod === "BANK") {
-        registrationPaymentStatus = "AWAITING_CONFIRMATION"; // Manual verification needed
-      } else if (paymentMethod === "PAYPAL") {
-        registrationPaymentStatus = "PENDING"; // Will redirect to PayPal
+      // Calculate trial expiration (24 hours from now) for BASIC tier
+      const trialExpiresAt = tier === "BASIC" ? new Date(Date.now() + 24 * 60 * 60 * 1000) : null;
+
+      // Determine payment status based on method (only for PREMIUM)
+      let registrationPaymentStatus = tier === "BASIC" ? "NOT_REQUIRED" : "PENDING";
+      if (tier === "PREMIUM") {
+        if (paymentMethod === "MPESA") {
+          registrationPaymentStatus = "PENDING"; // Will be updated after STK push
+        } else if (paymentMethod === "BANK") {
+          registrationPaymentStatus = "AWAITING_CONFIRMATION"; // Manual verification needed
+        } else if (paymentMethod === "PAYPAL") {
+          registrationPaymentStatus = "PENDING"; // Will redirect to PayPal
+        }
       }
 
       // Create the tenant (ISP)
       const tenant = await storage.createTenant({
         name: businessName,
         subdomain: subdomain.toLowerCase(),
-        saasBillingStatus: "TRIAL", // 24-hour free trial
+        subscriptionTier: tier,
+        saasBillingStatus: tier === "BASIC" ? "TRIAL" : "PENDING",
+        trialExpiresAt: trialExpiresAt,
         isActive: true,
-        registrationPaymentMethod: paymentMethod,
+        registrationPaymentMethod: tier === "PREMIUM" ? paymentMethod : null,
         registrationPaymentStatus: registrationPaymentStatus,
       });
 
-      // Generate email verification token
-      const emailVerificationToken = crypto.randomUUID();
-      const emailVerificationExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-
       // Hash password and create the admin user for this tenant
       const hashedPassword = await hashPassword(password);
+      
+      // For BASIC tier: Skip email verification, auto-activate and allow immediate login
+      // For PREMIUM tier: Require email verification first
+      const isBasicTier = tier === "BASIC";
+      
       const user = await storage.createUser({
         tenantId: tenant.id,
         username,
         password: hashedPassword,
         email,
         role: "admin",
-        isActive: false, // Account inactive until email verified
+        isActive: isBasicTier, // BASIC tier is immediately active
       });
+
+      if (isBasicTier) {
+        // For BASIC tier: Mark email as verified and return user for auto-login
+        await storage.updateUser(user.id, {
+          emailVerified: true,
+        });
+        
+        console.log(`[Registration] BASIC tier account created for ${username} - trial expires at ${trialExpiresAt}`);
+        
+        return res.status(201).json({
+          message: "Welcome to MnetiFi! Your 24-hour free trial has started.",
+          tenant: {
+            id: tenant.id,
+            name: tenant.name,
+            subdomain: tenant.subdomain,
+          },
+          user: {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            role: user.role,
+            tenantId: tenant.id,
+          },
+          subscriptionTier: tier,
+          trialExpiresAt: trialExpiresAt,
+        });
+      }
+
+      // For PREMIUM tier: Generate email verification token
+      const emailVerificationToken = crypto.randomUUID();
+      const emailVerificationExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
       // Update user with email verification token
       await storage.updateUser(user.id, {
@@ -498,7 +544,7 @@ export async function registerRoutes(
 
       // Log verification link (in production, send via email)
       const verificationLink = `/verify-email?token=${emailVerificationToken}`;
-      console.log(`[Registration] Email verification required for ${email}`);
+      console.log(`[Registration] PREMIUM tier - Email verification required for ${email}`);
       console.log(`[Registration] Verification token: ${emailVerificationToken}`);
       console.log(`[Registration] Verification link: ${verificationLink}`);
 
@@ -544,6 +590,7 @@ export async function registerRoutes(
           email: user.email,
           emailVerified: false,
         },
+        subscriptionTier: tier,
         paymentMethod,
         ...additionalInfo,
       });
