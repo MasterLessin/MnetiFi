@@ -45,6 +45,7 @@ import ChatPage from "@/pages/chat";
 import LoyaltyPage from "@/pages/loyalty";
 import SecuritySettingsPage from "@/pages/security-settings";
 import VoucherVerifyPage from "@/pages/voucher-verify";
+import UpgradePage from "@/pages/upgrade";
 import NotFound from "@/pages/not-found";
 
 function Router() {

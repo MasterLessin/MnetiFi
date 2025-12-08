@@ -1,0 +1,141 @@
+TASKS
+Add subscription plan details to user - done
+Redesign sign-up to include tier choice
+Hide premium features for basic users
+Create page for expired trial users
+Check subscription status on login
+Restrict premium features to subscribers
+Test free sign-up to payment flow
+
+
+LOGS
+This is a significant feature that requires careful planning. Let me analyze your codebase and create a comprehensive execution plan.
+Implemented tiered subscription system logic
+Planned user task list generation
+Here's my comprehensive plan for implementing the tiered subscription system:
+Overview
+I'll restructure the platform to have two subscription tiers:
+BASIC (Free 24hr trial): Hotspot features only
+PREMIUM: All features including PPPoE, Static IP, Technicians, etc.
+Implementation Plan
+Phase 1: Schema & Data Model Updates
+Add explicit subscriptionTier field (BASIC/PREMIUM) to tenants table
+Add trialExpiresAt and subscriptionExpiresAt timestamps
+Define which features belong to which tier
+Phase 2: Registration Flow Redesign
+Modify "Get Started" to go to business details page
+Add tier selection step showing Free 24hr trial + premium options
+On free tier selection: auto-set 24hr trial expiry, create account, redirect to dashboard
+Remove the payment method step for free tier (only show for premium)
+Phase 3: Dashboard Feature Gating
+Create a feature access configuration mapping features to tiers
+Modify sidebar to conditionally show/hide menu items based on tier
+Basic tier sees ONLY: Dashboard, WiFi Users, Hotspot Plans, Transactions, Hotspots, Vouchers, Zones, Settings, Walled Gardens
+Premium tier sees all features
+Phase 4: Payment Wall Implementation
+Create /dashboard/paywall page shown when trial expires
+Add middleware to check subscription status on login
+If trial expired and no active subscription → redirect to payment wall
+Payment wall shows subscription options with M-Pesa payment
+Phase 5: Route Protection
+Add tier checks to premium routes (PPPoE, Static IP, Technicians, SMS, Chat, Loyalty)
+Backend API routes return 403 for basic tier users trying premium endpoints
+Created task list
+Worked for 50 seconds
+Start building
+45 minutes ago
+Checkpoint made
+45 minutes ago
+•
+Free
+Transitioned from Plan to Build mode
+Rollback here
+Changes
+Preview
+Planned tiered subscription system
+Let me start implementing the tiered subscription system. I'll begin with the schema updates.
+Analyzed current schema requirements
+Opened shared/schema.ts
+Decided on subscription tiering schema (6 seconds)
+I can see the schema already has tier, trialExpiresAt, and subscriptionExpiresAt fields. I'll update the tier enum from TRIAL/TIER_1/TIER_2 to BASIC/PREMIUM.
+Edited shared/schema.ts
+Decided on tenant tier default
+Now let me update the tenant table to use the new tier enum:
+Edited shared/schema.ts
+Decided on schema update approach
+Let me check for references to the old TenantTier and push the schema changes:
+Show 5 more
+Executed SQL query ALTER TABLE tenants ADD COLUMN IF NOT EXISTS subscription_tier TEXT DEFAULT 'BASIC';
+Decided on tenant subscription tier
+Good. Now let me update existing tenants and verify the schema is working:
+Executed SQL query UPDATE tenants SET subscription_tier = 'BASIC' WHERE subscription_tier IS NULL OR subscription_tier = '';
+Decided on storage update order
+Now let me update the storage and routes to use the new subscriptionTier field. First, let me find where tenants are created:
+Show 4 more
+Opened server/storage.ts
+Planned subscription tier logic adjustments
+I need to update the storage to use the new subscriptionTier field. Let me also check how tenants are created in routes.ts:
+Executed rg -n 'tier:|\.tier' server/storage.ts
+Executed rg -n 'tenants\)\.values|tier:|createTenant' server/routes.ts
+Decided on storage tier references
+Let me check the LSP error and fix the storage.ts issue:
+Checked code issues
+Decided on schema name change
+I need to fix the storage.ts to use the new field name:
+Edited server/storage.ts
+Planned registration flow redesign
+Now let me mark task 1 as completed and move to the registration flow. Let me check the current registration page:
+Add subscription plan details to user
+Decided on registration page structure
+Opened client/src/pages/register.tsx
+Planned registration flow adjustments
+I can see the current registration flow has 3 steps. I need to redesign step 3 to be a tier selection page instead of just payment methods. Let me rewrite the registration page:
+Edited client/src/pages/register.tsx
+Planned backend route modifications
+Now I need to update the backend registration route to handle the new subscriptionTier field. Let me check and update it:
+Show 2 more
+Opened server/routes.ts
+Decided on registration endpoint logic
+I can see the current registration logic. I need to update it to handle the new subscriptionTier field. Let me update the registration endpoint:
+Edited server/routes.ts
+Decided on BASIC tier flow
+Now I need to update the user creation and response logic to handle the BASIC tier (skip email verification and auto-login). Let me continue modifying the registration route:
+Opened server/routes.ts
+Decided user creation logic
+Now I need to update the user creation and response logic to handle BASIC tier (skip email verification and auto-login):
+Edited server/routes.ts
+Planned sidebar feature visibility
+Now let me update task 2 status and work on task 3 - the sidebar feature gating. Let me check the current sidebar implementation:
+Decided on feature gating logic
+Opened client/src/components/app-sidebar.tsx
+Decided sidebar tier filtering logic
+Now I need to update the sidebar to filter menu items based on subscription tier. Let me rewrite the sidebar with tier-based filtering:
+Edited client/src/components/app-sidebar.tsx
+Optimized Agent memory
+Added TierFeatures constant to schema
+Now I need to add the TierFeatures constant to the shared schema. Let me check and add it:
+Executed rg -n 'TierFeatures|subscriptionTier' shared/schema.ts
+Decided on sidebar feature keys
+Let me check the TierFeatures definition in the schema:
+Opened shared/schema.ts
+Decided on feature tiering (5 seconds)
+I need to add a few missing features to the TierFeatures. Let me update it:
+Edited shared/schema.ts
+Updated dashboard layout logic
+Now I need to update the dashboard layout to pass the subscription tier to the sidebar. Let me check and update it:
+Opened client/src/layouts/dashboard-layout.tsx
+Decided on layout and auth updates
+I need to update the dashboard layout to pass the subscription tier to the sidebar. Let me first check the use-session hook:
+Opened client/src/hooks/use-session.ts
+Decided on session data structure
+I need to update the session hook to include tenant information. Let me update the session hook and dashboard layout:
+Edited client/src/hooks/use-session.ts
+Agent encountered an error while running, we are investigating the issue.
+Checkpoint made
+35 minutes ago
+Implement tiered subscription plans and feature access controls
+Rollback here
+Changes
+View preview
+
+
