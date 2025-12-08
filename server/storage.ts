@@ -876,8 +876,6 @@ export class DatabaseStorage implements IStorage {
     const result = await db.update(tenants)
       .set({ 
         saasBillingStatus: "SUSPENDED",
-        tier: "EXPIRED_TRIAL",
-        trialExpiresAt: null,
       })
       .where(and(
         eq(tenants.saasBillingStatus, "TRIAL"),

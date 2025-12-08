@@ -40,12 +40,48 @@ export const SaaSBillingStatus = {
 export type SaaSBillingStatusValue = typeof SaaSBillingStatus[keyof typeof SaaSBillingStatus];
 
 // Tenant subscription tier
-export const TenantTier = {
-  TRIAL: "TRIAL",
-  TIER_1: "TIER_1",
-  TIER_2: "TIER_2",
+export const SubscriptionTier = {
+  BASIC: "BASIC",      // Free 24hr trial - Hotspot features only
+  PREMIUM: "PREMIUM",  // Full features - PPPoE, Static IP, Technicians, etc.
 } as const;
-export type TenantTierValue = typeof TenantTier[keyof typeof TenantTier];
+export type SubscriptionTierValue = typeof SubscriptionTier[keyof typeof SubscriptionTier];
+
+// Feature sets for each tier
+export const TierFeatures = {
+  BASIC: [
+    "dashboard",
+    "wifi-users", 
+    "hotspot-plans",
+    "transactions",
+    "hotspots",
+    "vouchers",
+    "zones",
+    "settings",
+    "walled-garden",
+    "portal"
+  ],
+  PREMIUM: [
+    "dashboard",
+    "wifi-users",
+    "hotspot-plans", 
+    "pppoe-plans",
+    "static-plans",
+    "transactions",
+    "hotspots",
+    "vouchers",
+    "zones",
+    "settings",
+    "walled-garden",
+    "portal",
+    "technicians",
+    "sms-campaigns",
+    "chat",
+    "loyalty",
+    "security",
+    "reconciliation",
+    "tickets"
+  ]
+} as const;
 
 // User roles for RBAC
 export const UserRole = {
@@ -114,7 +150,7 @@ export const tenants = pgTable("tenants", {
   whatsappApiKey: text("whatsapp_api_key"),
   whatsappPhoneNumberId: text("whatsapp_phone_number_id"),
   whatsappBusinessAccountId: text("whatsapp_business_account_id"),
-  tier: text("tier").default("TRIAL"),
+  subscriptionTier: text("subscription_tier").default("BASIC"),
   trialExpiresAt: timestamp("trial_expires_at"),
   subscriptionExpiresAt: timestamp("subscription_expires_at"),
   monthlyRevenue: integer("monthly_revenue").default(0),
