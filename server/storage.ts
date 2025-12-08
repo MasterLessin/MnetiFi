@@ -1,6 +1,6 @@
 import { 
   tenants, hotspots, plans, transactions, walledGardens, users, wifiUsers, tickets, smsCampaigns, wallets, walletTransactions, vouchers, voucherBatches,
-  zones, auditLogs, chatMessages, loyaltyPoints, loyaltyTransactions, loginAttempts,
+  zones, auditLogs, chatMessages, loyaltyPoints, loyaltyTransactions, loginAttempts, routerBackups, loginPageTemplates,
   type Tenant, type InsertTenant,
   type Hotspot, type InsertHotspot,
   type Plan, type InsertPlan,
@@ -20,6 +20,8 @@ import {
   type LoyaltyPoints, type InsertLoyaltyPoints,
   type LoyaltyTransaction, type InsertLoyaltyTransaction,
   type LoginAttempt, type InsertLoginAttempt,
+  type RouterBackup, type InsertRouterBackup,
+  type LoginPageTemplate, type InsertLoginPageTemplate,
   WalletTransactionType,
   VoucherStatus,
 } from "@shared/schema";
@@ -125,6 +127,19 @@ export interface IStorage {
   getVouchersByBatch(batchId: string): Promise<Voucher[]>;
   getVouchersByPhone(tenantId: string, phoneNumber: string): Promise<(Voucher & { planName?: string })[]>;
   deleteVoucher(id: string): Promise<boolean>;
+
+  // Router Backup operations
+  getRouterBackups(tenantId: string, hotspotId: string): Promise<RouterBackup[]>;
+  getRouterBackup(id: string): Promise<RouterBackup | undefined>;
+  createRouterBackup(backup: InsertRouterBackup): Promise<RouterBackup>;
+  deleteRouterBackup(id: string): Promise<boolean>;
+
+  // Login Page Template operations
+  getLoginPageTemplates(tenantId: string): Promise<LoginPageTemplate[]>;
+  getLoginPageTemplate(id: string): Promise<LoginPageTemplate | undefined>;
+  createLoginPageTemplate(template: InsertLoginPageTemplate): Promise<LoginPageTemplate>;
+  updateLoginPageTemplate(id: string, data: Partial<InsertLoginPageTemplate>): Promise<LoginPageTemplate | undefined>;
+  deleteLoginPageTemplate(id: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1460,6 +1475,61 @@ export class DatabaseStorage implements IStorage {
   async countFailedLoginAttempts(username: string, minutes = 15): Promise<number> {
     const attempts = await this.getRecentLoginAttempts(username, minutes);
     return attempts.filter(a => !a.success).length;
+  }
+
+  // Router Backup operations
+  async getRouterBackups(tenantId: string, hotspotId: string): Promise<RouterBackup[]> {
+    return db.select().from(routerBackups)
+      .where(and(
+        eq(routerBackups.tenantId, tenantId),
+        eq(routerBackups.hotspotId, hotspotId)
+      ))
+      .orderBy(desc(routerBackups.createdAt));
+  }
+
+  async getRouterBackup(id: string): Promise<RouterBackup | undefined> {
+    const [backup] = await db.select().from(routerBackups).where(eq(routerBackups.id, id));
+    return backup || undefined;
+  }
+
+  async createRouterBackup(backup: InsertRouterBackup): Promise<RouterBackup> {
+    const [created] = await db.insert(routerBackups).values(backup).returning();
+    return created;
+  }
+
+  async deleteRouterBackup(id: string): Promise<boolean> {
+    const result = await db.delete(routerBackups).where(eq(routerBackups.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Login Page Template operations
+  async getLoginPageTemplates(tenantId: string): Promise<LoginPageTemplate[]> {
+    return db.select().from(loginPageTemplates)
+      .where(eq(loginPageTemplates.tenantId, tenantId))
+      .orderBy(desc(loginPageTemplates.createdAt));
+  }
+
+  async getLoginPageTemplate(id: string): Promise<LoginPageTemplate | undefined> {
+    const [template] = await db.select().from(loginPageTemplates).where(eq(loginPageTemplates.id, id));
+    return template || undefined;
+  }
+
+  async createLoginPageTemplate(template: InsertLoginPageTemplate): Promise<LoginPageTemplate> {
+    const [created] = await db.insert(loginPageTemplates).values(template).returning();
+    return created;
+  }
+
+  async updateLoginPageTemplate(id: string, data: Partial<InsertLoginPageTemplate>): Promise<LoginPageTemplate | undefined> {
+    const [updated] = await db.update(loginPageTemplates)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(loginPageTemplates.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteLoginPageTemplate(id: string): Promise<boolean> {
+    const result = await db.delete(loginPageTemplates).where(eq(loginPageTemplates.id, id)).returning();
+    return result.length > 0;
   }
 }
 

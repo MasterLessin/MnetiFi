@@ -311,6 +311,353 @@ export class MikrotikService {
   async getQueueStats(): Promise<MikrotikResponse> {
     return this.makeRequest("/rest/queue/simple");
   }
+
+  // ============== FIREWALL RULES ==============
+  async getFirewallFilterRules(): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/ip/firewall/filter");
+  }
+
+  async getFirewallNatRules(): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/ip/firewall/nat");
+  }
+
+  async getFirewallMangleRules(): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/ip/firewall/mangle");
+  }
+
+  async enableFirewallRule(ruleId: string, type: "filter" | "nat" | "mangle" = "filter"): Promise<MikrotikResponse> {
+    return this.makeRequest(`/rest/ip/firewall/${type}/${ruleId}`, "PUT", { disabled: "false" });
+  }
+
+  async disableFirewallRule(ruleId: string, type: "filter" | "nat" | "mangle" = "filter"): Promise<MikrotikResponse> {
+    return this.makeRequest(`/rest/ip/firewall/${type}/${ruleId}`, "PUT", { disabled: "true" });
+  }
+
+  async deleteFirewallRule(ruleId: string, type: "filter" | "nat" | "mangle" = "filter"): Promise<MikrotikResponse> {
+    return this.makeRequest(`/rest/ip/firewall/${type}/${ruleId}`, "DELETE");
+  }
+
+  async addFirewallRule(type: "filter" | "nat" | "mangle", rule: Record<string, any>): Promise<MikrotikResponse> {
+    return this.makeRequest(`/rest/ip/firewall/${type}`, "POST", rule);
+  }
+
+  // ============== IP POOL MANAGEMENT ==============
+  async getIpPools(): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/ip/pool");
+  }
+
+  async addIpPool(name: string, ranges: string): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/ip/pool", "POST", { name, ranges });
+  }
+
+  async deleteIpPool(poolId: string): Promise<MikrotikResponse> {
+    return this.makeRequest(`/rest/ip/pool/${poolId}`, "DELETE");
+  }
+
+  async updateIpPool(poolId: string, updates: { name?: string; ranges?: string }): Promise<MikrotikResponse> {
+    return this.makeRequest(`/rest/ip/pool/${poolId}`, "PUT", updates);
+  }
+
+  // ============== DHCP SERVER ==============
+  async getDhcpServers(): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/ip/dhcp-server");
+  }
+
+  async getDhcpNetworks(): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/ip/dhcp-server/network");
+  }
+
+  async releaseDhcpLease(leaseId: string): Promise<MikrotikResponse> {
+    return this.makeRequest(`/rest/ip/dhcp-server/lease/${leaseId}`, "DELETE");
+  }
+
+  async makeLeaseStatic(leaseId: string): Promise<MikrotikResponse> {
+    return this.makeRequest(`/rest/ip/dhcp-server/lease/${leaseId}`, "PUT", { dynamic: "false" });
+  }
+
+  // ============== HOTSPOT SERVER MANAGEMENT ==============
+  async getHotspotServers(): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/ip/hotspot");
+  }
+
+  async getHotspotServerProfiles(): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/ip/hotspot/profile");
+  }
+
+  async updateHotspotServerProfile(profileId: string, updates: Record<string, any>): Promise<MikrotikResponse> {
+    return this.makeRequest(`/rest/ip/hotspot/profile/${profileId}`, "PUT", updates);
+  }
+
+  async getHotspotIpBindings(): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/ip/hotspot/ip-binding");
+  }
+
+  async addHotspotIpBinding(address: string, type: "bypassed" | "blocked" | "regular", comment?: string): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/ip/hotspot/ip-binding", "POST", {
+      address,
+      type,
+      comment: comment || `MnetiFi binding at ${new Date().toISOString()}`,
+    });
+  }
+
+  async deleteHotspotIpBinding(bindingId: string): Promise<MikrotikResponse> {
+    return this.makeRequest(`/rest/ip/hotspot/ip-binding/${bindingId}`, "DELETE");
+  }
+
+  // ============== WALLED GARDEN SYNC ==============
+  async getWalledGardenEntries(): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/ip/hotspot/walled-garden");
+  }
+
+  async getWalledGardenIpEntries(): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/ip/hotspot/walled-garden/ip");
+  }
+
+  async addWalledGardenEntry(dstHost: string, action: "allow" | "deny" = "allow", comment?: string): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/ip/hotspot/walled-garden", "POST", {
+      "dst-host": dstHost,
+      action,
+      comment: comment || `MnetiFi at ${new Date().toISOString()}`,
+    });
+  }
+
+  async addWalledGardenIpEntry(dstAddress: string, action: "accept" | "drop" = "accept", comment?: string): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/ip/hotspot/walled-garden/ip", "POST", {
+      "dst-address": dstAddress,
+      action,
+      comment: comment || `MnetiFi at ${new Date().toISOString()}`,
+    });
+  }
+
+  async deleteWalledGardenEntry(entryId: string): Promise<MikrotikResponse> {
+    return this.makeRequest(`/rest/ip/hotspot/walled-garden/${entryId}`, "DELETE");
+  }
+
+  async deleteWalledGardenIpEntry(entryId: string): Promise<MikrotikResponse> {
+    return this.makeRequest(`/rest/ip/hotspot/walled-garden/ip/${entryId}`, "DELETE");
+  }
+
+  async syncWalledGarden(entries: { domain: string; description?: string }[]): Promise<MikrotikResponse> {
+    console.log(`[Mikrotik] Syncing ${entries.length} walled garden entries to ${this.hotspot.locationName}`);
+    
+    const results = { added: 0, failed: 0, errors: [] as string[] };
+    
+    for (const entry of entries) {
+      const result = await this.addWalledGardenEntry(entry.domain, "allow", entry.description);
+      if (result.success) {
+        results.added++;
+      } else {
+        results.failed++;
+        results.errors.push(`${entry.domain}: ${result.error}`);
+      }
+    }
+    
+    return { success: results.failed === 0, data: results };
+  }
+
+  // ============== SIMPLE QUEUES ==============
+  async getSimpleQueues(): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/queue/simple");
+  }
+
+  async addSimpleQueue(name: string, target: string, maxLimit: string, comment?: string): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/queue/simple", "POST", {
+      name,
+      target,
+      "max-limit": maxLimit,
+      comment: comment || `MnetiFi queue at ${new Date().toISOString()}`,
+    });
+  }
+
+  async updateSimpleQueue(queueId: string, updates: Record<string, any>): Promise<MikrotikResponse> {
+    return this.makeRequest(`/rest/queue/simple/${queueId}`, "PUT", updates);
+  }
+
+  async deleteSimpleQueue(queueId: string): Promise<MikrotikResponse> {
+    return this.makeRequest(`/rest/queue/simple/${queueId}`, "DELETE");
+  }
+
+  // ============== ARP TABLE ==============
+  async getArpTable(): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/ip/arp");
+  }
+
+  async addArpEntry(address: string, macAddress: string, interfaceName: string, comment?: string): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/ip/arp", "POST", {
+      address,
+      "mac-address": macAddress,
+      interface: interfaceName,
+      comment: comment || `MnetiFi at ${new Date().toISOString()}`,
+    });
+  }
+
+  async deleteArpEntry(entryId: string): Promise<MikrotikResponse> {
+    return this.makeRequest(`/rest/ip/arp/${entryId}`, "DELETE");
+  }
+
+  // ============== ROUTES ==============
+  async getRoutes(): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/ip/route");
+  }
+
+  async addRoute(dstAddress: string, gateway: string, comment?: string): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/ip/route", "POST", {
+      "dst-address": dstAddress,
+      gateway,
+      comment: comment || `MnetiFi route at ${new Date().toISOString()}`,
+    });
+  }
+
+  async deleteRoute(routeId: string): Promise<MikrotikResponse> {
+    return this.makeRequest(`/rest/ip/route/${routeId}`, "DELETE");
+  }
+
+  // ============== IP ADDRESSES ==============
+  async getIpAddresses(): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/ip/address");
+  }
+
+  async addIpAddress(address: string, interfaceName: string, comment?: string): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/ip/address", "POST", {
+      address,
+      interface: interfaceName,
+      comment: comment || `MnetiFi at ${new Date().toISOString()}`,
+    });
+  }
+
+  async deleteIpAddress(addressId: string): Promise<MikrotikResponse> {
+    return this.makeRequest(`/rest/ip/address/${addressId}`, "DELETE");
+  }
+
+  // ============== DNS ==============
+  async getDnsSettings(): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/ip/dns");
+  }
+
+  async getDnsStaticEntries(): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/ip/dns/static");
+  }
+
+  async setDnsServers(servers: string): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/ip/dns", "PUT", { servers });
+  }
+
+  // ============== ROUTER BACKUP ==============
+  async createBackup(name?: string): Promise<MikrotikResponse> {
+    const backupName = name || `mnetifi_backup_${Date.now()}`;
+    console.log(`[Mikrotik] Creating backup ${backupName} on ${this.hotspot.locationName}`);
+    return this.makeRequest("/rest/system/backup/save", "POST", { name: backupName });
+  }
+
+  async exportConfig(): Promise<MikrotikResponse> {
+    console.log(`[Mikrotik] Exporting config from ${this.hotspot.locationName}`);
+    return this.makeRequest("/rest/export");
+  }
+
+  async getFiles(): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/file");
+  }
+
+  async getFileContent(fileName: string): Promise<MikrotikResponse> {
+    return this.makeRequest(`/rest/file/${encodeURIComponent(fileName)}`);
+  }
+
+  async deleteFile(fileName: string): Promise<MikrotikResponse> {
+    return this.makeRequest(`/rest/file/${encodeURIComponent(fileName)}`, "DELETE");
+  }
+
+  // ============== SCRIPTS & SCHEDULER ==============
+  async getScripts(): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/system/script");
+  }
+
+  async getScheduler(): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/system/scheduler");
+  }
+
+  // ============== LOGS ==============
+  async getLogs(topics?: string): Promise<MikrotikResponse> {
+    const endpoint = topics ? `/rest/log?topics=${encodeURIComponent(topics)}` : "/rest/log";
+    return this.makeRequest(endpoint);
+  }
+
+  // ============== INTERFACE MANAGEMENT ==============
+  async getWirelessInterfaces(): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/interface/wireless");
+  }
+
+  async getEthernetInterfaces(): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/interface/ethernet");
+  }
+
+  async getBridges(): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/interface/bridge");
+  }
+
+  async getBridgePorts(): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/interface/bridge/port");
+  }
+
+  async enableInterface(interfaceId: string): Promise<MikrotikResponse> {
+    return this.makeRequest(`/rest/interface/${interfaceId}`, "PUT", { disabled: "false" });
+  }
+
+  async disableInterface(interfaceId: string): Promise<MikrotikResponse> {
+    return this.makeRequest(`/rest/interface/${interfaceId}`, "PUT", { disabled: "true" });
+  }
+
+  // ============== PPP PROFILES ==============
+  async getPppProfiles(): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/ppp/profile");
+  }
+
+  async addPppProfile(name: string, localAddress: string, remoteAddress: string, rateLimit?: string): Promise<MikrotikResponse> {
+    const profile: Record<string, any> = {
+      name,
+      "local-address": localAddress,
+      "remote-address": remoteAddress,
+    };
+    if (rateLimit) {
+      profile["rate-limit"] = rateLimit;
+    }
+    return this.makeRequest("/rest/ppp/profile", "POST", profile);
+  }
+
+  async getPppSecrets(): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/ppp/secret");
+  }
+
+  async getActivePppSessions(): Promise<MikrotikResponse> {
+    return this.makeRequest("/rest/ppp/active");
+  }
+
+  // ============== COMPREHENSIVE CONNECTION TEST ==============
+  async fullConnectionTest(): Promise<MikrotikResponse> {
+    try {
+      const [identity, resources, health] = await Promise.all([
+        this.getRouterIdentity(),
+        this.getSystemResources(),
+        this.getRouterHealth(),
+      ]);
+
+      if (!identity.success && !resources.success) {
+        return { success: false, error: "Cannot connect to router" };
+      }
+
+      return {
+        success: true,
+        data: {
+          identity: identity.data,
+          resources: resources.data,
+          health: health.data,
+          connectionTime: new Date().toISOString(),
+        },
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Connection test failed";
+      return { success: false, error: message };
+    }
+  }
 }
 
 export async function createMikrotikService(hotspot: Hotspot): Promise<MikrotikService | null> {

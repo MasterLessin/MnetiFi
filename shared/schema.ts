@@ -968,3 +968,88 @@ export const insertLoginAttemptSchema = createInsertSchema(loginAttempts).omit({
 
 export type LoginAttempt = typeof loginAttempts.$inferSelect;
 export type InsertLoginAttempt = z.infer<typeof insertLoginAttemptSchema>;
+
+// Router Backups - Store MikroTik router config backups
+export const routerBackups = pgTable("router_backups", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id),
+  hotspotId: varchar("hotspot_id").notNull().references(() => hotspots.id),
+  name: text("name").notNull(),
+  type: text("type").notNull().default("backup"), // backup, export
+  fileSize: integer("file_size"),
+  routerVersion: text("router_version"),
+  routerIdentity: text("router_identity"),
+  configData: text("config_data"), // Base64 encoded for .backup or plain text for .rsc export
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const routerBackupsRelations = relations(routerBackups, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [routerBackups.tenantId],
+    references: [tenants.id],
+  }),
+  hotspot: one(hotspots, {
+    fields: [routerBackups.hotspotId],
+    references: [hotspots.id],
+  }),
+}));
+
+export const insertRouterBackupSchema = createInsertSchema(routerBackups).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type RouterBackup = typeof routerBackups.$inferSelect;
+export type InsertRouterBackup = z.infer<typeof insertRouterBackupSchema>;
+
+// Login Page Templates - Customizable hotspot login pages
+export const loginPageTemplates = pgTable("login_page_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  isDefault: boolean("is_default").default(false),
+  config: jsonb("config").$type<{
+    logo?: string;
+    logoWidth?: number;
+    logoHeight?: number;
+    title?: string;
+    subtitle?: string;
+    welcomeMessage?: string;
+    termsAndConditions?: string;
+    backgroundColor?: string;
+    primaryColor?: string;
+    secondaryColor?: string;
+    textColor?: string;
+    buttonColor?: string;
+    buttonTextColor?: string;
+    fontFamily?: string;
+    borderRadius?: number;
+    showSocialLogin?: boolean;
+    showPoweredBy?: boolean;
+    customCss?: string;
+    customJs?: string;
+    footerText?: string;
+    redirectUrl?: string;
+    sessionTimeout?: number;
+  }>().default({}),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const loginPageTemplatesRelations = relations(loginPageTemplates, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [loginPageTemplates.tenantId],
+    references: [tenants.id],
+  }),
+}));
+
+export const insertLoginPageTemplateSchema = createInsertSchema(loginPageTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type LoginPageTemplate = typeof loginPageTemplates.$inferSelect;
+export type InsertLoginPageTemplate = z.infer<typeof insertLoginPageTemplateSchema>;

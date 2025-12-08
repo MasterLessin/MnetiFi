@@ -48,6 +48,199 @@ async function verifyPassword(password: string, hash: string): Promise<boolean> 
 // Authenticated routes should ALWAYS use getSessionTenantId(req)
 let defaultTenantId: string = "";
 
+// Helper function to generate MikroTik hotspot login page HTML
+function generateLoginPageHtml(config: any, tenant: any): string {
+  const {
+    logo = "",
+    title = "Welcome",
+    subtitle = "",
+    welcomeMessage = "Connect to our WiFi network",
+    termsAndConditions = "",
+    backgroundColor = "#ffffff",
+    primaryColor = "#3b82f6",
+    secondaryColor = "#64748b",
+    textColor = "#1f2937",
+    buttonColor = "#3b82f6",
+    buttonTextColor = "#ffffff",
+    fontFamily = "Inter, system-ui, sans-serif",
+    borderRadius = 8,
+    showPoweredBy = true,
+    customCss = "",
+    footerText = "",
+  } = config || {};
+
+  const tenantName = tenant?.name || "MnetiFi WiFi";
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title} - ${tenantName}</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: ${fontFamily};
+      background-color: ${backgroundColor};
+      color: ${textColor};
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      width: 100%;
+      max-width: 400px;
+      background: white;
+      border-radius: ${borderRadius}px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+      padding: 40px 30px;
+      text-align: center;
+    }
+    .logo {
+      max-width: 150px;
+      max-height: 80px;
+      margin-bottom: 20px;
+    }
+    h1 {
+      color: ${primaryColor};
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      color: ${secondaryColor};
+      font-size: 14px;
+      margin-bottom: 20px;
+    }
+    .welcome {
+      color: ${textColor};
+      font-size: 16px;
+      margin-bottom: 30px;
+      line-height: 1.5;
+    }
+    .form-group {
+      margin-bottom: 16px;
+      text-align: left;
+    }
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: ${textColor};
+      margin-bottom: 6px;
+    }
+    input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid #e2e8f0;
+      border-radius: ${borderRadius}px;
+      font-size: 16px;
+      transition: border-color 0.2s;
+    }
+    input:focus {
+      outline: none;
+      border-color: ${primaryColor};
+    }
+    .btn {
+      width: 100%;
+      padding: 14px;
+      background: ${buttonColor};
+      color: ${buttonTextColor};
+      border: none;
+      border-radius: ${borderRadius}px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .btn:hover {
+      opacity: 0.9;
+    }
+    .terms {
+      font-size: 12px;
+      color: ${secondaryColor};
+      margin-top: 20px;
+      line-height: 1.5;
+    }
+    .terms a {
+      color: ${primaryColor};
+      text-decoration: none;
+    }
+    .powered-by {
+      font-size: 11px;
+      color: ${secondaryColor};
+      margin-top: 30px;
+    }
+    .powered-by a {
+      color: ${primaryColor};
+      text-decoration: none;
+    }
+    .footer {
+      font-size: 12px;
+      color: ${secondaryColor};
+      margin-top: 20px;
+    }
+    .error-message {
+      background: #fee2e2;
+      color: #b91c1c;
+      padding: 12px;
+      border-radius: ${borderRadius}px;
+      font-size: 14px;
+      margin-bottom: 16px;
+      display: none;
+    }
+    ${customCss}
+  </style>
+</head>
+<body>
+  <div class="container">
+    ${logo ? `<img src="${logo}" alt="Logo" class="logo">` : ""}
+    <h1>${title}</h1>
+    ${subtitle ? `<p class="subtitle">${subtitle}</p>` : ""}
+    <p class="welcome">${welcomeMessage}</p>
+    
+    <div class="error-message" id="errorMsg">
+      $(if error)<span>$(error)</span>$(endif)
+    </div>
+    
+    <form method="post" action="$(link-login-only)">
+      <input type="hidden" name="dst" value="$(link-orig)">
+      <input type="hidden" name="popup" value="true">
+      
+      <div class="form-group">
+        <label for="username">Phone Number / Username</label>
+        <input type="text" id="username" name="username" placeholder="0712345678" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="password">Password / Voucher Code</label>
+        <input type="password" id="password" name="password" placeholder="Enter password or voucher" required>
+      </div>
+      
+      <button type="submit" class="btn">Connect to WiFi</button>
+    </form>
+    
+    ${termsAndConditions ? `<p class="terms">${termsAndConditions}</p>` : ""}
+    ${footerText ? `<p class="footer">${footerText}</p>` : ""}
+    ${showPoweredBy ? `<p class="powered-by">Powered by <a href="https://mnetifi.com" target="_blank">MnetiFi</a></p>` : ""}
+  </div>
+  
+  <script>
+    // Show error message if present
+    var errorEl = document.getElementById('errorMsg');
+    if (errorEl.textContent.trim()) {
+      errorEl.style.display = 'block';
+    }
+  </script>
+</body>
+</html>`;
+}
+
 // Helper to get tenant ID from request context (for public routes)
 // Priority: 1. Query param tenantId, 2. Subdomain lookup, 3. Default demo tenant
 async function getPublicTenantId(req: any): Promise<string> {
@@ -3896,6 +4089,888 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error fetching customer loyalty points:", error);
       res.status(500).json({ error: "Failed to fetch loyalty points" });
+    }
+  });
+
+  // ============== NETWORK MANAGEMENT ROUTES ==============
+
+  // Test router connection
+  app.post("/api/hotspots/:id/test-connection", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params;
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant context required" });
+      }
+      
+      const hotspot = await storage.getHotspot(id);
+      if (!hotspot || hotspot.tenantId !== tenantId) {
+        return res.status(404).json({ error: "Hotspot not found" });
+      }
+      
+      const mikrotik = await createMikrotikService(hotspot);
+      if (!mikrotik) {
+        return res.status(400).json({ error: "Router API not configured for this hotspot" });
+      }
+      
+      const result = await mikrotik.fullConnectionTest();
+      res.json(result);
+    } catch (error) {
+      console.error("Error testing router connection:", error);
+      res.status(500).json({ error: "Failed to test router connection" });
+    }
+  });
+
+  // Get router system resources
+  app.get("/api/hotspots/:id/stats", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params;
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant context required" });
+      }
+      
+      const hotspot = await storage.getHotspot(id);
+      if (!hotspot || hotspot.tenantId !== tenantId) {
+        return res.status(404).json({ error: "Hotspot not found" });
+      }
+      
+      const mikrotik = await createMikrotikService(hotspot);
+      if (!mikrotik) {
+        return res.status(400).json({ error: "Router API not configured" });
+      }
+      
+      const resources = await mikrotik.getSystemResources();
+      if (!resources.success) {
+        return res.status(500).json({ error: resources.error });
+      }
+      
+      const data = Array.isArray(resources.data) ? resources.data[0] : resources.data;
+      res.json({
+        uptime: data?.uptime || "unknown",
+        cpuLoad: parseInt(data?.["cpu-load"] || "0"),
+        freeMemory: parseInt(data?.["free-memory"] || "0"),
+        totalMemory: parseInt(data?.["total-memory"] || "0"),
+        freeDisk: parseInt(data?.["free-hdd-space"] || "0"),
+        totalDisk: parseInt(data?.["total-hdd-space"] || "0"),
+        boardName: data?.["board-name"] || "unknown",
+        version: data?.version || "unknown",
+        architecture: data?.["architecture-name"] || "unknown",
+      });
+    } catch (error) {
+      console.error("Error fetching router stats:", error);
+      res.status(500).json({ error: "Failed to fetch router stats" });
+    }
+  });
+
+  // Get router interfaces
+  app.get("/api/hotspots/:id/interfaces", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params;
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant context required" });
+      }
+      
+      const hotspot = await storage.getHotspot(id);
+      if (!hotspot || hotspot.tenantId !== tenantId) {
+        return res.status(404).json({ error: "Hotspot not found" });
+      }
+      
+      const mikrotik = await createMikrotikService(hotspot);
+      if (!mikrotik) {
+        return res.status(400).json({ error: "Router API not configured" });
+      }
+      
+      const result = await mikrotik.getInterfaceStats();
+      if (!result.success) {
+        return res.status(500).json({ error: result.error });
+      }
+      
+      const interfaces = (result.data || []).map((iface: any) => ({
+        name: iface.name,
+        type: iface.type,
+        rxBytes: parseInt(iface["rx-byte"] || "0"),
+        txBytes: parseInt(iface["tx-byte"] || "0"),
+        rxPackets: parseInt(iface["rx-packet"] || "0"),
+        txPackets: parseInt(iface["tx-packet"] || "0"),
+        running: iface.running === "true",
+        disabled: iface.disabled === "true",
+      }));
+      
+      res.json(interfaces);
+    } catch (error) {
+      console.error("Error fetching interfaces:", error);
+      res.status(500).json({ error: "Failed to fetch interfaces" });
+    }
+  });
+
+  // Get active sessions
+  app.get("/api/hotspots/:id/sessions", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params;
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant context required" });
+      }
+      
+      const hotspot = await storage.getHotspot(id);
+      if (!hotspot || hotspot.tenantId !== tenantId) {
+        return res.status(404).json({ error: "Hotspot not found" });
+      }
+      
+      const mikrotik = await createMikrotikService(hotspot);
+      if (!mikrotik) {
+        return res.status(400).json({ error: "Router API not configured" });
+      }
+      
+      const result = await mikrotik.getActiveSessions();
+      if (!result.success) {
+        return res.status(500).json({ error: result.error });
+      }
+      
+      const sessions = (result.data || []).map((session: any) => ({
+        id: session[".id"],
+        user: session.user,
+        address: session.address,
+        macAddress: session["mac-address"],
+        uptime: session.uptime,
+        bytesIn: parseInt(session["bytes-in"] || "0"),
+        bytesOut: parseInt(session["bytes-out"] || "0"),
+      }));
+      
+      res.json(sessions);
+    } catch (error) {
+      console.error("Error fetching sessions:", error);
+      res.status(500).json({ error: "Failed to fetch sessions" });
+    }
+  });
+
+  // Disconnect session
+  app.delete("/api/hotspots/:id/sessions/:sessionId", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id, sessionId } = req.params;
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant context required" });
+      }
+      
+      const hotspot = await storage.getHotspot(id);
+      if (!hotspot || hotspot.tenantId !== tenantId) {
+        return res.status(404).json({ error: "Hotspot not found" });
+      }
+      
+      const mikrotik = await createMikrotikService(hotspot);
+      if (!mikrotik) {
+        return res.status(400).json({ error: "Router API not configured" });
+      }
+      
+      const result = await mikrotik.disconnectSession(sessionId);
+      res.json(result);
+    } catch (error) {
+      console.error("Error disconnecting session:", error);
+      res.status(500).json({ error: "Failed to disconnect session" });
+    }
+  });
+
+  // Get firewall rules
+  app.get("/api/hotspots/:id/firewall/:type", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id, type } = req.params;
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant context required" });
+      }
+      
+      const hotspot = await storage.getHotspot(id);
+      if (!hotspot || hotspot.tenantId !== tenantId) {
+        return res.status(404).json({ error: "Hotspot not found" });
+      }
+      
+      const mikrotik = await createMikrotikService(hotspot);
+      if (!mikrotik) {
+        return res.status(400).json({ error: "Router API not configured" });
+      }
+      
+      let result;
+      switch (type) {
+        case "filter":
+          result = await mikrotik.getFirewallFilterRules();
+          break;
+        case "nat":
+          result = await mikrotik.getFirewallNatRules();
+          break;
+        case "mangle":
+          result = await mikrotik.getFirewallMangleRules();
+          break;
+        default:
+          return res.status(400).json({ error: "Invalid firewall type" });
+      }
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching firewall rules:", error);
+      res.status(500).json({ error: "Failed to fetch firewall rules" });
+    }
+  });
+
+  // Toggle firewall rule
+  app.patch("/api/hotspots/:id/firewall/:type/:ruleId", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id, type, ruleId } = req.params;
+      const { action } = req.body;
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant context required" });
+      }
+      
+      const hotspot = await storage.getHotspot(id);
+      if (!hotspot || hotspot.tenantId !== tenantId) {
+        return res.status(404).json({ error: "Hotspot not found" });
+      }
+      
+      const mikrotik = await createMikrotikService(hotspot);
+      if (!mikrotik) {
+        return res.status(400).json({ error: "Router API not configured" });
+      }
+      
+      const firewallType = type as "filter" | "nat" | "mangle";
+      let result;
+      if (action === "enable") {
+        result = await mikrotik.enableFirewallRule(ruleId, firewallType);
+      } else if (action === "disable") {
+        result = await mikrotik.disableFirewallRule(ruleId, firewallType);
+      } else {
+        return res.status(400).json({ error: "Invalid action" });
+      }
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error toggling firewall rule:", error);
+      res.status(500).json({ error: "Failed to toggle firewall rule" });
+    }
+  });
+
+  // Get IP pools
+  app.get("/api/hotspots/:id/ip-pools", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params;
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant context required" });
+      }
+      
+      const hotspot = await storage.getHotspot(id);
+      if (!hotspot || hotspot.tenantId !== tenantId) {
+        return res.status(404).json({ error: "Hotspot not found" });
+      }
+      
+      const mikrotik = await createMikrotikService(hotspot);
+      if (!mikrotik) {
+        return res.status(400).json({ error: "Router API not configured" });
+      }
+      
+      const result = await mikrotik.getIpPools();
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching IP pools:", error);
+      res.status(500).json({ error: "Failed to fetch IP pools" });
+    }
+  });
+
+  // Add IP pool
+  app.post("/api/hotspots/:id/ip-pools", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params;
+      const { name, ranges } = req.body;
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant context required" });
+      }
+      
+      const hotspot = await storage.getHotspot(id);
+      if (!hotspot || hotspot.tenantId !== tenantId) {
+        return res.status(404).json({ error: "Hotspot not found" });
+      }
+      
+      const mikrotik = await createMikrotikService(hotspot);
+      if (!mikrotik) {
+        return res.status(400).json({ error: "Router API not configured" });
+      }
+      
+      const result = await mikrotik.addIpPool(name, ranges);
+      res.json(result);
+    } catch (error) {
+      console.error("Error adding IP pool:", error);
+      res.status(500).json({ error: "Failed to add IP pool" });
+    }
+  });
+
+  // Delete IP pool
+  app.delete("/api/hotspots/:id/ip-pools/:poolId", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id, poolId } = req.params;
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant context required" });
+      }
+      
+      const hotspot = await storage.getHotspot(id);
+      if (!hotspot || hotspot.tenantId !== tenantId) {
+        return res.status(404).json({ error: "Hotspot not found" });
+      }
+      
+      const mikrotik = await createMikrotikService(hotspot);
+      if (!mikrotik) {
+        return res.status(400).json({ error: "Router API not configured" });
+      }
+      
+      const result = await mikrotik.deleteIpPool(poolId);
+      res.json(result);
+    } catch (error) {
+      console.error("Error deleting IP pool:", error);
+      res.status(500).json({ error: "Failed to delete IP pool" });
+    }
+  });
+
+  // Get DHCP leases
+  app.get("/api/hotspots/:id/dhcp-leases", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params;
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant context required" });
+      }
+      
+      const hotspot = await storage.getHotspot(id);
+      if (!hotspot || hotspot.tenantId !== tenantId) {
+        return res.status(404).json({ error: "Hotspot not found" });
+      }
+      
+      const mikrotik = await createMikrotikService(hotspot);
+      if (!mikrotik) {
+        return res.status(400).json({ error: "Router API not configured" });
+      }
+      
+      const result = await mikrotik.getDHCPLeases();
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching DHCP leases:", error);
+      res.status(500).json({ error: "Failed to fetch DHCP leases" });
+    }
+  });
+
+  // Release DHCP lease
+  app.delete("/api/hotspots/:id/dhcp-leases/:leaseId", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id, leaseId } = req.params;
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant context required" });
+      }
+      
+      const hotspot = await storage.getHotspot(id);
+      if (!hotspot || hotspot.tenantId !== tenantId) {
+        return res.status(404).json({ error: "Hotspot not found" });
+      }
+      
+      const mikrotik = await createMikrotikService(hotspot);
+      if (!mikrotik) {
+        return res.status(400).json({ error: "Router API not configured" });
+      }
+      
+      const result = await mikrotik.releaseDhcpLease(leaseId);
+      res.json(result);
+    } catch (error) {
+      console.error("Error releasing DHCP lease:", error);
+      res.status(500).json({ error: "Failed to release DHCP lease" });
+    }
+  });
+
+  // Get ARP table
+  app.get("/api/hotspots/:id/arp", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params;
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant context required" });
+      }
+      
+      const hotspot = await storage.getHotspot(id);
+      if (!hotspot || hotspot.tenantId !== tenantId) {
+        return res.status(404).json({ error: "Hotspot not found" });
+      }
+      
+      const mikrotik = await createMikrotikService(hotspot);
+      if (!mikrotik) {
+        return res.status(400).json({ error: "Router API not configured" });
+      }
+      
+      const result = await mikrotik.getArpTable();
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching ARP table:", error);
+      res.status(500).json({ error: "Failed to fetch ARP table" });
+    }
+  });
+
+  // Get routes
+  app.get("/api/hotspots/:id/routes", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params;
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant context required" });
+      }
+      
+      const hotspot = await storage.getHotspot(id);
+      if (!hotspot || hotspot.tenantId !== tenantId) {
+        return res.status(404).json({ error: "Hotspot not found" });
+      }
+      
+      const mikrotik = await createMikrotikService(hotspot);
+      if (!mikrotik) {
+        return res.status(400).json({ error: "Router API not configured" });
+      }
+      
+      const result = await mikrotik.getRoutes();
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching routes:", error);
+      res.status(500).json({ error: "Failed to fetch routes" });
+    }
+  });
+
+  // Get simple queues
+  app.get("/api/hotspots/:id/queues", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params;
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant context required" });
+      }
+      
+      const hotspot = await storage.getHotspot(id);
+      if (!hotspot || hotspot.tenantId !== tenantId) {
+        return res.status(404).json({ error: "Hotspot not found" });
+      }
+      
+      const mikrotik = await createMikrotikService(hotspot);
+      if (!mikrotik) {
+        return res.status(400).json({ error: "Router API not configured" });
+      }
+      
+      const result = await mikrotik.getSimpleQueues();
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching queues:", error);
+      res.status(500).json({ error: "Failed to fetch queues" });
+    }
+  });
+
+  // Get walled garden from router
+  app.get("/api/hotspots/:id/walled-garden-router", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params;
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant context required" });
+      }
+      
+      const hotspot = await storage.getHotspot(id);
+      if (!hotspot || hotspot.tenantId !== tenantId) {
+        return res.status(404).json({ error: "Hotspot not found" });
+      }
+      
+      const mikrotik = await createMikrotikService(hotspot);
+      if (!mikrotik) {
+        return res.status(400).json({ error: "Router API not configured" });
+      }
+      
+      const result = await mikrotik.getWalledGardenEntries();
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching walled garden:", error);
+      res.status(500).json({ error: "Failed to fetch walled garden" });
+    }
+  });
+
+  // Sync walled garden to router
+  app.post("/api/hotspots/:id/sync-walled-garden", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params;
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant context required" });
+      }
+      
+      const hotspot = await storage.getHotspot(id);
+      if (!hotspot || hotspot.tenantId !== tenantId) {
+        return res.status(404).json({ error: "Hotspot not found" });
+      }
+      
+      const mikrotik = await createMikrotikService(hotspot);
+      if (!mikrotik) {
+        return res.status(400).json({ error: "Router API not configured" });
+      }
+      
+      const walledGardens = await storage.getWalledGardens(tenantId);
+      const entries = walledGardens.map(wg => ({
+        domain: wg.domain,
+        description: wg.description || undefined,
+      }));
+      
+      const result = await mikrotik.syncWalledGarden(entries);
+      res.json(result);
+    } catch (error) {
+      console.error("Error syncing walled garden:", error);
+      res.status(500).json({ error: "Failed to sync walled garden" });
+    }
+  });
+
+  // Create router backup
+  app.post("/api/hotspots/:id/backup", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params;
+      const { name, notes } = req.body;
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant context required" });
+      }
+      
+      const hotspot = await storage.getHotspot(id);
+      if (!hotspot || hotspot.tenantId !== tenantId) {
+        return res.status(404).json({ error: "Hotspot not found" });
+      }
+      
+      const mikrotik = await createMikrotikService(hotspot);
+      if (!mikrotik) {
+        return res.status(400).json({ error: "Router API not configured" });
+      }
+      
+      const [identityResult, resourceResult, exportResult] = await Promise.all([
+        mikrotik.getRouterIdentity(),
+        mikrotik.getSystemResources(),
+        mikrotik.exportConfig(),
+      ]);
+      
+      const identity = identityResult.data?.[0]?.name || identityResult.data?.name || "unknown";
+      const version = resourceResult.data?.[0]?.version || resourceResult.data?.version || "unknown";
+      const configData = typeof exportResult.data === "string" ? exportResult.data : JSON.stringify(exportResult.data);
+      
+      const backup = await storage.createRouterBackup({
+        tenantId,
+        hotspotId: id,
+        name: name || `Backup ${new Date().toISOString()}`,
+        type: "export",
+        routerVersion: version,
+        routerIdentity: identity,
+        configData,
+        notes,
+      });
+      
+      res.json({ success: true, backup });
+    } catch (error) {
+      console.error("Error creating backup:", error);
+      res.status(500).json({ error: "Failed to create backup" });
+    }
+  });
+
+  // Get router backups
+  app.get("/api/hotspots/:id/backups", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params;
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant context required" });
+      }
+      
+      const hotspot = await storage.getHotspot(id);
+      if (!hotspot || hotspot.tenantId !== tenantId) {
+        return res.status(404).json({ error: "Hotspot not found" });
+      }
+      
+      const backups = await storage.getRouterBackups(tenantId, id);
+      res.json(backups);
+    } catch (error) {
+      console.error("Error fetching backups:", error);
+      res.status(500).json({ error: "Failed to fetch backups" });
+    }
+  });
+
+  // Download backup
+  app.get("/api/router-backups/:backupId/download", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { backupId } = req.params;
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant context required" });
+      }
+      
+      const backup = await storage.getRouterBackup(backupId);
+      if (!backup || backup.tenantId !== tenantId) {
+        return res.status(404).json({ error: "Backup not found" });
+      }
+      
+      const filename = `${backup.name.replace(/[^a-z0-9]/gi, "_")}_${backup.routerIdentity}.rsc`;
+      res.setHeader("Content-Type", "text/plain");
+      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+      res.send(backup.configData || "");
+    } catch (error) {
+      console.error("Error downloading backup:", error);
+      res.status(500).json({ error: "Failed to download backup" });
+    }
+  });
+
+  // Delete backup
+  app.delete("/api/router-backups/:backupId", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { backupId } = req.params;
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant context required" });
+      }
+      
+      const backup = await storage.getRouterBackup(backupId);
+      if (!backup || backup.tenantId !== tenantId) {
+        return res.status(404).json({ error: "Backup not found" });
+      }
+      
+      await storage.deleteRouterBackup(backupId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting backup:", error);
+      res.status(500).json({ error: "Failed to delete backup" });
+    }
+  });
+
+  // Reboot router
+  app.post("/api/hotspots/:id/reboot", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params;
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant context required" });
+      }
+      
+      const hotspot = await storage.getHotspot(id);
+      if (!hotspot || hotspot.tenantId !== tenantId) {
+        return res.status(404).json({ error: "Hotspot not found" });
+      }
+      
+      const mikrotik = await createMikrotikService(hotspot);
+      if (!mikrotik) {
+        return res.status(400).json({ error: "Router API not configured" });
+      }
+      
+      const result = await mikrotik.rebootRouter();
+      res.json(result);
+    } catch (error) {
+      console.error("Error rebooting router:", error);
+      res.status(500).json({ error: "Failed to reboot router" });
+    }
+  });
+
+  // Get hotspot servers on router
+  app.get("/api/hotspots/:id/hotspot-servers", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params;
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant context required" });
+      }
+      
+      const hotspot = await storage.getHotspot(id);
+      if (!hotspot || hotspot.tenantId !== tenantId) {
+        return res.status(404).json({ error: "Hotspot not found" });
+      }
+      
+      const mikrotik = await createMikrotikService(hotspot);
+      if (!mikrotik) {
+        return res.status(400).json({ error: "Router API not configured" });
+      }
+      
+      const result = await mikrotik.getHotspotServers();
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching hotspot servers:", error);
+      res.status(500).json({ error: "Failed to fetch hotspot servers" });
+    }
+  });
+
+  // Get user profiles on router
+  app.get("/api/hotspots/:id/user-profiles", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params;
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant context required" });
+      }
+      
+      const hotspot = await storage.getHotspot(id);
+      if (!hotspot || hotspot.tenantId !== tenantId) {
+        return res.status(404).json({ error: "Hotspot not found" });
+      }
+      
+      const mikrotik = await createMikrotikService(hotspot);
+      if (!mikrotik) {
+        return res.status(400).json({ error: "Router API not configured" });
+      }
+      
+      const result = await mikrotik.getHotspotProfiles();
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching user profiles:", error);
+      res.status(500).json({ error: "Failed to fetch user profiles" });
+    }
+  });
+
+  // Get router logs
+  app.get("/api/hotspots/:id/logs", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params;
+      const { topics } = req.query;
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant context required" });
+      }
+      
+      const hotspot = await storage.getHotspot(id);
+      if (!hotspot || hotspot.tenantId !== tenantId) {
+        return res.status(404).json({ error: "Hotspot not found" });
+      }
+      
+      const mikrotik = await createMikrotikService(hotspot);
+      if (!mikrotik) {
+        return res.status(400).json({ error: "Router API not configured" });
+      }
+      
+      const result = await mikrotik.getLogs(topics as string | undefined);
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching logs:", error);
+      res.status(500).json({ error: "Failed to fetch logs" });
+    }
+  });
+
+  // Get DNS settings
+  app.get("/api/hotspots/:id/dns", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params;
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant context required" });
+      }
+      
+      const hotspot = await storage.getHotspot(id);
+      if (!hotspot || hotspot.tenantId !== tenantId) {
+        return res.status(404).json({ error: "Hotspot not found" });
+      }
+      
+      const mikrotik = await createMikrotikService(hotspot);
+      if (!mikrotik) {
+        return res.status(400).json({ error: "Router API not configured" });
+      }
+      
+      const result = await mikrotik.getDnsSettings();
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching DNS settings:", error);
+      res.status(500).json({ error: "Failed to fetch DNS settings" });
+    }
+  });
+
+  // ============== LOGIN PAGE TEMPLATES ==============
+
+  // Get login page templates
+  app.get("/api/login-templates", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant context required" });
+      }
+      
+      const templates = await storage.getLoginPageTemplates(tenantId);
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching login templates:", error);
+      res.status(500).json({ error: "Failed to fetch login templates" });
+    }
+  });
+
+  // Create login page template
+  app.post("/api/login-templates", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant context required" });
+      }
+      
+      const template = await storage.createLoginPageTemplate({
+        ...req.body,
+        tenantId,
+      });
+      res.json(template);
+    } catch (error) {
+      console.error("Error creating login template:", error);
+      res.status(500).json({ error: "Failed to create login template" });
+    }
+  });
+
+  // Update login page template
+  app.patch("/api/login-templates/:id", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params;
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant context required" });
+      }
+      
+      const template = await storage.updateLoginPageTemplate(id, req.body);
+      res.json(template);
+    } catch (error) {
+      console.error("Error updating login template:", error);
+      res.status(500).json({ error: "Failed to update login template" });
+    }
+  });
+
+  // Delete login page template
+  app.delete("/api/login-templates/:id", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteLoginPageTemplate(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting login template:", error);
+      res.status(500).json({ error: "Failed to delete login template" });
+    }
+  });
+
+  // Generate and download login page files
+  app.get("/api/login-templates/:id/download", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params;
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant context required" });
+      }
+      
+      const template = await storage.getLoginPageTemplate(id);
+      if (!template || template.tenantId !== tenantId) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+      
+      const tenant = await storage.getTenant(tenantId);
+      const config = template.config || {};
+      
+      const loginHtml = generateLoginPageHtml(config, tenant);
+      
+      res.setHeader("Content-Type", "text/html");
+      res.setHeader("Content-Disposition", `attachment; filename="login.html"`);
+      res.send(loginHtml);
+    } catch (error) {
+      console.error("Error generating login page:", error);
+      res.status(500).json({ error: "Failed to generate login page" });
     }
   });
 
