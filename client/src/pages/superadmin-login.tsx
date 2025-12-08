@@ -19,7 +19,7 @@ export default function SuperAdminLoginPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const session = localStorage.getItem("superadmin_session");
+    const session = localStorage.getItem("admin_session");
     if (session) {
       try {
         const sessionData = JSON.parse(session);
@@ -30,10 +30,10 @@ export default function SuperAdminLoginPage() {
         if (now - lastActivity < tenMinutes && sessionData.user?.role === "superadmin") {
           setLocation("/superadmin");
         } else {
-          localStorage.removeItem("superadmin_session");
+          localStorage.removeItem("admin_session");
         }
       } catch {
-        localStorage.removeItem("superadmin_session");
+        localStorage.removeItem("admin_session");
       }
     }
   }, [setLocation]);
@@ -61,7 +61,7 @@ export default function SuperAdminLoginPage() {
           return;
         }
 
-        localStorage.setItem("superadmin_session", JSON.stringify({
+        localStorage.setItem("admin_session", JSON.stringify({
           user: data.user,
           lastActivity: new Date().toISOString(),
         }));

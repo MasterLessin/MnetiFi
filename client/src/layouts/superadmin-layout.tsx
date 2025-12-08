@@ -92,13 +92,18 @@ function SuperAdminSidebar({ onLogout }: { onLogout: () => void }) {
 }
 
 export function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
-  const { user, isLoading, logout } = useRequireAuth();
+  const { user, isLoading } = useRequireAuth();
   const [, setLocation] = useLocation();
 
   const style = {
     "--sidebar-width": "16rem",
     "--sidebar-width-icon": "3rem",
   } as React.CSSProperties;
+
+  const handleLogout = () => {
+    localStorage.removeItem("admin_session");
+    setLocation("/superadmin/login");
+  };
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -128,7 +133,7 @@ export function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
       <MeshBackground />
       <SidebarProvider style={style}>
         <div className="flex h-screen w-full relative z-10">
-          <SuperAdminSidebar onLogout={logout} />
+          <SuperAdminSidebar onLogout={handleLogout} />
           <div className="flex flex-col flex-1 overflow-hidden">
             <header className="flex items-center gap-4 p-4 border-b border-white/10 bg-background/50 backdrop-blur-sm">
               <SidebarTrigger data-testid="button-sidebar-toggle" />
