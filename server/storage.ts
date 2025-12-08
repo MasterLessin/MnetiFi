@@ -776,8 +776,23 @@ export class DatabaseStorage implements IStorage {
     trialExpiresAt?: Date | null;
     subscriptionExpiresAt?: Date | null;
   }): Promise<Tenant | undefined> {
+    // Map 'tier' to 'subscriptionTier' for the database column
+    const updateData: any = {};
+    if (data.tier !== undefined) {
+      updateData.subscriptionTier = data.tier;
+    }
+    if (data.saasBillingStatus !== undefined) {
+      updateData.saasBillingStatus = data.saasBillingStatus;
+    }
+    if (data.trialExpiresAt !== undefined) {
+      updateData.trialExpiresAt = data.trialExpiresAt;
+    }
+    if (data.subscriptionExpiresAt !== undefined) {
+      updateData.subscriptionExpiresAt = data.subscriptionExpiresAt;
+    }
+    
     const [updated] = await db.update(tenants)
-      .set(data as any)
+      .set(updateData)
       .where(eq(tenants.id, id))
       .returning();
     return updated || undefined;

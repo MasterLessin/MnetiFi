@@ -217,6 +217,13 @@ function Router() {
           </DashboardLayout>
         )}
       </Route>
+      <Route path="/dashboard/upgrade">
+        {() => (
+          <DashboardLayout>
+            <UpgradePage />
+          </DashboardLayout>
+        )}
+      </Route>
 
       {/* Super Admin Auth Pages */}
       <Route path="/superadmin/login" component={SuperAdminLoginPage} />

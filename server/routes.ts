@@ -177,6 +177,11 @@ export async function registerRoutes(
         });
       }
 
+      // Fetch tenant data for subscription info
+      const tenant = await storage.getTenant(user.tenantId);
+      const subscriptionTier = tenant?.subscriptionTier || "BASIC";
+      const trialExpiresAt = tenant?.trialExpiresAt ? tenant.trialExpiresAt.toISOString() : null;
+
       req.session.user = {
         id: user.id,
         username: user.username,
@@ -184,6 +189,8 @@ export async function registerRoutes(
         tenantId: user.tenantId,
         email: user.email,
       };
+      req.session.subscriptionTier = subscriptionTier;
+      req.session.trialExpiresAt = trialExpiresAt;
 
       console.log(`[Auth] Successful login for ${username} from ${ipAddress}`);
 
@@ -195,6 +202,8 @@ export async function registerRoutes(
           email: user.email,
           tenantId: user.tenantId,
         },
+        subscriptionTier,
+        trialExpiresAt,
       });
     } catch (error) {
       console.error("Error during login:", error);
@@ -206,7 +215,11 @@ export async function registerRoutes(
     if (!req.session?.user) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-    res.json({ user: req.session.user });
+    res.json({ 
+      user: req.session.user,
+      subscriptionTier: req.session.subscriptionTier || "BASIC",
+      trialExpiresAt: req.session.trialExpiresAt || null,
+    });
   });
 
   app.post("/api/auth/logout", async (req, res) => {
@@ -384,7 +397,12 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Invalid verification code" });
       }
 
-      // Create session
+      // Fetch tenant data for subscription info
+      const tenant = await storage.getTenant(user.tenantId);
+      const subscriptionTier = tenant?.subscriptionTier || "BASIC";
+      const trialExpiresAt = tenant?.trialExpiresAt ? tenant.trialExpiresAt.toISOString() : null;
+
+      // Create session with subscription data
       req.session.user = {
         id: user.id,
         username: user.username,
@@ -392,6 +410,8 @@ export async function registerRoutes(
         tenantId: user.tenantId,
         email: user.email,
       };
+      req.session.subscriptionTier = subscriptionTier;
+      req.session.trialExpiresAt = trialExpiresAt;
 
       console.log(`[Auth] 2FA login verified for ${user.username}`);
       res.json({
@@ -403,6 +423,8 @@ export async function registerRoutes(
           email: user.email,
           tenantId: user.tenantId,
         },
+        subscriptionTier,
+        trialExpiresAt,
       });
     } catch (error) {
       console.error("Error verifying 2FA login:", error);
@@ -2366,6 +2388,132 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error updating tenant subscription:", error);
       res.status(500).json({ error: "Failed to update tenant subscription" });
+    }
+  });
+
+  // ============== SUBSCRIPTION MANAGEMENT (User-facing) ==============
+  
+  // Upgrade subscription (tenant admin)
+  app.post("/api/subscription/upgrade", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const { durationMonths, paymentMethod, phoneNumber, amount } = req.body;
+
+      // Validate inputs
+      if (!durationMonths || !paymentMethod) {
+        return res.status(400).json({ error: "Duration and payment method are required" });
+      }
+
+      if (!["MPESA", "BANK", "PAYPAL"].includes(paymentMethod)) {
+        return res.status(400).json({ error: "Invalid payment method" });
+      }
+
+      const validDurations = [1, 3, 6, 12];
+      if (!validDurations.includes(durationMonths)) {
+        return res.status(400).json({ error: "Invalid subscription duration" });
+      }
+
+      // Get current tenant
+      const tenant = await storage.getTenant(tenantId);
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant not found" });
+      }
+
+      // Calculate subscription expiry
+      const now = new Date();
+      let startDate = now;
+      
+      // If currently premium with valid subscription, extend from current expiry
+      if (tenant.subscriptionTier === "PREMIUM" && tenant.subscriptionExpiresAt && new Date(tenant.subscriptionExpiresAt) > now) {
+        startDate = new Date(tenant.subscriptionExpiresAt);
+      }
+      
+      const subscriptionExpiresAt = new Date(startDate);
+      subscriptionExpiresAt.setMonth(subscriptionExpiresAt.getMonth() + durationMonths);
+
+      // Determine payment status based on method
+      let paymentStatus = "PENDING";
+      let responseMessage = "Processing payment...";
+
+      if (paymentMethod === "MPESA" && phoneNumber) {
+        paymentStatus = "PENDING";
+        responseMessage = "M-Pesa payment request sent to your phone. Please complete the payment.";
+        console.log(`[Subscription] M-Pesa STK push to be sent to ${phoneNumber} for tenant ${tenantId}`);
+      } else if (paymentMethod === "BANK") {
+        paymentStatus = "AWAITING_CONFIRMATION";
+        responseMessage = "Please complete the bank transfer. Your subscription will be activated after payment confirmation.";
+      } else if (paymentMethod === "PAYPAL") {
+        paymentStatus = "PENDING";
+        responseMessage = "Redirecting to PayPal for payment...";
+      }
+
+      // For demo purposes, auto-activate the subscription immediately
+      // In production, this would be triggered after payment confirmation
+      const updatedTenant = await storage.updateTenantSubscription(tenantId, {
+        tier: "PREMIUM",
+        saasBillingStatus: "ACTIVE",
+        subscriptionExpiresAt,
+        trialExpiresAt: null, // Clear trial when upgrading
+      });
+
+      console.log(`[Subscription] Tenant ${tenant.name} upgraded to PREMIUM until ${subscriptionExpiresAt.toISOString()}`);
+
+      res.json({
+        success: true,
+        message: responseMessage,
+        subscription: {
+          tier: "PREMIUM",
+          expiresAt: subscriptionExpiresAt,
+          durationMonths,
+        },
+        paymentStatus,
+        paymentMethod,
+      });
+    } catch (error) {
+      console.error("Error upgrading subscription:", error);
+      res.status(500).json({ error: "Failed to upgrade subscription" });
+    }
+  });
+
+  // Get current subscription status
+  app.get("/api/subscription/status", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const tenant = await storage.getTenant(tenantId);
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant not found" });
+      }
+
+      const now = new Date();
+      const isTrialExpired = tenant.trialExpiresAt && new Date(tenant.trialExpiresAt) < now;
+      const isSubscriptionExpired = tenant.subscriptionExpiresAt && new Date(tenant.subscriptionExpiresAt) < now;
+      
+      let trialTimeRemaining = null;
+      if (tenant.trialExpiresAt && !isTrialExpired) {
+        trialTimeRemaining = new Date(tenant.trialExpiresAt).getTime() - now.getTime();
+      }
+
+      res.json({
+        subscriptionTier: tenant.subscriptionTier || "BASIC",
+        saasBillingStatus: tenant.saasBillingStatus,
+        trialExpiresAt: tenant.trialExpiresAt,
+        subscriptionExpiresAt: tenant.subscriptionExpiresAt,
+        isTrialExpired,
+        isSubscriptionExpired,
+        trialTimeRemaining,
+        isActive: tenant.isActive,
+      });
+    } catch (error) {
+      console.error("Error fetching subscription status:", error);
+      res.status(500).json({ error: "Failed to fetch subscription status" });
     }
   });
 

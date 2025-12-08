@@ -68,6 +68,8 @@ export default function LoginPage() {
           localStorage.setItem("admin_session", JSON.stringify({
             user: data.user,
             lastActivity: new Date().toISOString(),
+            subscriptionTier: data.subscriptionTier || "BASIC",
+            trialExpiresAt: data.trialExpiresAt || null,
           }));
           toast({
             title: "Welcome back!",
@@ -110,6 +112,8 @@ export default function LoginPage() {
         localStorage.setItem("admin_session", JSON.stringify({
           user: data.user,
           lastActivity: new Date().toISOString(),
+          subscriptionTier: data.subscriptionTier || "BASIC",
+          trialExpiresAt: data.trialExpiresAt || null,
         }));
         toast({
           title: "Welcome back!",
