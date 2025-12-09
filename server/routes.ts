@@ -1197,9 +1197,30 @@ export async function registerRoutes(
 
   // ============== HOTSPOT ROUTES ==============
   
-  app.get("/api/hotspots", async (req, res) => {
+  // Helper function to get tenant-scoped hotspot with proper error handling
+  type TenantHotspotResult = 
+    | { error: string; status: number }
+    | { hotspot: Awaited<ReturnType<typeof storage.getHotspotForTenant>> & object; tenantId: string };
+  
+  async function getTenantHotspot(req: AuthenticatedRequest, hotspotId: string): Promise<TenantHotspotResult> {
+    const tenantId = getSessionTenantId(req) || defaultTenantId;
+    if (!tenantId) {
+      return { error: "Tenant context required", status: 400 };
+    }
+    const hotspot = await storage.getHotspotForTenant(hotspotId, tenantId);
+    if (!hotspot) {
+      return { error: "Hotspot not found", status: 404 };
+    }
+    return { hotspot, tenantId };
+  }
+  
+  app.get("/api/hotspots", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
-      const hotspots = await storage.getHotspots(defaultTenantId);
+      const tenantId = getSessionTenantId(req) || defaultTenantId;
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant context required" });
+      }
+      const hotspots = await storage.getHotspots(tenantId);
       res.json(hotspots);
     } catch (error) {
       console.error("Error fetching hotspots:", error);
@@ -1207,24 +1228,28 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/hotspots/:id", async (req, res) => {
+  app.get("/api/hotspots/:id", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
-      const hotspot = await storage.getHotspot(req.params.id);
-      if (!hotspot) {
-        return res.status(404).json({ error: "Hotspot not found" });
+      const result = await getTenantHotspot(req, req.params.id);
+      if ('error' in result) {
+        return res.status(result.status).json({ error: result.error });
       }
-      res.json(hotspot);
+      res.json(result.hotspot);
     } catch (error) {
       console.error("Error fetching hotspot:", error);
       res.status(500).json({ error: "Failed to fetch hotspot" });
     }
   });
 
-  app.post("/api/hotspots", async (req, res) => {
+  app.post("/api/hotspots", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
+      const tenantId = getSessionTenantId(req) || defaultTenantId;
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant context required" });
+      }
       const data = insertHotspotSchema.parse({
         ...req.body,
-        tenantId: defaultTenantId,
+        tenantId,
       });
       const hotspot = await storage.createHotspot(data);
       res.status(201).json(hotspot);
@@ -1237,8 +1262,12 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/hotspots/:id", async (req, res) => {
+  app.patch("/api/hotspots/:id", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
+      const result = await getTenantHotspot(req, req.params.id);
+      if ('error' in result) {
+        return res.status(result.status).json({ error: result.error });
+      }
       const hotspot = await storage.updateHotspot(req.params.id, req.body);
       if (!hotspot) {
         return res.status(404).json({ error: "Hotspot not found" });
@@ -1250,8 +1279,12 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/hotspots/:id", async (req, res) => {
+  app.delete("/api/hotspots/:id", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
+      const result = await getTenantHotspot(req, req.params.id);
+      if ('error' in result) {
+        return res.status(result.status).json({ error: result.error });
+      }
       const deleted = await storage.deleteHotspot(req.params.id);
       if (!deleted) {
         return res.status(404).json({ error: "Hotspot not found" });
@@ -2329,59 +2362,59 @@ export async function registerRoutes(
 
   // ============== MIKROTIK ROUTER MANAGEMENT ROUTES ==============
   
-  app.post("/api/hotspots/:id/test-connection", async (req, res) => {
+  app.post("/api/hotspots/:id/test-connection", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
-      const hotspot = await storage.getHotspot(req.params.id);
-      if (!hotspot) {
-        return res.status(404).json({ error: "Hotspot not found" });
+      const result = await getTenantHotspot(req, req.params.id);
+      if ('error' in result) {
+        return res.status(result.status).json({ error: result.error });
       }
 
       const { MikrotikService } = await import("./services/mikrotik");
-      const mikrotik = new MikrotikService(hotspot);
-      const result = await mikrotik.testConnection();
+      const mikrotik = new MikrotikService(result.hotspot);
+      const testResult = await mikrotik.testConnection();
       
-      res.json(result);
+      res.json(testResult);
     } catch (error) {
       console.error("Error testing connection:", error);
       res.status(500).json({ error: "Failed to test connection" });
     }
   });
 
-  app.get("/api/hotspots/:id/active-sessions", async (req, res) => {
+  app.get("/api/hotspots/:id/active-sessions", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
-      const hotspot = await storage.getHotspot(req.params.id);
-      if (!hotspot) {
-        return res.status(404).json({ error: "Hotspot not found" });
+      const result = await getTenantHotspot(req, req.params.id);
+      if ('error' in result) {
+        return res.status(result.status).json({ error: result.error });
       }
 
       const { MikrotikService } = await import("./services/mikrotik");
-      const mikrotik = new MikrotikService(hotspot);
-      const result = await mikrotik.getActiveSessions();
+      const mikrotik = new MikrotikService(result.hotspot);
+      const sessions = await mikrotik.getActiveSessions();
       
-      res.json(result);
+      res.json(sessions);
     } catch (error) {
       console.error("Error fetching active sessions:", error);
       res.status(500).json({ error: "Failed to fetch active sessions" });
     }
   });
 
-  app.post("/api/hotspots/:id/disconnect-user", async (req, res) => {
+  app.post("/api/hotspots/:id/disconnect-user", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
       const { username } = req.body;
       if (!username) {
         return res.status(400).json({ error: "Username is required" });
       }
 
-      const hotspot = await storage.getHotspot(req.params.id);
-      if (!hotspot) {
-        return res.status(404).json({ error: "Hotspot not found" });
+      const result = await getTenantHotspot(req, req.params.id);
+      if ('error' in result) {
+        return res.status(result.status).json({ error: result.error });
       }
 
       const { MikrotikService } = await import("./services/mikrotik");
-      const mikrotik = new MikrotikService(hotspot);
-      const result = await mikrotik.disconnectUser(username);
+      const mikrotik = new MikrotikService(result.hotspot);
+      const disconnectResult = await mikrotik.disconnectUser(username);
       
-      res.json(result);
+      res.json(disconnectResult);
     } catch (error) {
       console.error("Error disconnecting user:", error);
       res.status(500).json({ error: "Failed to disconnect user" });

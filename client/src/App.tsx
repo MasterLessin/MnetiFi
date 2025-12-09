@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { DashboardLayout } from "@/layouts/dashboard-layout";
 import { SuperAdminLayout } from "@/layouts/superadmin-layout";
 import { TechLayout } from "@/layouts/tech-layout";
+import { SettingsLayout } from "@/layouts/settings-layout";
 import LandingPage from "@/pages/landing";
 import CaptivePortal from "@/pages/captive-portal";
 import CustomerPortal from "@/pages/customer-portal";
@@ -28,7 +29,13 @@ import WifiUsersPage from "@/pages/wifi-users";
 import CustomerDetailsPage from "@/pages/customer-details";
 import TicketsPage from "@/pages/tickets";
 import ReconciliationPage from "@/pages/reconciliation";
-import SettingsPage from "@/pages/settings";
+import ProfileSettingsPage from "@/pages/settings/profile";
+import PaymentGatewayPage from "@/pages/settings/payment-gateway";
+import NotificationsSettingsPage from "@/pages/settings/notifications";
+import HotspotSettingsPage from "@/pages/settings/hotspot-settings";
+import BackupRestorePage from "@/pages/settings/backup-restore";
+import MikroTikImportPage from "@/pages/settings/mikrotik-import";
+import ClearCachePage from "@/pages/settings/clear-cache";
 import SmsCampaignsPage from "@/pages/sms-campaigns";
 import NetworkMonitoringPage from "@/pages/network-monitoring";
 import VouchersPage from "@/pages/vouchers";
@@ -155,9 +162,68 @@ function Router() {
         )}
       </Route>
       <Route path="/dashboard/settings">
+        {() => <Redirect to="/dashboard/settings/profile" />}
+      </Route>
+      <Route path="/dashboard/settings/profile">
         {() => (
           <DashboardLayout>
-            <SettingsPage />
+            <SettingsLayout>
+              <ProfileSettingsPage />
+            </SettingsLayout>
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path="/dashboard/settings/hotspot-settings">
+        {() => (
+          <DashboardLayout>
+            <SettingsLayout>
+              <HotspotSettingsPage />
+            </SettingsLayout>
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path="/dashboard/settings/payment-gateway">
+        {() => (
+          <DashboardLayout>
+            <SettingsLayout>
+              <PaymentGatewayPage />
+            </SettingsLayout>
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path="/dashboard/settings/backup-restore">
+        {() => (
+          <DashboardLayout>
+            <SettingsLayout>
+              <BackupRestorePage />
+            </SettingsLayout>
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path="/dashboard/settings/notifications">
+        {() => (
+          <DashboardLayout>
+            <SettingsLayout>
+              <NotificationsSettingsPage />
+            </SettingsLayout>
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path="/dashboard/settings/mikrotik-import">
+        {() => (
+          <DashboardLayout>
+            <SettingsLayout>
+              <MikroTikImportPage />
+            </SettingsLayout>
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path="/dashboard/settings/clear-cache">
+        {() => (
+          <DashboardLayout>
+            <SettingsLayout>
+              <ClearCachePage />
+            </SettingsLayout>
           </DashboardLayout>
         )}
       </Route>

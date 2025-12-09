@@ -38,6 +38,7 @@ export interface IStorage {
   // Hotspot operations
   getHotspots(tenantId: string): Promise<Hotspot[]>;
   getHotspot(id: string): Promise<Hotspot | undefined>;
+  getHotspotForTenant(id: string, tenantId: string): Promise<Hotspot | undefined>;
   createHotspot(hotspot: InsertHotspot): Promise<Hotspot>;
   updateHotspot(id: string, data: Partial<InsertHotspot>): Promise<Hotspot | undefined>;
   deleteHotspot(id: string): Promise<boolean>;
@@ -171,6 +172,13 @@ export class DatabaseStorage implements IStorage {
 
   async getHotspot(id: string): Promise<Hotspot | undefined> {
     const [hotspot] = await db.select().from(hotspots).where(eq(hotspots.id, id));
+    return hotspot || undefined;
+  }
+
+  async getHotspotForTenant(id: string, tenantId: string): Promise<Hotspot | undefined> {
+    const [hotspot] = await db.select().from(hotspots).where(
+      and(eq(hotspots.id, id), eq(hotspots.tenantId, tenantId))
+    );
     return hotspot || undefined;
   }
 
