@@ -371,7 +371,7 @@ export async function registerRoutes(
       }
 
       // Fetch tenant data for subscription info
-      const tenant = await storage.getTenant(user.tenantId);
+      const tenant = user.tenantId ? await storage.getTenant(user.tenantId) : null;
       const subscriptionTier = tenant?.subscriptionTier || "BASIC";
       const trialExpiresAt = tenant?.trialExpiresAt ? tenant.trialExpiresAt.toISOString() : null;
 
@@ -591,7 +591,7 @@ export async function registerRoutes(
       }
 
       // Fetch tenant data for subscription info
-      const tenant = await storage.getTenant(user.tenantId);
+      const tenant = user.tenantId ? await storage.getTenant(user.tenantId) : null;
       const subscriptionTier = tenant?.subscriptionTier || "BASIC";
       const trialExpiresAt = tenant?.trialExpiresAt ? tenant.trialExpiresAt.toISOString() : null;
 
@@ -1081,6 +1081,132 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error updating tenant:", error);
       res.status(500).json({ error: "Failed to update tenant" });
+    }
+  });
+
+  // ============== OTP VERIFICATION FOR SETTINGS ==============
+  
+  // In-memory OTP storage with 5-minute expiry
+  const otpStore = new Map<string, { otp: string; expiresAt: number; tenantId: string }>();
+  const otpTokenStore = new Map<string, { tenantId: string; expiresAt: number }>();
+
+  // Clean up expired OTPs periodically
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, value] of otpStore.entries()) {
+      if (value.expiresAt < now) {
+        otpStore.delete(key);
+      }
+    }
+    for (const [key, value] of otpTokenStore.entries()) {
+      if (value.expiresAt < now) {
+        otpTokenStore.delete(key);
+      }
+    }
+  }, 60000); // Clean up every minute
+
+  // Send OTP to admin phone
+  app.post("/api/settings/otp/send", requireAuthWithTenant, requireAdmin, async (req, res) => {
+    try {
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const tenant = await storage.getTenant(tenantId);
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant not found" });
+      }
+
+      // Get admin phone from tenant
+      const adminPhone = tenant.phone;
+      if (!adminPhone) {
+        return res.status(400).json({ error: "Admin phone number not configured. Please update your profile first." });
+      }
+
+      // Generate 6-digit OTP
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
+
+      // Store OTP
+      const storeKey = `${tenantId}_settings`;
+      otpStore.set(storeKey, { otp, expiresAt, tenantId });
+
+      // Send OTP via SMS
+      const smsService = new SmsService(tenant, {
+        provider: (tenant.smsProvider as "mock" | "africas_talking" | "twilio") || "mock",
+        apiKey: tenant.smsApiKey || undefined,
+        username: tenant.smsUsername || undefined,
+        senderId: tenant.smsSenderId || undefined,
+      });
+
+      const result = await smsService.sendOtp(adminPhone, otp);
+      
+      if (!result.success) {
+        console.error("[OTP] Failed to send OTP:", result.error);
+        return res.status(500).json({ error: "Failed to send OTP. Please try again." });
+      }
+
+      console.log(`[OTP] Sent to ${adminPhone.substring(0, 6)}*** for tenant ${tenantId}`);
+
+      res.json({ 
+        success: true, 
+        message: "OTP sent successfully",
+        phoneHint: adminPhone.substring(0, 6) + "****" + adminPhone.substring(adminPhone.length - 2)
+      });
+    } catch (error) {
+      console.error("Error sending OTP:", error);
+      res.status(500).json({ error: "Failed to send OTP" });
+    }
+  });
+
+  // Verify OTP and return temporary token
+  app.post("/api/settings/otp/verify", requireAuthWithTenant, requireAdmin, async (req, res) => {
+    try {
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const { otp } = req.body;
+      if (!otp || typeof otp !== "string") {
+        return res.status(400).json({ error: "OTP is required" });
+      }
+
+      const storeKey = `${tenantId}_settings`;
+      const stored = otpStore.get(storeKey);
+
+      if (!stored) {
+        return res.status(400).json({ error: "No OTP found. Please request a new one." });
+      }
+
+      if (stored.expiresAt < Date.now()) {
+        otpStore.delete(storeKey);
+        return res.status(400).json({ error: "OTP has expired. Please request a new one." });
+      }
+
+      if (stored.otp !== otp) {
+        return res.status(400).json({ error: "Invalid OTP. Please check and try again." });
+      }
+
+      // OTP verified, remove it and create a temporary token
+      otpStore.delete(storeKey);
+
+      const token = crypto.randomBytes(32).toString("hex");
+      const tokenExpiry = Date.now() + 15 * 60 * 1000; // 15 minutes
+
+      otpTokenStore.set(token, { tenantId, expiresAt: tokenExpiry });
+
+      console.log(`[OTP] Verified successfully for tenant ${tenantId}`);
+
+      res.json({ 
+        success: true, 
+        token,
+        message: "OTP verified. You can now edit payment settings." 
+      });
+    } catch (error) {
+      console.error("Error verifying OTP:", error);
+      res.status(500).json({ error: "Failed to verify OTP" });
     }
   });
 
@@ -4977,6 +5103,164 @@ export async function registerRoutes(
       console.error("Error deleting login template:", error);
       res.status(500).json({ error: "Failed to delete login template" });
     }
+  });
+
+  // RouterOS Terminal - Execute command on router
+  app.post("/api/terminal/execute", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant context required" });
+      }
+      
+      const { hotspotId, command } = req.body;
+      
+      if (!hotspotId || !command) {
+        return res.status(400).json({ error: "Hotspot ID and command are required" });
+      }
+      
+      // Security: Block dangerous commands
+      const blockedCommands = [
+        '/system reset-configuration',
+        '/system package update install',
+        '/file remove',
+        '/user remove',
+        '/user set',
+        '/password',
+        '/system identity set',
+      ];
+      
+      const lowerCommand = command.toLowerCase().trim();
+      for (const blocked of blockedCommands) {
+        if (lowerCommand.includes(blocked.toLowerCase())) {
+          return res.status(403).json({ 
+            error: `Command blocked for security reasons: ${blocked}` 
+          });
+        }
+      }
+      
+      // Get hotspot and verify tenant ownership
+      const hotspot = await storage.getHotspotByTenant(hotspotId, tenantId);
+      if (!hotspot) {
+        return res.status(404).json({ error: "Router not found or access denied" });
+      }
+      
+      const mikrotik = createMikrotikService(hotspot);
+      
+      // Parse command and execute via REST API
+      // Commands are in format: /path/to/resource [action] [params]
+      // Convert to REST API format
+      let apiPath = command.trim();
+      let method: "GET" | "POST" | "DELETE" = "GET";
+      let body: any = undefined;
+      
+      // Handle print commands (GET)
+      if (apiPath.includes(' print') || apiPath.endsWith(' print')) {
+        apiPath = apiPath.replace(' print', '');
+        method = "GET";
+      }
+      // Handle add commands (POST)
+      else if (apiPath.includes(' add ')) {
+        const parts = apiPath.split(' add ');
+        apiPath = parts[0];
+        method = "POST";
+        // Parse key=value pairs
+        const params = parts[1].split(' ');
+        body = {};
+        for (const param of params) {
+          if (param.includes('=')) {
+            const [key, value] = param.split('=');
+            body[key] = value.replace(/"/g, '');
+          }
+        }
+      }
+      // Handle remove commands (DELETE)
+      else if (apiPath.includes(' remove ')) {
+        const parts = apiPath.split(' remove ');
+        apiPath = parts[0] + '/' + parts[1];
+        method = "DELETE";
+      }
+      
+      // Convert CLI path to REST path
+      // /ip/hotspot/user -> /rest/ip/hotspot/user
+      apiPath = apiPath.replace(/^\//, '');
+      const restPath = '/rest/' + apiPath.replace(/ /g, '/');
+      
+      // Execute via MikroTik API
+      const result = await mikrotik.executeCommand(restPath, method, body);
+      
+      if (result.success) {
+        res.json({
+          success: true,
+          output: result.data,
+          command,
+          timestamp: new Date().toISOString(),
+        });
+      } else {
+        res.json({
+          success: false,
+          error: result.error,
+          command,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    } catch (error) {
+      console.error("Error executing terminal command:", error);
+      res.status(500).json({ error: "Failed to execute command" });
+    }
+  });
+
+  // Get predefined RouterOS commands
+  app.get("/api/terminal/commands", requireAuth, async (req: AuthenticatedRequest, res) => {
+    const predefinedCommands = [
+      { category: "System", commands: [
+        { label: "System Resources", command: "/system/resource", description: "View CPU, memory, uptime" },
+        { label: "System Identity", command: "/system/identity", description: "View router identity" },
+        { label: "System Clock", command: "/system/clock", description: "View system time" },
+        { label: "System History", command: "/system/history", description: "View change history" },
+      ]},
+      { category: "Interfaces", commands: [
+        { label: "All Interfaces", command: "/interface", description: "List all interfaces" },
+        { label: "Interface Stats", command: "/interface/ethernet", description: "Ethernet interfaces" },
+        { label: "Wireless Interfaces", command: "/interface/wireless", description: "Wireless interfaces" },
+        { label: "Bridge", command: "/interface/bridge", description: "Bridge interfaces" },
+      ]},
+      { category: "IP", commands: [
+        { label: "IP Addresses", command: "/ip/address", description: "View IP addresses" },
+        { label: "DHCP Leases", command: "/ip/dhcp-server/lease", description: "Active DHCP leases" },
+        { label: "ARP Table", command: "/ip/arp", description: "ARP entries" },
+        { label: "Routes", command: "/ip/route", description: "Routing table" },
+        { label: "DNS Cache", command: "/ip/dns/cache", description: "DNS cache entries" },
+      ]},
+      { category: "Hotspot", commands: [
+        { label: "Hotspot Users", command: "/ip/hotspot/user", description: "All hotspot users" },
+        { label: "Active Sessions", command: "/ip/hotspot/active", description: "Active hotspot sessions" },
+        { label: "User Profiles", command: "/ip/hotspot/user/profile", description: "Hotspot profiles" },
+        { label: "Hotspot Hosts", command: "/ip/hotspot/host", description: "Connected hosts" },
+        { label: "Hotspot Servers", command: "/ip/hotspot", description: "Hotspot server config" },
+      ]},
+      { category: "PPPoE", commands: [
+        { label: "PPP Secrets", command: "/ppp/secret", description: "PPP/PPPoE users" },
+        { label: "Active PPPoE", command: "/ppp/active", description: "Active PPPoE sessions" },
+        { label: "PPP Profiles", command: "/ppp/profile", description: "PPP profiles" },
+      ]},
+      { category: "Firewall", commands: [
+        { label: "Filter Rules", command: "/ip/firewall/filter", description: "Firewall filter rules" },
+        { label: "NAT Rules", command: "/ip/firewall/nat", description: "NAT rules" },
+        { label: "Mangle Rules", command: "/ip/firewall/mangle", description: "Mangle rules" },
+        { label: "Address Lists", command: "/ip/firewall/address-list", description: "Address lists" },
+      ]},
+      { category: "Queues", commands: [
+        { label: "Simple Queues", command: "/queue/simple", description: "Simple queues" },
+        { label: "Queue Tree", command: "/queue/tree", description: "Queue tree" },
+        { label: "Queue Types", command: "/queue/type", description: "Queue types" },
+      ]},
+      { category: "Logs", commands: [
+        { label: "System Log", command: "/log", description: "View system logs" },
+      ]},
+    ];
+    
+    res.json(predefinedCommands);
   });
 
   // Generate and download login page files

@@ -279,6 +279,12 @@ export class MikrotikService {
     }
   }
 
+  // Execute arbitrary command via REST API (for terminal emulator)
+  async executeCommand(restPath: string, method: "GET" | "POST" | "DELETE" = "GET", body?: any): Promise<MikrotikResponse> {
+    console.log(`[Mikrotik] Executing command: ${method} ${restPath}`);
+    return this.makeRequest(restPath, method, body);
+  }
+
   async rebootRouter(): Promise<MikrotikResponse> {
     console.log(`[Mikrotik] Rebooting router ${this.hotspot.locationName}`);
     return this.makeRequest("/rest/system/reboot", "POST");

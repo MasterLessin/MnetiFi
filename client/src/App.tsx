@@ -38,6 +38,7 @@ import MikroTikImportPage from "@/pages/settings/mikrotik-import";
 import ClearCachePage from "@/pages/settings/clear-cache";
 import SmsCampaignsPage from "@/pages/sms-campaigns";
 import NetworkMonitoringPage from "@/pages/network-monitoring";
+import RouterTerminalPage from "@/pages/router-terminal";
 import VouchersPage from "@/pages/vouchers";
 import ReportsPage from "@/pages/reports";
 import SuperAdminDashboard from "@/pages/superadmin-dashboard";
@@ -238,6 +239,13 @@ function Router() {
         {() => (
           <DashboardLayout>
             <NetworkMonitoringPage />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path="/dashboard/router-terminal">
+        {() => (
+          <DashboardLayout>
+            <RouterTerminalPage />
           </DashboardLayout>
         )}
       </Route>

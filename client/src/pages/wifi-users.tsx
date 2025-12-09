@@ -269,7 +269,7 @@ export default function WifiUsersPage() {
     <div className="p-6 space-y-6" data-testid="wifi-users-page">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">WiFi Users</h1>
+          <h1 className="text-2xl font-bold text-white">Customers</h1>
           <p className="text-muted-foreground">
             Manage customer accounts - Hotspot, PPPoE, and Static IP users
           </p>
@@ -486,8 +486,8 @@ export default function WifiUsersPage() {
             <Users size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
             <p className="text-muted-foreground mb-4">
               {searchQuery || filterAccountType !== "all" || filterStatus !== "all"
-                ? "No users match your search criteria"
-                : "No WiFi users yet"}
+                ? "No customers match your search criteria"
+                : "No customers yet"}
             </p>
             {!searchQuery && filterAccountType === "all" && filterStatus === "all" && (
               <Button
@@ -506,7 +506,7 @@ export default function WifiUsersPage() {
         <DialogContent className="glass-panel border-white/10 max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-white">
-              {editingUser ? "Edit WiFi User" : "Add New WiFi User"}
+              {editingUser ? "Edit Customer" : "Add New Customer"}
             </DialogTitle>
           </DialogHeader>
 

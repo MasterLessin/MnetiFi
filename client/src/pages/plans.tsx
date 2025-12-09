@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Clock, Upload, Download, Users, Smartphone, X } from "lucide-react";
+import { Plus, Clock, Upload, Download, Users, Smartphone, X, Settings } from "lucide-react";
 import { GlassPanel } from "@/components/glass-panel";
 import { GlassInput, GlassTextarea } from "@/components/glass-input";
 import { PlanCard, PlanCardSkeleton } from "@/components/plan-card";
@@ -12,6 +12,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
@@ -143,6 +150,30 @@ export default function PlansPage() {
     { label: "30 days", seconds: 2592000 },
   ];
 
+  const [isCustomDuration, setIsCustomDuration] = useState(false);
+  const [customDurationValue, setCustomDurationValue] = useState(1);
+  const [customDurationUnit, setCustomDurationUnit] = useState<"minutes" | "hours" | "days" | "months">("hours");
+
+  const durationUnitMultipliers = {
+    minutes: 60,
+    hours: 3600,
+    days: 86400,
+    months: 2592000,
+  };
+
+  const handleCustomDurationChange = (value: number, unit: "minutes" | "hours" | "days" | "months") => {
+    setCustomDurationValue(value);
+    setCustomDurationUnit(unit);
+    setIsCustomDuration(true);
+    const seconds = value * durationUnitMultipliers[unit];
+    setFormData({ ...formData, durationSeconds: seconds });
+  };
+
+  const handlePresetClick = (seconds: number) => {
+    setIsCustomDuration(false);
+    setFormData({ ...formData, durationSeconds: seconds });
+  };
+
   return (
     <div className="p-6 space-y-6" data-testid="plans-page">
       {/* Header */}
@@ -242,7 +273,7 @@ export default function PlansPage() {
             />
 
             {/* Duration presets */}
-            <div className="space-y-2">
+            <div className="space-y-3">
               <label className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
                 Duration
               </label>
@@ -251,10 +282,10 @@ export default function PlansPage() {
                   <button
                     key={preset.seconds}
                     type="button"
-                    onClick={() => setFormData({ ...formData, durationSeconds: preset.seconds })}
+                    onClick={() => handlePresetClick(preset.seconds)}
                     className={cn(
                       "px-3 py-1.5 rounded-lg text-sm font-medium transition-all",
-                      formData.durationSeconds === preset.seconds
+                      formData.durationSeconds === preset.seconds && !isCustomDuration
                         ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
                         : "bg-white/5 text-muted-foreground border border-white/10 hover:bg-white/10"
                     )}
@@ -263,7 +294,60 @@ export default function PlansPage() {
                     {preset.label}
                   </button>
                 ))}
+                <button
+                  type="button"
+                  onClick={() => setIsCustomDuration(true)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1",
+                    isCustomDuration
+                      ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
+                      : "bg-white/5 text-muted-foreground border border-white/10 hover:bg-white/10"
+                  )}
+                  data-testid="duration-custom-button"
+                >
+                  <Settings size={14} />
+                  Custom
+                </button>
               </div>
+
+              {isCustomDuration && (
+                <div className="flex gap-3 items-end p-3 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                  <div className="flex-1">
+                    <label className="text-xs text-muted-foreground mb-1 block">Value</label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={customDurationValue}
+                      onChange={(e) => handleCustomDurationChange(parseInt(e.target.value) || 1, customDurationUnit)}
+                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                      data-testid="input-custom-duration-value"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-xs text-muted-foreground mb-1 block">Unit</label>
+                    <Select
+                      value={customDurationUnit}
+                      onValueChange={(value: "minutes" | "hours" | "days" | "months") => handleCustomDurationChange(customDurationValue, value)}
+                    >
+                      <SelectTrigger 
+                        className="bg-white/5 border-white/10" 
+                        data-testid="select-custom-duration-unit"
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="minutes">Minutes</SelectItem>
+                        <SelectItem value="hours">Hours</SelectItem>
+                        <SelectItem value="days">Days</SelectItem>
+                        <SelectItem value="months">Months</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="text-sm text-purple-400 whitespace-nowrap">
+                    = {formData.durationSeconds ? Math.round(formData.durationSeconds / 60) : 0} min
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">

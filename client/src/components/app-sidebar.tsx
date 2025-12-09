@@ -17,6 +17,7 @@ import {
   Activity,
   Key,
   Router,
+  Terminal,
   BarChart3,
   MapPin,
   Star,
@@ -61,7 +62,7 @@ const menuItems: MenuItem[] = [
     featureKey: "dashboard",
   },
   {
-    title: "WiFi Users",
+    title: "Customers",
     url: "/dashboard/wifi-users",
     icon: Users,
     featureKey: "wifi-users",
@@ -99,6 +100,12 @@ const menuItems: MenuItem[] = [
     title: "Network Monitoring",
     url: "/dashboard/network-monitoring",
     icon: Activity,
+    featureKey: "network-monitoring",
+  },
+  {
+    title: "Router Terminal",
+    url: "/dashboard/router-terminal",
+    icon: Terminal,
     featureKey: "network-monitoring",
   },
   {
