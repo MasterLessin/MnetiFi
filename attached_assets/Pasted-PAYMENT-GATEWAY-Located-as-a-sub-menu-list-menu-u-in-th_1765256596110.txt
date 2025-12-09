@@ -1,0 +1,35 @@
+PAYMENT GATEWAY
+Located as a sub menu (list menu )u in the settings area
+We first start by setting up an otp number for the isps account. That is the number that will be used to access the payment gateway and edit it. Preferably send thru whatsapp.
+After otp verification we then require the isp to choose a payment stk gateway. Show various payment gateways available but make sure mpesa is only available and the rest like paypal and airtel money,bank,paypal,kopokopo are all premium features.
+When they choose mpesa they choose between till and paybill.
+Well work first on the till number. They'll need their short code (till number) and administrator password to make such a a change.
+
+SETTING
+Has various sub menus (list menu) like profile, hotspot settings, payment gateway,backup and restore,notifications,,mikrotik import,clear cache.
+
+CUSTOMERS
+Lets rename the wifi users section to be called customers
+The customer section has 2 sub menus (list menu) which are add new users and users.
+In add new users have the following details to be taken when registering a customer. Username,full name, email,phone number,password PPPoe password,ip address, router, service type - should have hotspot,pppoe and static but static an pppoe and premium features. Anda zone section to choose a predetermined zone by isp and also map based location detector for precise location. For hotspot users their default password should be 1234. If pppoe is selected as service type then they must input pppoe password.
+The users section will show all the clients in the system with different service types.
+
+SETTING BANDWITH
+There should be a Packages/plans pages where we have various sub menus (list menu) like Hotspot plans,pppoe plans static plans and also bandwidth plans. From the bandwidth plans is where we set bandwidth that we will use to set up hotspot/pppoe/static plans.
+In the bandwidth page we can set the bandwidth name,download rate,upload rate, burst limit upload, burst limit download which all have a drop down menu for choosing kbps,mbps etc.
+
+ACTIVATION 
+We need an activation section because we need to separate account creation and service activation. Account creation can happen but unless there is automatic confirmation of payment that is when the users profile is given service activation and in cases where activation is a problem we can do it manually in this section. Activation should cover all service types we have created and anything else you deem necessary  to perform such a task, vouchers,redeeming vouchers manually, pppoe,static etc. It should also avoid duplicate service assignments, handles reactivation after expiry, cleanly manages upgrades/downgrades.
+
+PACKAGE PLANS
+When it comes to setting the various service types in terms of duration, remove pre-set durations eg 30, minutes, 1hr,24hrs and instead there should be two sections 1 to input value and next to it a dropdown to choose value like minutes,hours,days,months. This will enable users to set their own packages tailored for their brand
+
+
+When viewing customers,active users and the such i should be able to view their username, plan name, voucher assigned if it hotspot,service type, start time end time, time purchased,router assigned,method,status,last seen and also be able to edit it like increase validity time or reduce,delete etc.
+
+NETWORK
+Should be available for all tiers.
+Should have the following additional submenus setting to make sure its full optimised to operate with mikrotik, self install,routers,ip pool, routerbackups,wireless settings,bridge, ip address, files, hotspot,ppp,Ques terminal, mikrotik users. Agent to research on these options and importance on having them when it comes to mikrotik connections and optimizations and implement them
+
+Vpn
+Make sure my platform is vpn comprehensive allowing isp to securely and remotely connect to their platform and perform various tasks.
