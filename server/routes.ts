@@ -2847,6 +2847,148 @@ export async function registerRoutes(
     }
   });
 
+  // ============== SUPERADMIN EMAIL ROUTES ==============
+
+  // Test email sending
+  app.post("/api/superadmin/email/test", requireSuperAdmin, async (req, res) => {
+    try {
+      const { email, templateType } = req.body;
+      if (!email) {
+        return res.status(400).json({ success: false, error: "Email address is required" });
+      }
+
+      const { getEmailService } = await import("./services/email");
+      const emailService = getEmailService();
+
+      let result;
+      switch (templateType) {
+        case "verification":
+          result = await emailService.sendVerificationEmail(email, "Test ISP", "123456");
+          break;
+        case "welcome":
+          result = await emailService.sendWelcomeEmail(email, "Test ISP", "test-isp");
+          break;
+        case "payment":
+          result = await emailService.sendPaymentConfirmationEmail(
+            email, "Test ISP", 1500, "Premium Monthly", new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), "TEST123"
+          );
+          break;
+        case "expiry":
+          result = await emailService.sendExpiryNoticeEmail(
+            email, "Test ISP", "Premium Monthly", new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), 3
+          );
+          break;
+        case "password_reset":
+          result = await emailService.sendPasswordResetEmail(email, "test-reset-token-123", "Test ISP");
+          break;
+        default:
+          result = await emailService.sendVerificationEmail(email, "Test ISP", "123456");
+      }
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error sending test email:", error);
+      res.status(500).json({ success: false, error: error instanceof Error ? error.message : "Failed to send test email" });
+    }
+  });
+
+  // ============== ISP REGISTRATION WITH EMAIL VERIFICATION ==============
+
+  // Send verification code for ISP registration
+  app.post("/api/auth/send-verification", async (req, res) => {
+    try {
+      const { email, ispName } = req.body;
+      if (!email) {
+        return res.status(400).json({ success: false, error: "Email is required" });
+      }
+
+      // Generate 6-digit verification code
+      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+      // Store verification code temporarily (in-memory for now, could use Redis)
+      const verificationStore = (global as any).emailVerificationStore || new Map();
+      verificationStore.set(email.toLowerCase(), {
+        code: verificationCode,
+        expiresAt: expiresAt.getTime(),
+        ispName: ispName || "Your ISP",
+      });
+      (global as any).emailVerificationStore = verificationStore;
+
+      // Send verification email
+      const { getEmailService } = await import("./services/email");
+      const emailService = getEmailService();
+      const result = await emailService.sendVerificationEmail(email, ispName || "Your ISP", verificationCode);
+
+      if (result.success) {
+        console.log(`[Auth] Verification email sent to ${email}`);
+        res.json({ success: true, message: "Verification code sent to your email" });
+      } else {
+        res.status(500).json({ success: false, error: result.error || "Failed to send verification email" });
+      }
+    } catch (error) {
+      console.error("Error sending verification email:", error);
+      res.status(500).json({ success: false, error: "Failed to send verification email" });
+    }
+  });
+
+  // Verify email code
+  app.post("/api/auth/verify-email", async (req, res) => {
+    try {
+      const { email, code } = req.body;
+      if (!email || !code) {
+        return res.status(400).json({ success: false, error: "Email and code are required" });
+      }
+
+      const verificationStore = (global as any).emailVerificationStore as Map<string, { code: string; expiresAt: number; ispName: string }>;
+      if (!verificationStore) {
+        return res.status(400).json({ success: false, error: "No pending verification" });
+      }
+
+      const stored = verificationStore.get(email.toLowerCase());
+      if (!stored) {
+        return res.status(400).json({ success: false, error: "No verification pending for this email" });
+      }
+
+      if (Date.now() > stored.expiresAt) {
+        verificationStore.delete(email.toLowerCase());
+        return res.status(400).json({ success: false, error: "Verification code expired" });
+      }
+
+      if (stored.code !== code) {
+        return res.status(400).json({ success: false, error: "Invalid verification code" });
+      }
+
+      // Mark email as verified
+      verificationStore.delete(email.toLowerCase());
+      console.log(`[Auth] Email verified: ${email}`);
+
+      res.json({ success: true, message: "Email verified successfully" });
+    } catch (error) {
+      console.error("Error verifying email:", error);
+      res.status(500).json({ success: false, error: "Failed to verify email" });
+    }
+  });
+
+  // Send welcome email after successful ISP registration
+  app.post("/api/auth/send-welcome-email", async (req, res) => {
+    try {
+      const { email, ispName, subdomain } = req.body;
+      if (!email || !ispName) {
+        return res.status(400).json({ success: false, error: "Email and ISP name are required" });
+      }
+
+      const { getEmailService } = await import("./services/email");
+      const emailService = getEmailService();
+      const result = await emailService.sendWelcomeEmail(email, ispName, subdomain || ispName.toLowerCase().replace(/\s+/g, '-'));
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error sending welcome email:", error);
+      res.status(500).json({ success: false, error: "Failed to send welcome email" });
+    }
+  });
+
   // ============== SUBSCRIPTION MANAGEMENT (User-facing) ==============
   
   // Upgrade subscription (tenant admin)

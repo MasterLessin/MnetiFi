@@ -45,6 +45,7 @@ import SuperAdminTenantsPage from "@/pages/superadmin-tenants";
 import SuperAdminTenantDetailsPage from "@/pages/superadmin-tenant-details";
 import SuperAdminUsersPage from "@/pages/superadmin-users";
 import SuperAdminSmsSettingsPage from "@/pages/superadmin-sms-settings";
+import SuperAdminEmailSettingsPage from "@/pages/superadmin-email-settings";
 import TechDashboard from "@/pages/tech-dashboard";
 import TechPPPoEUsersPage from "@/pages/tech-pppoe-users";
 import TechStaticUsersPage from "@/pages/tech-static-users";
@@ -336,6 +337,13 @@ function Router() {
         {() => (
           <SuperAdminLayout>
             <SuperAdminSmsSettingsPage />
+          </SuperAdminLayout>
+        )}
+      </Route>
+      <Route path="/superadmin/email-settings">
+        {() => (
+          <SuperAdminLayout>
+            <SuperAdminEmailSettingsPage />
           </SuperAdminLayout>
         )}
       </Route>
