@@ -253,6 +253,7 @@ export const transactions = pgTable("transactions", {
   planId: varchar("plan_id").references(() => plans.id),
   wifiUserId: varchar("wifi_user_id"),
   userPhone: text("user_phone").notNull(),
+  voucherCode: text("voucher_code"), // Voucher code associated with transaction
   amount: integer("amount").notNull(),
   mpesaReceiptNumber: text("mpesa_receipt_number"),
   checkoutRequestId: text("checkout_request_id"),
@@ -330,6 +331,7 @@ export const wifiUsers = pgTable("wifi_users", {
   email: text("email"),
   fullName: text("full_name"),
   accountType: text("account_type").notNull().default("HOTSPOT"), // HOTSPOT, PPPOE, STATIC
+  voucherCode: text("voucher_code"), // Voucher code for hotspot users
   currentPlanId: varchar("current_plan_id").references(() => plans.id),
   currentHotspotId: varchar("current_hotspot_id").references(() => hotspots.id),
   technicianId: varchar("technician_id").references(() => users.id), // Assigned technician

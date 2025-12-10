@@ -61,25 +61,50 @@ export const GlassInput = forwardRef<HTMLInputElement, GlassInputProps>(
 
 GlassInput.displayName = "GlassInput";
 
-// Phone input with Kenya flag prefix
-interface PhoneInputProps extends Omit<GlassInputProps, "prefix"> {
+// Phone input with Kenya flag prefix - digits only validation
+interface PhoneInputProps extends Omit<GlassInputProps, "prefix" | "onChange"> {
   countryCode?: string;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
-  ({ countryCode = "+254", className, ...props }, ref) => {
+  ({ countryCode = "+254", className, onChange, ...props }, ref) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      // Only allow digits
+      const value = e.target.value.replace(/[^\d]/g, "");
+      // Limit to 9 digits (after 254 prefix) or 10 if starting with 0
+      const maxLen = value.startsWith("0") ? 10 : 9;
+      const truncated = value.slice(0, maxLen);
+      
+      // Create a new event with the sanitized value
+      const newEvent = {
+        ...e,
+        target: {
+          ...e.target,
+          value: truncated,
+        },
+      } as React.ChangeEvent<HTMLInputElement>;
+      
+      if (onChange) {
+        onChange(newEvent);
+      }
+    };
+
     return (
       <GlassInput
         ref={ref}
         type="tel"
+        inputMode="numeric"
+        pattern="[0-9]*"
         prefix={
           <>
-            <span className="text-lg">🇰🇪</span>
+            <span className="text-lg" role="img" aria-label="Kenya flag">KE</span>
             <span className="text-sm font-medium text-white/60">{countryCode}</span>
           </>
         }
         placeholder="7XX XXX XXX"
         className={className}
+        onChange={handleChange}
         {...props}
       />
     );

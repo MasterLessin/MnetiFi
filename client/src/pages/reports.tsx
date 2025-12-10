@@ -143,6 +143,53 @@ export default function ReportsPage() {
     link.click();
   };
 
+  const exportToExcel = (data: Record<string, unknown>[], filename: string) => {
+    if (!data || data.length === 0) return;
+    
+    const headers = Object.keys(data[0]);
+    const escapeXml = (val: unknown): string => {
+      if (val === null || val === undefined) return "";
+      return String(val).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    };
+    
+    const rows = data.map(row => 
+      `<Row>${headers.map(h => {
+        const val = row[h];
+        const cellType = typeof val === "number" ? "Number" : "String";
+        return `<Cell><Data ss:Type="${cellType}">${escapeXml(val)}</Data></Cell>`;
+      }).join("")}</Row>`
+    ).join("\n");
+    
+    const xmlContent = `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+<Worksheet ss:Name="Report">
+<Table>
+<Row>${headers.map(h => `<Cell><Data ss:Type="String">${escapeXml(h)}</Data></Cell>`).join("")}</Row>
+${rows}
+</Table>
+</Worksheet>
+</Workbook>`;
+    
+    const blob = new Blob([xmlContent], { type: "application/vnd.ms-excel" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${filename}_${new Date().toISOString().split("T")[0]}.xls`;
+    link.click();
+  };
+
+  type ExportFormat = "csv" | "excel";
+  const [exportFormat, setExportFormat] = useState<ExportFormat>("csv");
+
+  const exportData = (data: Record<string, unknown>[], filename: string) => {
+    if (exportFormat === "excel") {
+      exportToExcel(data, filename);
+    } else {
+      exportToCSV(data, filename);
+    }
+  };
+
   const exportFinancialReport = () => {
     if (!financialReport) return;
     

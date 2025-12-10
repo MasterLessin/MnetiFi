@@ -515,22 +515,27 @@ export class DatabaseStorage implements IStorage {
     const manualReview = filtered.filter(t => t.reconciliationStatus === "MANUAL_REVIEW");
     const pending = filtered.filter(t => t.reconciliationStatus === "PENDING");
 
+    const matchRate = filtered.length > 0 ? (matched.length / filtered.length) * 100 : 0;
+
     return {
       summary: {
-        total: filtered.length,
-        matched: matched.length,
-        unmatched: unmatched.length,
-        manualReview: manualReview.length,
-        pending: pending.length,
+        totalTransactions: filtered.length,
+        matchedCount: matched.length,
+        unmatchedCount: unmatched.length,
+        manualReviewCount: manualReview.length,
+        pendingCount: pending.length,
+        matchRate: matchRate,
         matchedAmount: matched.reduce((sum, t) => sum + t.amount, 0),
         unmatchedAmount: unmatched.reduce((sum, t) => sum + t.amount, 0),
       },
-      transactions: {
-        matched,
-        unmatched,
-        manualReview,
-        pending,
-      },
+      transactions: filtered.slice(0, 50).map(t => ({
+        id: t.id,
+        amount: t.amount,
+        status: t.status,
+        reconciliationStatus: t.reconciliationStatus,
+        mpesaReceiptNumber: t.mpesaReceiptNumber,
+        createdAt: t.createdAt?.toISOString() || '',
+      })),
     };
   }
 
@@ -623,20 +628,21 @@ export class DatabaseStorage implements IStorage {
 
     return {
       summary: {
-        total: allUsers.length,
-        active: active.length,
-        expired: expired.length,
-        suspended: suspended.length,
+        totalUsers: allUsers.length,
+        activeUsers: active.length,
+        expiredUsers: expired.length,
+        suspendedUsers: suspended.length,
         expiringIn24h: expiringIn24h.length,
         expiringIn48h: expiringIn48h.length,
         expiringIn5Days: expiringIn5Days.length,
       },
       byAccountType,
-      expiringUsers: {
-        next24h: expiringIn24h,
-        next48h: expiringIn48h,
-        next5Days: expiringIn5Days,
-      },
+      expiringUsers: expiringIn5Days.slice(0, 20).map(u => ({
+        id: u.id,
+        username: u.username || u.phoneNumber,
+        phoneNumber: u.phoneNumber,
+        expiryTime: u.expiryTime?.toISOString() || '',
+      })),
     };
   }
 
