@@ -139,16 +139,17 @@ export default function SuperAdminTenantsPage() {
     );
   };
 
-  const getTierBadge = (tier: string) => {
+  const getTierBadge = (tier: string | undefined | null) => {
+    const safeTier = tier || "TRIAL";
     const tierConfig: Record<string, { bg: string; text: string }> = {
       TRIAL: { bg: "bg-purple-500/20", text: "text-purple-400" },
       TIER_1: { bg: "bg-cyan-500/20", text: "text-cyan-400" },
       TIER_2: { bg: "bg-pink-500/20", text: "text-pink-400" },
     };
-    const config = tierConfig[tier] || tierConfig.TRIAL;
+    const config = tierConfig[safeTier] || tierConfig.TRIAL;
     return (
       <Badge variant="outline" className={`${config.bg} ${config.text} border-0`}>
-        {tier.replace("_", " ")}
+        {safeTier.replace("_", " ")}
       </Badge>
     );
   };
