@@ -1,0 +1,379 @@
+
+Overview
+The SMS API allows you to send SMS messages through our bulk and shortcode messaging gateway. This documentation provides everything you need to integrate SMS functionality into your application.
+ Note: You need an API Key to use this API. If you have already signed up, you can get your API Key from your account.
+API Endpoint
+POSThttps://app.mobitechtechnologies.com//sms/sendsmsBulk SMS
+Authentication
+All API requests require authentication using your API key in the request header.
+Header Parameter
+Header
+Type
+Description
+Required
+h_api_key
+String
+Your API key (64 characters)
+Yes
+Content-Type
+String
+Must be application/json
+Yes
+
+Example Header
+cURLPHP
+
+--header 'h_api_key: ba5d2c53db7329b470c329c17765aea9e0ae6b34018f3a3f' \
+--header 'Content-Type: application/json'
+Send Single SMS
+Send a message to a mobile subscriber using a Sender Name (alphanumeric sender ID).
+POSThttps://app.mobitechtechnologies.com//sms/sendsmsBulk SMS
+Request Parameters
+Field
+Type
+Description
+Required
+mobile
+String
+The customer mobile number (e.g., 722xxx, 0722xxx, +254722xxx)
+Yes
+sender_name
+String
+The origination alphanumeric or numeric code (e.g., "MOBI-TECH")
+Yes
+message
+String
+The message to send (max 920 characters or 6 SMS units)
+Yes
+response_type
+String
+[Optional] Either "json" or "plain", defaults to "json"
+No
+service_id
+Integer
+Service identifier (always 0 for bulk messaging)
+Yes
+link_id
+String
+[Optional] For shortcode messages only
+No
+
+Code Examples
+cURLPHP
+
+curl --location --request POST 'https://app.mobitechtechnologies.com//sms/sendsms' \
+--header 'h_api_key: ba5d2c53db7329b470c329c17765aea9e0ae6b34018f3a3f' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "mobile": "+254710986455",
+    "response_type": "json",
+    "sender_name": "MOBI-TECH",
+    "service_id": 0,
+    "message": "This is a message.\n\nRegards\nMobitech Technologies Ltd"
+}'
+Copy cURL
+Response Example
+Success Response
+Status: 1000 - Success
+
+[
+    {
+        "status_code": "1000",
+        "status_desc": "Success",
+        "message_id": 8738598,
+        "mobile_number": "+254710986455",
+        "network_id": "1",
+        "message_cost": "0.75",
+        "credit_balance": "9871"
+    }
+]
+                       
+Error Response
+Status: 1001 - Invalid short code
+
+[
+    {
+        "status_code": "1001",
+        "status_desc": "Invalid short code",
+        "message_id": "0",
+        "mobile_number": "+254710986455",
+        "network_id": "",
+        "message_cost": "",
+        "credit_balance": ""
+    }
+]
+                       
+Send Multiple SMS
+Send multiple SMS messages to different recipients in a single API call.
+POSThttps://app.mobitechtechnologies.com//sms/sendmultipleBulk SMS
+Request Parameters
+Field
+Type
+Description
+Required
+serviceId
+Integer
+The Service Id (0 for bulk SMS)
+Yes
+shortcode
+String
+Sender Name for whitelabeling
+Yes
+messages
+Array
+List of message objects
+Yes
+messages[].mobile
+String
+Recipient phone number
+Yes
+messages[].message
+String
+Message content
+Yes
+messages[].client_ref
+String/Integer
+Reference for delivery reports
+No
+
+Code Example
+cURLPHP
+
+curl --location --request POST 'https://app.mobitechtechnologies.com//sms/sendmultiple' \
+--header 'Content-Type: application/json' \
+--header 'h_api_key: ba5d2c53db7329b470c329c17765aea9e0ae6b34018f3a3f' \
+--data-raw '{
+    "serviceId": "0",
+    "shortcode": "MOBI-TECH",
+    "messages": [
+        {
+            "mobile": "+254710986455",
+            "message": "This is a first message",
+            "client_ref": 6481
+        },
+        {
+            "mobile": "+254712244244",
+            "message": "This is a second message",
+            "client_ref": 6092
+        }
+    ]
+}'
+Response Example
+Success Response
+Status: 1000 - Success
+
+{
+    "status_code": 1000,
+    "status_desc": "Success",
+    "credit_balance": "-10615.0000",
+    "schedule_details": [
+        {
+            "message_id": 335951830,
+            "client_ref": 60970,
+            "mobile": "+254710986455",
+            "schedule_status": "1",
+            "schedule_desc": "Success",
+            "network_id": "1",
+            "message_cost": 1
+        },
+        {
+            "message_id": 335951831,
+            "client_ref": 64871,
+            "mobile": "254705941419",
+            "schedule_status": "1",
+            "schedule_desc": "Success",
+            "network_id": "1",
+            "message_cost": 1
+        }
+    ]
+}
+                       
+Validate Mobile Number
+Validate and check the network a mobile number belongs to.
+GEThttps://app.mobitechtechnologies.com//sms/mobileBulk SMS
+Request Parameters
+Field
+Type
+Description
+Required
+mobile
+String
+The mobile number to validate
+Yes
+return
+String
+[Optional] Return type: "json" or mobile number only
+No
+
+Code Example
+cURLPHP
+
+curl --location --request GET 'https://app.mobitechtechnologies.com//sms/mobile?mobile=712244243&return=json' \
+--header 'h_api_key: ba5d2c53db7329b470c329c17765aea9e0ae6b34018f3a3f'
+Delivery Reports
+Receive delivery reports from Mobile Network Operators in real-time.
+POST/client.endpoint/dlrShortcode
+ Note: This endpoint should be configured on your server to receive delivery reports.
+Request Parameters
+Field
+Type
+Description
+Required
+messageId
+Integer
+The messageId returned with every successful request
+Yes
+dlrTime
+DateTime
+DateTime for the time of delivery (YYYY-MM-DD HH:MM:SS)
+Yes
+dlrStatus
+Integer
+Delivery status value as integer
+Yes
+dlrDesc
+String
+Description of the delivery report status
+Yes
+tat
+Integer
+Time taken for system to get report (in seconds)
+No
+network
+Integer
+Numeric indicator of the Network
+No
+destaddr
+String
+The mobile number the message was sent to
+Yes
+sourceaddr
+String
+The SenderId which originated the message
+Yes
+origin
+String
+The network name (e.g., "Safaricom")
+No
+
+Example Delivery Report
+cURLPHP
+
+curl --location --request POST '/client.endpoint/dlr' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "messageId": "27312989",
+    "dlrTime": "2022-02-22 11:46:42",
+    "dlrStatus": "1",
+    "dlrDesc": "DeliveredToTerminal",
+    "tat": 10005,
+    "network": "1",
+    "destaddr": "254767209917",
+    "sourceaddr": "118",
+    "origin": "Safaricom"
+}'
+Account Balance
+Get your current account balance using your API key.
+GEThttps://app.mobitechtechnologies.com//sms/getbalanceBulk SMS
+Request Parameters
+Field
+Type
+Description
+Required
+response_type
+String
+[Optional] Either "json" or "plain", defaults to "json"
+No
+
+Code Example
+cURLPHP
+
+curl --location --request GET 'https://app.mobitechtechnologies.com//sms/getbalance' \
+--header 'h_api_key: adeedccd2199f41f7e731e3150b4c8009de4cded064b6407a310573e28978680' \
+--header 'Content-Type: application/json' \
+--data-raw '{"response_type":"json"}'
+Status Codes
+Reference table for all API response status codes and their descriptions.
+Status ID
+Code
+Description
+Type
+1
+1000
+Success
+success
+2
+1001
+Invalid short code
+error
+3
+1002
+Network not allowed
+error
+4
+1003
+Invalid mobile number
+error
+5
+1004
+Low bulk credits
+error
+6
+1005
+Internal system error
+error
+7
+1006
+Invalid credentials
+error
+8
+1007
+Db connection failed
+error
+9
+1008
+Db selection failed
+error
+10
+1009
+Data type not supported
+error
+11
+1010
+Request type not supported
+error
+12
+1011
+Invalid user state or account suspended
+error
+13
+1012
+Mobile number in DND
+error
+14
+1013
+Invalid API Key
+error
+15
+1014
+IP not allowed
+error
+16
+1015
+Missing Parameter
+error
+17
+1016
+Monthly credit limit reached
+error
+
+API Tester
+Test the SMS API endpoints directly from this documentation.
+POSThttps://app.mobitechtechnologies.com//sms/sendsms
+ Note: This is a client-side tester. For security, API calls will be simulated. In a real implementation, this would make actual API calls.
+Select Endpoint
+                             Send Single SMS                             Send Multiple SMS                             Validate Mobile                             Get Balance                         
+API Key
+Request Body
+ 
+
