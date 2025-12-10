@@ -139,6 +139,15 @@ export const tenants = pgTable("tenants", {
     logo?: string;
     primaryColor?: string;
     secondaryColor?: string;
+    tagline?: string;
+    welcomeMessage?: string;
+    supportEmail?: string;
+    supportPhone?: string;
+    footerText?: string;
+    showPoweredBy?: boolean;
+    cardStyle?: 'glass' | 'solid' | 'gradient';
+    animationsEnabled?: boolean;
+    backgroundGradient?: string;
   }>().default({}),
   mpesaShortcode: text("mpesa_shortcode"),
   mpesaPasskey: text("mpesa_passkey"),

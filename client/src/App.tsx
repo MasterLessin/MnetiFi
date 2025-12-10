@@ -54,6 +54,7 @@ import LoyaltyPage from "@/pages/loyalty";
 import SecuritySettingsPage from "@/pages/security-settings";
 import VoucherVerifyPage from "@/pages/voucher-verify";
 import UpgradePage from "@/pages/upgrade";
+import PortalDesignerPage from "@/pages/portal-designer";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -110,6 +111,13 @@ function Router() {
         {() => (
           <DashboardLayout>
             <HotspotPlansPage />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path="/dashboard/portal-designer">
+        {() => (
+          <DashboardLayout>
+            <PortalDesignerPage />
           </DashboardLayout>
         )}
       </Route>

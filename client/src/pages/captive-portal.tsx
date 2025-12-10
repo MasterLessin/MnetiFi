@@ -19,6 +19,15 @@ interface BrandingConfig {
   logo?: string;
   primaryColor?: string;
   secondaryColor?: string;
+  tagline?: string;
+  welcomeMessage?: string;
+  supportEmail?: string;
+  supportPhone?: string;
+  footerText?: string;
+  showPoweredBy?: boolean;
+  cardStyle?: 'glass' | 'solid' | 'gradient';
+  animationsEnabled?: boolean;
+  backgroundGradient?: string;
 }
 
 interface VoucherRedemptionResult {
@@ -80,6 +89,15 @@ export default function CaptivePortal() {
       logo: config.logo || "",
       primaryColor: config.primaryColor || "#22d3ee",
       secondaryColor: config.secondaryColor || "#a855f7",
+      tagline: config.tagline || "",
+      welcomeMessage: config.welcomeMessage || "Connect to Wi-Fi",
+      supportEmail: config.supportEmail || "",
+      supportPhone: config.supportPhone || "",
+      footerText: config.footerText || "",
+      showPoweredBy: config.showPoweredBy ?? true,
+      cardStyle: config.cardStyle || "glass",
+      animationsEnabled: config.animationsEnabled ?? true,
+      backgroundGradient: config.backgroundGradient || "linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%)",
     };
   }, [tenant]);
 
@@ -367,8 +385,11 @@ export default function CaptivePortal() {
         <GlassPanel size="lg" className="relative">
           <div className="text-center mb-8">
             <BrandedLogo />
+            {branding.tagline && (
+              <p className="mt-1 text-muted-foreground text-xs">{branding.tagline}</p>
+            )}
             <p className="mt-2 text-muted-foreground text-sm">
-              Connect to Wi-Fi
+              {branding.welcomeMessage || "Connect to Wi-Fi"}
             </p>
           </div>
 
@@ -944,11 +965,43 @@ export default function CaptivePortal() {
           {walledGardens && walledGardens.length > 0 && step === "select-plan" && (
             <WalledGardenFooter domains={walledGardens} />
           )}
+
+          {(branding.supportEmail || branding.supportPhone) && step === "select-plan" && (
+            <div className="mt-4 pt-4 border-t border-white/10 text-center">
+              <p className="text-xs text-muted-foreground mb-1">Need help?</p>
+              <div className="flex items-center justify-center gap-3 text-xs flex-wrap">
+                {branding.supportEmail && (
+                  <a 
+                    href={`mailto:${branding.supportEmail}`} 
+                    className="text-white/60 hover:text-white transition-colors"
+                  >
+                    {branding.supportEmail}
+                  </a>
+                )}
+                {branding.supportPhone && (
+                  <a 
+                    href={`tel:${branding.supportPhone}`}
+                    className="text-white/60 hover:text-white transition-colors"
+                  >
+                    {branding.supportPhone}
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+
+          {branding.footerText && step === "select-plan" && (
+            <p className="mt-4 text-center text-xs text-muted-foreground">
+              {branding.footerText}
+            </p>
+          )}
         </GlassPanel>
 
-        <p className="text-center mt-6 text-xs text-muted-foreground">
-          Powered by <span className="gradient-text font-semibold">MnetiFi</span>
-        </p>
+        {branding.showPoweredBy && (
+          <p className="text-center mt-6 text-xs text-muted-foreground">
+            Powered by <span className="gradient-text font-semibold">MnetiFi</span>
+          </p>
+        )}
       </motion.div>
     </div>
   );

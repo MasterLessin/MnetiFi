@@ -11,7 +11,9 @@ import {
   Smartphone,
   Upload,
   Download,
+  Palette,
 } from "lucide-react";
+import { Link } from "wouter";
 import { GlassPanel } from "@/components/glass-panel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -221,10 +223,18 @@ export default function HotspotPlansPage() {
             Manage time-based WiFi packages for captive portal customers
           </p>
         </div>
-        <Button className="gradient-btn" onClick={handleOpenCreate} data-testid="button-create-plan">
-          <Plus size={18} className="mr-2" />
-          Create Plan
-        </Button>
+        <div className="flex items-center gap-3">
+          <Link href="/dashboard/portal-designer">
+            <Button variant="outline" className="gap-2" data-testid="button-design-portal">
+              <Palette size={18} />
+              Design Portal
+            </Button>
+          </Link>
+          <Button className="gradient-btn" onClick={handleOpenCreate} data-testid="button-create-plan">
+            <Plus size={18} className="mr-2" />
+            Create Plan
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
