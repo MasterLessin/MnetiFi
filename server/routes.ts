@@ -23,6 +23,7 @@ import { jobQueue } from "./services/job-queue";
 import { paymentWorker } from "./services/payment-worker";
 import { getSmsService } from "./services/sms";
 import { MikrotikService, createMikrotikService } from "./services/mikrotik";
+import { getEmailService } from "./services/email";
 import { 
   requireAuth, 
   requireSuperAdmin, 
@@ -757,11 +758,22 @@ export async function registerRoutes(
         emailVerified: false,
       });
 
-      // Log verification link (in production, send via email)
+      // Generate 6-digit verification code for email
+      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
       const verificationLink = `/verify-email?token=${emailVerificationToken}`;
       console.log(`[Registration] PREMIUM tier - Email verification required for ${email}`);
       console.log(`[Registration] Verification token: ${emailVerificationToken}`);
       console.log(`[Registration] Verification link: ${verificationLink}`);
+
+      // Send verification email
+      try {
+        const emailService = getEmailService();
+        await emailService.sendVerificationEmail(email, businessName, verificationCode);
+        console.log(`[Registration] Verification email sent to ${email}`);
+      } catch (emailError) {
+        console.error(`[Registration] Failed to send verification email:`, emailError);
+        // Continue registration even if email fails - user can resend
+      }
 
       let responseMessage = "Account created! Please check your email to verify your account.";
       let additionalInfo: Record<string, unknown> = {
@@ -887,11 +899,30 @@ export async function registerRoutes(
         emailVerificationExpiry,
       });
 
-      // Log verification link (in production, send via email)
+      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
       const verificationLink = `/verify-email?token=${emailVerificationToken}`;
       console.log(`[Auth] Resending verification email for ${email}`);
       console.log(`[Auth] New verification token: ${emailVerificationToken}`);
       console.log(`[Auth] Verification link: ${verificationLink}`);
+
+      // Get tenant name for email
+      let tenantName = "MnetiFi";
+      if (user.tenantId) {
+        const tenant = await storage.getTenant(user.tenantId);
+        if (tenant) {
+          tenantName = tenant.name;
+        }
+      }
+
+      // Send verification email
+      try {
+        const emailService = getEmailService();
+        await emailService.sendVerificationEmail(email, tenantName, verificationCode);
+        console.log(`[Auth] Verification email resent to ${email}`);
+      } catch (emailError) {
+        console.error(`[Auth] Failed to resend verification email:`, emailError);
+        // Still return success to prevent email enumeration
+      }
 
       res.json({ message: "If the email exists, a new verification link has been sent" });
     } catch (error) {
@@ -925,11 +956,19 @@ export async function registerRoutes(
         resetTokenExpiry,
       });
 
-      // In production, send an email with the reset link
-      // For now, just log it
       console.log(`[Auth] Password reset requested for ${email}`);
       console.log(`[Auth] Reset token: ${resetToken}`);
       console.log(`[Auth] Reset link: /reset-password?token=${resetToken}`);
+
+      // Send password reset email
+      try {
+        const emailService = getEmailService();
+        await emailService.sendPasswordResetEmail(email, resetToken);
+        console.log(`[Auth] Password reset email sent to ${email}`);
+      } catch (emailError) {
+        console.error(`[Auth] Failed to send password reset email:`, emailError);
+        // Still return success to prevent email enumeration
+      }
 
       res.json({ message: "If the email exists, a reset link has been sent" });
     } catch (error) {
@@ -1093,16 +1132,16 @@ export async function registerRoutes(
   // Clean up expired OTPs periodically
   setInterval(() => {
     const now = Date.now();
-    for (const [key, value] of otpStore.entries()) {
+    Array.from(otpStore.entries()).forEach(([key, value]) => {
       if (value.expiresAt < now) {
         otpStore.delete(key);
       }
-    }
-    for (const [key, value] of otpTokenStore.entries()) {
+    });
+    Array.from(otpTokenStore.entries()).forEach(([key, value]) => {
       if (value.expiresAt < now) {
         otpTokenStore.delete(key);
       }
-    }
+    });
   }, 60000); // Clean up every minute
 
   // Send OTP to admin phone
@@ -5381,12 +5420,15 @@ export async function registerRoutes(
       }
       
       // Get hotspot and verify tenant ownership
-      const hotspot = await storage.getHotspotByTenant(hotspotId, tenantId);
+      const hotspot = await storage.getHotspotForTenant(hotspotId, tenantId);
       if (!hotspot) {
         return res.status(404).json({ error: "Router not found or access denied" });
       }
       
-      const mikrotik = createMikrotikService(hotspot);
+      const mikrotik = await createMikrotikService(hotspot);
+      if (!mikrotik) {
+        return res.status(500).json({ error: "Failed to connect to router" });
+      }
       
       // Parse command and execute via REST API
       // Commands are in format: /path/to/resource [action] [params]

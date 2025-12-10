@@ -43,7 +43,7 @@ interface TenantWithStats {
   id: string;
   name: string;
   subdomain: string;
-  tier: string;
+  subscriptionTier: string;
   isActive: boolean;
   saasBillingStatus: string;
   trialExpiresAt: string | null;
@@ -159,7 +159,7 @@ export default function SuperAdminTenantsPage() {
       tenant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       tenant.subdomain.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || tenant.saasBillingStatus === statusFilter;
-    const matchesTier = tierFilter === "all" || tenant.tier === tierFilter;
+    const matchesTier = tierFilter === "all" || tenant.subscriptionTier === tierFilter;
     return matchesSearch && matchesStatus && matchesTier;
   });
 
@@ -274,7 +274,7 @@ export default function SuperAdminTenantsPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-semibold text-white">{tenant.name}</p>
-                    {getTierBadge(tenant.tier)}
+                    {getTierBadge(tenant.subscriptionTier)}
                     {getStatusBadge(tenant.saasBillingStatus)}
                   </div>
                   <p className="text-sm text-muted-foreground">{tenant.subdomain}</p>
@@ -351,21 +351,21 @@ export default function SuperAdminTenantsPage() {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
                       onClick={() => handleChangeTier(tenant.id, "TRIAL")}
-                      disabled={tenant.tier === "TRIAL"}
+                      disabled={tenant.subscriptionTier === "TRIAL"}
                       data-testid={`action-tier-trial-${tenant.id}`}
                     >
                       Set to Trial
                     </DropdownMenuItem>
                     <DropdownMenuItem 
                       onClick={() => handleChangeTier(tenant.id, "TIER_1")}
-                      disabled={tenant.tier === "TIER_1"}
+                      disabled={tenant.subscriptionTier === "TIER_1"}
                       data-testid={`action-tier-1-${tenant.id}`}
                     >
                       Set to Tier 1
                     </DropdownMenuItem>
                     <DropdownMenuItem 
                       onClick={() => handleChangeTier(tenant.id, "TIER_2")}
-                      disabled={tenant.tier === "TIER_2"}
+                      disabled={tenant.subscriptionTier === "TIER_2"}
                       data-testid={`action-tier-2-${tenant.id}`}
                     >
                       Set to Tier 2
