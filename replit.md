@@ -4,10 +4,18 @@
 MnetiFi is a multi-tenant Wi-Fi hotspot billing system designed for ISPs with M-Pesa (Safaricom Daraja) integration. The platform features a premium "Vaultic" Glassmorphism design aesthetic with animated mesh gradient backgrounds.
 
 ## Project Status
-- **Current Phase**: All Core Stages Complete (1-7) + Authentication + Landing Page + Tech Portal + Security & Customer Experience Features
-- **Last Updated**: December 7, 2025
+- **Current Phase**: All Core Stages Complete (1-7) + Authentication + Landing Page + Tech Portal + Security & Customer Experience Features + Captive Portal Designer
+- **Last Updated**: December 10, 2025
 
 ## Recent Updates
+
+### Captive Portal Designer (December 10, 2025)
+- Visual portal customization at `/dashboard/portal-designer`
+- Tabbed interface: Branding, Design, Support settings
+- Live preview panel showing real-time changes
+- Extended brandingConfig with: tagline, welcomeMessage, supportEmail, supportPhone, footerText, showPoweredBy, cardStyle (solid/glass/gradient), animationsEnabled, backgroundGradient
+- Accessible from Hotspot Plans page via "Design Portal" button
+- Captive portal dynamically renders all new branding fields with safe fallbacks
 
 ### Security & Customer Experience Enhancements (December 7, 2025)
 
