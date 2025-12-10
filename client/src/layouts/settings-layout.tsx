@@ -4,7 +4,6 @@ import {
   Wifi, 
   CreditCard, 
   Database, 
-  Bell, 
   Upload, 
   Trash2,
   ChevronLeft
@@ -40,12 +39,6 @@ const settingsMenuItems = [
     href: "/dashboard/settings/backup-restore",
     icon: Database,
     description: "Database management",
-  },
-  {
-    title: "Notifications",
-    href: "/dashboard/settings/notifications",
-    icon: Bell,
-    description: "SMS provider settings",
   },
   {
     title: "MikroTik Import",

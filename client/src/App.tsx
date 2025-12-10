@@ -31,7 +31,6 @@ import TicketsPage from "@/pages/tickets";
 import ReconciliationPage from "@/pages/reconciliation";
 import ProfileSettingsPage from "@/pages/settings/profile";
 import PaymentGatewayPage from "@/pages/settings/payment-gateway";
-import NotificationsSettingsPage from "@/pages/settings/notifications";
 import HotspotSettingsPage from "@/pages/settings/hotspot-settings";
 import BackupRestorePage from "@/pages/settings/backup-restore";
 import MikroTikImportPage from "@/pages/settings/mikrotik-import";
@@ -45,6 +44,7 @@ import SuperAdminDashboard from "@/pages/superadmin-dashboard";
 import SuperAdminTenantsPage from "@/pages/superadmin-tenants";
 import SuperAdminTenantDetailsPage from "@/pages/superadmin-tenant-details";
 import SuperAdminUsersPage from "@/pages/superadmin-users";
+import SuperAdminSmsSettingsPage from "@/pages/superadmin-sms-settings";
 import TechDashboard from "@/pages/tech-dashboard";
 import TechPPPoEUsersPage from "@/pages/tech-pppoe-users";
 import TechStaticUsersPage from "@/pages/tech-static-users";
@@ -209,15 +209,6 @@ function Router() {
           </DashboardLayout>
         )}
       </Route>
-      <Route path="/dashboard/settings/notifications">
-        {() => (
-          <DashboardLayout>
-            <SettingsLayout>
-              <NotificationsSettingsPage />
-            </SettingsLayout>
-          </DashboardLayout>
-        )}
-      </Route>
       <Route path="/dashboard/settings/mikrotik-import">
         {() => (
           <DashboardLayout>
@@ -338,6 +329,13 @@ function Router() {
         {() => (
           <SuperAdminLayout>
             <SuperAdminUsersPage />
+          </SuperAdminLayout>
+        )}
+      </Route>
+      <Route path="/superadmin/sms-settings">
+        {() => (
+          <SuperAdminLayout>
+            <SuperAdminSmsSettingsPage />
           </SuperAdminLayout>
         )}
       </Route>

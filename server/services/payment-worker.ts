@@ -143,8 +143,8 @@ export class PaymentWorker {
           if (hoursRemaining <= 24 && hoursRemaining > 0) {
             try {
               // Import SMS service dynamically to avoid circular deps
-              const { SmsService } = await import("./sms");
-              const smsService = new SmsService(tenant);
+              const { getSmsService } = await import("./sms");
+              const smsService = getSmsService();
               
               const result = await smsService.sendExpiryReminder(user, hoursRemaining);
               

@@ -21,7 +21,7 @@ import {
 import { z } from "zod";
 import { jobQueue } from "./services/job-queue";
 import { paymentWorker } from "./services/payment-worker";
-import { SmsService } from "./services/sms";
+import { getSmsService } from "./services/sms";
 import { MikrotikService, createMikrotikService } from "./services/mikrotik";
 import { 
   requireAuth, 
@@ -1132,15 +1132,9 @@ export async function registerRoutes(
       const storeKey = `${tenantId}_settings`;
       otpStore.set(storeKey, { otp, expiresAt, tenantId });
 
-      // Send OTP via SMS
-      const smsService = new SmsService(tenant, {
-        provider: (tenant.smsProvider as "mock" | "africas_talking" | "twilio") || "mock",
-        apiKey: tenant.smsApiKey || undefined,
-        username: tenant.smsUsername || undefined,
-        senderId: tenant.smsSenderId || undefined,
-      });
-
-      const result = await smsService.sendOtp(adminPhone, otp);
+      // Send OTP via SMS using platform SMS service
+      const smsService = getSmsService();
+      const result = await smsService.sendIspOtp(adminPhone, otp, tenant.name || "Your ISP");
       
       if (!result.success) {
         console.error("[OTP] Failed to send OTP:", result.error);
@@ -2743,6 +2737,79 @@ export async function registerRoutes(
     }
   });
 
+  // ============== SUPERADMIN SMS ROUTES ==============
+  
+  // Get SMS balance
+  app.get("/api/superadmin/sms/balance", requireSuperAdmin, async (req, res) => {
+    try {
+      const smsService = getSmsService();
+      const result = await smsService.getBalance();
+      res.json(result);
+    } catch (error) {
+      console.error("Error getting SMS balance:", error);
+      res.status(500).json({ success: false, error: "Failed to get SMS balance" });
+    }
+  });
+
+  // Send test SMS
+  app.post("/api/superadmin/sms/test", requireSuperAdmin, async (req, res) => {
+    try {
+      const { phone } = req.body;
+      if (!phone) {
+        return res.status(400).json({ success: false, error: "Phone number is required" });
+      }
+
+      const smsService = getSmsService();
+      const result = await smsService.sendOtp(phone, Math.floor(100000 + Math.random() * 900000).toString());
+      res.json(result);
+    } catch (error) {
+      console.error("Error sending test SMS:", error);
+      res.status(500).json({ success: false, error: "Failed to send test SMS" });
+    }
+  });
+
+  // SMS Delivery Report Webhook (public endpoint for Mobitech)
+  app.post("/api/webhooks/sms/delivery", async (req, res) => {
+    try {
+      const { 
+        messageId, 
+        dlrTime, 
+        dlrStatus, 
+        dlrDesc, 
+        tat, 
+        network, 
+        destaddr, 
+        sourceaddr, 
+        origin 
+      } = req.body;
+
+      console.log(`[SMS DLR] Message ${messageId} - Status: ${dlrStatus} (${dlrDesc}) - To: ${destaddr}`);
+      
+      // Process the delivery report
+      const { SmsService } = await import("./services/sms");
+      const report = SmsService.processDeliveryReport({
+        messageId: String(messageId),
+        dlrTime,
+        dlrStatus: Number(dlrStatus),
+        dlrDesc,
+        tat,
+        network,
+        destaddr,
+        sourceaddr,
+        origin,
+      });
+
+      console.log(`[SMS DLR] Processed: ${report.messageId} - ${report.status}`);
+
+      // Return success to Mobitech
+      res.json({ success: true, received: true });
+    } catch (error) {
+      console.error("Error processing SMS delivery report:", error);
+      // Still return 200 to prevent retries
+      res.json({ success: false, error: "Failed to process delivery report" });
+    }
+  });
+
   // ============== SUBSCRIPTION MANAGEMENT (User-facing) ==============
   
   // Upgrade subscription (tenant admin)
@@ -3061,13 +3128,8 @@ export async function registerRoutes(
         status: "sending",
       });
 
-      // Initialize SMS service with tenant configuration
-      const smsService = new SmsService(tenant, {
-        provider: (tenant.smsProvider as "africas_talking" | "twilio" | "mock") || "mock",
-        apiKey: tenant.smsApiKey || undefined,
-        username: tenant.smsUsername || undefined,
-        senderId: tenant.smsSenderId || undefined,
-      });
+      // Initialize SMS service using platform configuration
+      const smsService = getSmsService();
 
       // Send SMS to each recipient
       let sentCount = 0;
@@ -3237,9 +3299,9 @@ export async function registerRoutes(
         expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
       });
 
-      // Send OTP via SMS
+      // Send OTP via SMS using platform SMS service
       if (foundTenant) {
-        const smsService = new SmsService(foundTenant);
+        const smsService = getSmsService();
         await smsService.sendSms(
           phoneNumber,
           `Your WiFi Portal verification code is: ${otp}. Valid for 5 minutes.`

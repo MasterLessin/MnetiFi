@@ -3,7 +3,7 @@ import { useLocation, Link } from "wouter";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { MeshBackground } from "@/components/mesh-background";
 import { useRequireAuth } from "@/hooks/use-session";
-import { Loader2, Building2, LayoutDashboard, Users, LogOut, Shield, UserCog } from "lucide-react";
+import { Loader2, Building2, LayoutDashboard, Users, LogOut, Shield, UserCog, MessageSquare } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -26,6 +26,7 @@ const menuItems = [
   { title: "Dashboard", url: "/superadmin", icon: LayoutDashboard },
   { title: "Tenants", url: "/superadmin/tenants", icon: Building2 },
   { title: "Users", url: "/superadmin/users", icon: UserCog },
+  { title: "SMS Settings", url: "/superadmin/sms-settings", icon: MessageSquare },
 ];
 
 function SuperAdminSidebar({ onLogout }: { onLogout: () => void }) {
