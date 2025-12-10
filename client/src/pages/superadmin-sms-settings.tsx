@@ -80,7 +80,8 @@ export default function SuperAdminSmsSettingsPage() {
     testSmsMutation.mutate(testPhone);
   };
 
-  const isConfigured = !!process.env.MOBITECH_API_KEY || (balance?.success && balance?.balance);
+  // SMS is configured if we can get a successful balance response from the server
+  const isConfigured = balance?.success === true;
 
   return (
     <div className="p-6 space-y-6" data-testid="superadmin-sms-settings-page">

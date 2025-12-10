@@ -9,6 +9,17 @@ MnetiFi is a multi-tenant Wi-Fi hotspot billing system designed for ISPs with M-
 
 ## Recent Updates
 
+### Centralized SMS Management (December 10, 2025)
+- SMS functionality moved to SuperAdmin level using Mobitech Technologies API
+- Platform SMS Settings page at `/superadmin/sms-settings`
+- Features: SMS balance check, test SMS, delivery report webhook
+- Sender ID: "MNETIFI" for all platform SMS
+- API key stored securely as Replit secret (MOBITECH_API_KEY)
+- Webhook endpoint: `POST /api/webhooks/sms/delivery` for delivery reports
+- SMS used for: SuperAdmin OTP, ISP account notifications, expiry reminders
+- Removed SMS configuration from ISP admin settings (security measure)
+- SMS messages include ISP branding where appropriate (e.g., "Your ISP Name - OTP: 123456")
+
 ### Captive Portal Designer (December 10, 2025)
 - Visual portal customization at `/dashboard/portal-designer`
 - Tabbed interface: Branding, Design, Support settings
