@@ -1436,7 +1436,13 @@ export async function registerRoutes(
   
   app.get("/api/transactions", async (req, res) => {
     try {
-      const transactions = await storage.getTransactions(defaultTenantId);
+      const { voucherCode } = req.query;
+      let transactions = await storage.getTransactions(defaultTenantId);
+      if (voucherCode && typeof voucherCode === 'string') {
+        transactions = transactions.filter(t => 
+          t.voucherCode?.toLowerCase().includes(voucherCode.toLowerCase())
+        );
+      }
       res.json(transactions);
     } catch (error) {
       console.error("Error fetching transactions:", error);
@@ -1457,6 +1463,21 @@ export async function registerRoutes(
     }
   });
 
+  // Helper function to validate and normalize Kenya phone number
+  function normalizeKenyaPhone(phone: string): { valid: boolean; normalized: string; error?: string } {
+    let cleaned = phone.replace(/\D/g, '');
+    if (cleaned.startsWith('0')) {
+      cleaned = '254' + cleaned.substring(1);
+    }
+    if (!cleaned.startsWith('254')) {
+      return { valid: false, normalized: '', error: 'Phone number must start with 254 or 0' };
+    }
+    if (cleaned.length !== 12) {
+      return { valid: false, normalized: '', error: 'Phone number must be 12 digits (254XXXXXXXXX)' };
+    }
+    return { valid: true, normalized: cleaned };
+  }
+
   // Initiate payment (STK Push with resilient job queue)
   app.post("/api/transactions/initiate", async (req, res) => {
     try {
@@ -1465,6 +1486,12 @@ export async function registerRoutes(
       if (!planId || !phone) {
         return res.status(400).json({ error: "Plan ID and phone number are required" });
       }
+
+      const phoneValidation = normalizeKenyaPhone(phone);
+      if (!phoneValidation.valid) {
+        return res.status(400).json({ error: phoneValidation.error });
+      }
+      const normalizedPhone = phoneValidation.normalized;
 
       const plan = await storage.getPlan(planId);
       if (!plan) {
@@ -1477,7 +1504,7 @@ export async function registerRoutes(
       const transaction = await storage.createTransaction({
         tenantId: defaultTenantId,
         planId,
-        userPhone: phone,
+        userPhone: normalizedPhone,
         amount: plan.price,
         checkoutRequestId,
         merchantRequestId,
@@ -1495,7 +1522,7 @@ export async function registerRoutes(
         10
       );
 
-      console.log(`[Payment] Initiated STK Push for ${phone}, scheduled status check job`);
+      console.log(`[Payment] Initiated STK Push for ${normalizedPhone}, scheduled status check job`);
 
       res.status(201).json(transaction);
     } catch (error) {
@@ -1650,7 +1677,13 @@ export async function registerRoutes(
   
   app.get("/api/wifi-users", async (req, res) => {
     try {
-      const wifiUsers = await storage.getWifiUsers(defaultTenantId);
+      const { voucherCode } = req.query;
+      let wifiUsers = await storage.getWifiUsers(defaultTenantId);
+      if (voucherCode && typeof voucherCode === 'string') {
+        wifiUsers = wifiUsers.filter(u => 
+          u.voucherCode?.toLowerCase().includes(voucherCode.toLowerCase())
+        );
+      }
       res.json(wifiUsers);
     } catch (error) {
       console.error("Error fetching wifi users:", error);
@@ -1911,11 +1944,15 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/tickets", async (req, res) => {
+  app.post("/api/tickets", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
+      const tenantId = getSessionTenantId(req);
+      if (!tenantId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
       const data = insertTicketSchema.parse({
         ...req.body,
-        tenantId: defaultTenantId,
+        tenantId,
       });
       const ticket = await storage.createTicket(data);
       res.status(201).json(ticket);

@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -197,7 +198,7 @@ ${rows}
       Date: d.date,
       Revenue: d.amount,
     }));
-    exportToCSV(data, "financial_report");
+    exportData(data, "financial_report");
   };
 
   const exportPlanPerformance = () => {
@@ -208,7 +209,7 @@ ${rows}
       Revenue: p.amount,
       Transactions: p.count,
     }));
-    exportToCSV(data, "plan_performance");
+    exportData(data, "plan_performance");
   };
 
   const exportReconciliation = () => {
@@ -222,7 +223,7 @@ ${rows}
       MpesaReceipt: t.mpesaReceiptNumber || "",
       Date: t.createdAt,
     }));
-    exportToCSV(data, "reconciliation_report");
+    exportData(data, "reconciliation_report");
   };
 
   const exportUserActivity = () => {
@@ -233,7 +234,7 @@ ${rows}
       Phone: u.phoneNumber,
       ExpiryDate: u.expiryTime,
     }));
-    exportToCSV(data, "expiring_users");
+    exportData(data, "expiring_users");
   };
 
   return (
@@ -246,6 +247,18 @@ ${rows}
           <p className="text-muted-foreground">
             View revenue reports, user activity, and reconciliation status
           </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Label htmlFor="exportFormat" className="text-sm text-muted-foreground">Export Format:</Label>
+          <Select value={exportFormat} onValueChange={(value: ExportFormat) => setExportFormat(value)}>
+            <SelectTrigger id="exportFormat" className="w-24" data-testid="select-export-format">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="csv">CSV</SelectItem>
+              <SelectItem value="excel">Excel</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -339,7 +352,7 @@ ${rows}
               <div className="flex justify-end">
                 <Button onClick={exportFinancialReport} variant="outline" data-testid="button-export-financial">
                   <Download size={16} className="mr-2" />
-                  Export CSV
+                  Export {exportFormat === "excel" ? "Excel" : "CSV"}
                 </Button>
               </div>
               
@@ -428,7 +441,7 @@ ${rows}
               <div className="flex justify-end">
                 <Button onClick={exportPlanPerformance} variant="outline" data-testid="button-export-plans">
                   <Download size={16} className="mr-2" />
-                  Export CSV
+                  Export {exportFormat === "excel" ? "Excel" : "CSV"}
                 </Button>
               </div>
 
@@ -485,7 +498,7 @@ ${rows}
               <div className="flex justify-end">
                 <Button onClick={exportUserActivity} variant="outline" data-testid="button-export-users">
                   <Download size={16} className="mr-2" />
-                  Export Expiring Users
+                  Export Expiring Users ({exportFormat === "excel" ? "Excel" : "CSV"})
                 </Button>
               </div>
 
@@ -575,7 +588,7 @@ ${rows}
               <div className="flex justify-end">
                 <Button onClick={exportReconciliation} variant="outline" data-testid="button-export-reconciliation">
                   <Download size={16} className="mr-2" />
-                  Export CSV
+                  Export {exportFormat === "excel" ? "Excel" : "CSV"}
                 </Button>
               </div>
 

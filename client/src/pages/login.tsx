@@ -75,7 +75,11 @@ export default function LoginPage() {
             title: "Welcome back!",
             description: `Logged in as ${data.user.username}`,
           });
-          setLocation("/dashboard");
+          if (data.user.role === "superadmin") {
+            setLocation("/superadmin");
+          } else {
+            setLocation("/dashboard");
+          }
         }
       } else {
         toast({
@@ -119,7 +123,11 @@ export default function LoginPage() {
           title: "Welcome back!",
           description: `Logged in as ${data.user.username}`,
         });
-        setLocation("/dashboard");
+        if (data.user.role === "superadmin") {
+          setLocation("/superadmin");
+        } else {
+          setLocation("/dashboard");
+        }
       } else {
         toast({
           title: "Verification Failed",

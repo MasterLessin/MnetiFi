@@ -101,6 +101,22 @@ export default function SettingsPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.name.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Organization name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!formData.subdomain.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Subdomain is required",
+        variant: "destructive",
+      });
+      return;
+    }
     saveMutation.mutate({ formData, brandingData });
   };
 
