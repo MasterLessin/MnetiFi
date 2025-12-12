@@ -1,0 +1,100 @@
+2025-12-12T10:23:46.710372471Z   constraint: undefined,
+2025-12-12T10:23:46.710374711Z   file: 'parse_relation.c',
+2025-12-12T10:23:46.710376861Z   line: '3822',
+2025-12-12T10:23:46.710379091Z   routine: 'errorMissingColumn'
+2025-12-12T10:23:46.710381181Z }
+2025-12-12T10:23:46.710384881Z node:internal/process/promises:332
+2025-12-12T10:23:46.710387271Z     triggerUncaughtException(err, true /* fromPromise */);
+2025-12-12T10:23:46.710389422Z     ^
+2025-12-12T10:23:46.710391342Z 
+2025-12-12T10:23:46.710393442Z error: column "website" does not exist
+2025-12-12T10:23:46.710395982Z     at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+2025-12-12T10:23:46.710398942Z     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+2025-12-12T10:23:46.710401452Z     at async /opt/render/project/src/dist/index.cjs:386:114358
+2025-12-12T10:23:46.710403992Z     at async Nf.getTenantBySubdomain (/opt/render/project/src/dist/index.cjs:386:117428)
+2025-12-12T10:23:46.710409952Z     at async uN (/opt/render/project/src/dist/index.cjs:568:101323)
+2025-12-12T10:23:46.710412482Z     at async X1 (/opt/render/project/src/dist/index.cjs:568:394)
+2025-12-12T10:23:46.710415122Z     at async /opt/render/project/src/dist/index.cjs:568:104295 {
+2025-12-12T10:23:46.710417572Z   length: 107,
+2025-12-12T10:23:46.710420172Z   severity: 'ERROR',
+2025-12-12T10:23:46.710422992Z   code: '42703',
+2025-12-12T10:23:46.710425372Z   detail: undefined,
+2025-12-12T10:23:46.710427452Z   hint: undefined,
+2025-12-12T10:23:46.710429532Z   position: '35',
+2025-12-12T10:23:46.710431932Z   internalPosition: undefined,
+2025-12-12T10:23:46.710434162Z   internalQuery: undefined,
+2025-12-12T10:23:46.710436432Z   where: undefined,
+2025-12-12T10:23:46.710438692Z   schema: undefined,
+2025-12-12T10:23:46.710440963Z   table: undefined,
+2025-12-12T10:23:46.710456563Z   column: undefined,
+2025-12-12T10:23:46.710459263Z   dataType: undefined,
+2025-12-12T10:23:46.710461853Z   constraint: undefined,
+2025-12-12T10:23:46.710464483Z   file: 'parse_relation.c',
+2025-12-12T10:23:46.710466773Z   line: '3822',
+2025-12-12T10:23:46.710469563Z   routine: 'errorMissingColumn'
+2025-12-12T10:23:46.710472003Z }
+2025-12-12T10:23:46.710474213Z 
+2025-12-12T10:23:46.710476823Z Node.js v25.2.1
+2025-12-12T10:24:08.06519034Z ==> Running 'npm run start'
+2025-12-12T10:24:08.964364299Z 
+2025-12-12T10:24:08.964390549Z > mnetifi-wifi-billing@1.0.0 start
+2025-12-12T10:24:08.964401079Z > NODE_ENV=production node dist/index.cjs
+2025-12-12T10:24:08.964406169Z 
+2025-12-12T10:24:10.762856235Z Error initializing default tenant: error: column "website" does not exist
+2025-12-12T10:24:10.762906366Z     at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+2025-12-12T10:24:10.762913406Z     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+2025-12-12T10:24:10.762918977Z     at async /opt/render/project/src/dist/index.cjs:386:114358
+2025-12-12T10:24:10.762923637Z     at async Nf.getTenantBySubdomain (/opt/render/project/src/dist/index.cjs:386:117428)
+2025-12-12T10:24:10.762930757Z     at async uN (/opt/render/project/src/dist/index.cjs:568:101323)
+2025-12-12T10:24:10.762935247Z     at async X1 (/opt/render/project/src/dist/index.cjs:568:394)
+2025-12-12T10:24:10.762940347Z     at async /opt/render/project/src/dist/index.cjs:568:104295 {
+2025-12-12T10:24:10.762944747Z   length: 107,
+2025-12-12T10:24:10.762949737Z   severity: 'ERROR',
+2025-12-12T10:24:10.762954357Z   code: '42703',
+2025-12-12T10:24:10.762958657Z   detail: undefined,
+2025-12-12T10:24:10.762963177Z   hint: undefined,
+2025-12-12T10:24:10.762967977Z   position: '35',
+2025-12-12T10:24:10.762973147Z   internalPosition: undefined,
+2025-12-12T10:24:10.762977647Z   internalQuery: undefined,
+2025-12-12T10:24:10.762981838Z   where: undefined,
+2025-12-12T10:24:10.762986078Z   schema: undefined,
+2025-12-12T10:24:10.762990968Z   table: undefined,
+2025-12-12T10:24:10.762995458Z   column: undefined,
+2025-12-12T10:24:10.762999858Z   dataType: undefined,
+2025-12-12T10:24:10.763004168Z   constraint: undefined,
+2025-12-12T10:24:10.763008598Z   file: 'parse_relation.c',
+2025-12-12T10:24:10.763012978Z   line: '3822',
+2025-12-12T10:24:10.763017528Z   routine: 'errorMissingColumn'
+2025-12-12T10:24:10.763022199Z }
+2025-12-12T10:24:10.76307776Z node:internal/process/promises:332
+2025-12-12T10:24:10.76308975Z     triggerUncaughtException(err, true /* fromPromise */);
+2025-12-12T10:24:10.76309411Z     ^
+2025-12-12T10:24:10.76309767Z 
+2025-12-12T10:24:10.76310125Z error: column "website" does not exist
+2025-12-12T10:24:10.76310494Z     at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+2025-12-12T10:24:10.76310893Z     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+2025-12-12T10:24:10.76311243Z     at async /opt/render/project/src/dist/index.cjs:386:114358
+2025-12-12T10:24:10.76311593Z     at async Nf.getTenantBySubdomain (/opt/render/project/src/dist/index.cjs:386:117428)
+2025-12-12T10:24:10.76312885Z     at async uN (/opt/render/project/src/dist/index.cjs:568:101323)
+2025-12-12T10:24:10.763132551Z     at async X1 (/opt/render/project/src/dist/index.cjs:568:394)
+2025-12-12T10:24:10.763136801Z     at async /opt/render/project/src/dist/index.cjs:568:104295 {
+2025-12-12T10:24:10.763142611Z   length: 107,
+2025-12-12T10:24:10.763148481Z   severity: 'ERROR',
+2025-12-12T10:24:10.763153591Z   code: '42703',
+2025-12-12T10:24:10.763158621Z   detail: undefined,
+2025-12-12T10:24:10.763163461Z   hint: undefined,
+2025-12-12T10:24:10.763168721Z   position: '35',
+2025-12-12T10:24:10.763173871Z   internalPosition: undefined,
+2025-12-12T10:24:10.763179402Z   internalQuery: undefined,
+2025-12-12T10:24:10.763184912Z   where: undefined,
+2025-12-12T10:24:10.763190452Z   schema: undefined,
+2025-12-12T10:24:10.763195342Z   table: undefined,
+2025-12-12T10:24:10.763215602Z   column: undefined,
+2025-12-12T10:24:10.763219262Z   dataType: undefined,
+2025-12-12T10:24:10.763222412Z   constraint: undefined,
+2025-12-12T10:24:10.763225683Z   file: 'parse_relation.c',
+2025-12-12T10:24:10.763228983Z   line: '3822',
+2025-12-12T10:24:10.763232383Z   routine: 'errorMissingColumn'
+2025-12-12T10:24:10.763235973Z }
+2025-12-12T10:24:10.763239353Z 
+2025-12-12T10:24:10.763241723Z Node.js v25.2.1
