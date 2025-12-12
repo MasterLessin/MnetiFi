@@ -1,0 +1,150 @@
+2025-12-12T19:48:43.82542899Z     at async X1 (/opt/render/project/src/dist/index.cjs:568:394)
+2025-12-12T19:48:43.82543316Z     at async /opt/render/project/src/dist/index.cjs:568:104295 {
+2025-12-12T19:48:43.82543697Z   length: 118,
+2025-12-12T19:48:43.82544168Z   severity: 'ERROR',
+2025-12-12T19:48:43.82544543Z   code: '42703',
+2025-12-12T19:48:43.82544925Z   detail: undefined,
+2025-12-12T19:48:43.82545288Z   hint: undefined,
+2025-12-12T19:48:43.82545657Z   position: '331',
+2025-12-12T19:48:43.82546057Z   internalPosition: undefined,
+2025-12-12T19:48:43.82546434Z   internalQuery: undefined,
+2025-12-12T19:48:43.82546809Z   where: undefined,
+2025-12-12T19:48:43.82547181Z   schema: undefined,
+2025-12-12T19:48:43.82547539Z   table: undefined,
+2025-12-12T19:48:43.825495241Z   column: undefined,
+2025-12-12T19:48:43.825579192Z   dataType: undefined,
+2025-12-12T19:48:43.825584022Z   constraint: undefined,
+2025-12-12T19:48:43.825586252Z   file: 'parse_relation.c',
+2025-12-12T19:48:43.825588442Z   line: '3822',
+2025-12-12T19:48:43.825590782Z   routine: 'errorMissingColumn'
+2025-12-12T19:48:43.825592852Z }
+2025-12-12T19:48:43.825594742Z 
+2025-12-12T19:48:43.825596812Z Node.js v25.2.1
+2025-12-12T19:48:46.001194844Z ==> Exited with status 1
+2025-12-12T19:48:46.147462792Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+2025-12-12T19:48:50.245216934Z ==> Running 'npm run start'
+2025-12-12T19:48:51.244765417Z 
+2025-12-12T19:48:51.244791138Z > mnetifi-wifi-billing@1.0.0 start
+2025-12-12T19:48:51.244794778Z > NODE_ENV=production node dist/index.cjs
+2025-12-12T19:48:51.244796858Z 
+2025-12-12T19:48:52.754045606Z Error initializing default tenant: error: column "subscription_tier" does not exist
+2025-12-12T19:48:52.754063736Z     at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+2025-12-12T19:48:52.754065966Z     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+2025-12-12T19:48:52.754068756Z     at async /opt/render/project/src/dist/index.cjs:386:114358
+2025-12-12T19:48:52.754070486Z     at async Nf.getTenantBySubdomain (/opt/render/project/src/dist/index.cjs:386:117428)
+2025-12-12T19:48:52.754073546Z     at async uN (/opt/render/project/src/dist/index.cjs:568:101323)
+2025-12-12T19:48:52.754075796Z     at async X1 (/opt/render/project/src/dist/index.cjs:568:394)
+2025-12-12T19:48:52.754078436Z     at async /opt/render/project/src/dist/index.cjs:568:104295 {
+2025-12-12T19:48:52.754081586Z   length: 118,
+2025-12-12T19:48:52.754085386Z   severity: 'ERROR',
+2025-12-12T19:48:52.754088086Z   code: '42703',
+2025-12-12T19:48:52.754094746Z   detail: undefined,
+2025-12-12T19:48:52.754097506Z   hint: undefined,
+2025-12-12T19:48:52.754099836Z   position: '331',
+2025-12-12T19:48:52.754103367Z   internalPosition: undefined,
+2025-12-12T19:48:52.754106327Z   internalQuery: undefined,
+2025-12-12T19:48:52.754108567Z   where: undefined,
+2025-12-12T19:48:52.754110287Z   schema: undefined,
+2025-12-12T19:48:52.754111927Z   table: undefined,
+2025-12-12T19:48:52.754113557Z   column: undefined,
+2025-12-12T19:48:52.754115257Z   dataType: undefined,
+2025-12-12T19:48:52.754116977Z   constraint: undefined,
+2025-12-12T19:48:52.754118757Z   file: 'parse_relation.c',
+2025-12-12T19:48:52.754120497Z   line: '3822',
+2025-12-12T19:48:52.754122107Z   routine: 'errorMissingColumn'
+2025-12-12T19:48:52.754123807Z }
+2025-12-12T19:48:52.75429367Z node:internal/process/promises:332
+2025-12-12T19:48:52.75430136Z     triggerUncaughtException(err, true /* fromPromise */);
+2025-12-12T19:48:52.75430407Z     ^
+2025-12-12T19:48:52.75430654Z 
+2025-12-12T19:48:52.75430921Z error: column "subscription_tier" does not exist
+2025-12-12T19:48:52.75431235Z     at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+2025-12-12T19:48:52.75431506Z     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+2025-12-12T19:48:52.75431718Z     at async /opt/render/project/src/dist/index.cjs:386:114358
+2025-12-12T19:48:52.75431932Z     at async Nf.getTenantBySubdomain (/opt/render/project/src/dist/index.cjs:386:117428)
+2025-12-12T19:48:52.75432139Z     at async uN (/opt/render/project/src/dist/index.cjs:568:101323)
+2025-12-12T19:48:52.75432373Z     at async X1 (/opt/render/project/src/dist/index.cjs:568:394)
+2025-12-12T19:48:52.754326Z     at async /opt/render/project/src/dist/index.cjs:568:104295 {
+2025-12-12T19:48:52.75432806Z   length: 118,
+2025-12-12T19:48:52.75433036Z   severity: 'ERROR',
+2025-12-12T19:48:52.75433245Z   code: '42703',
+2025-12-12T19:48:52.75433464Z   detail: undefined,
+2025-12-12T19:48:52.75433664Z   hint: undefined,
+2025-12-12T19:48:52.75433872Z   position: '331',
+2025-12-12T19:48:52.75434097Z   internalPosition: undefined,
+2025-12-12T19:48:52.75434324Z   internalQuery: undefined,
+2025-12-12T19:48:52.75434522Z   where: undefined,
+2025-12-12T19:48:52.754347171Z   schema: undefined,
+2025-12-12T19:48:52.754349211Z   table: undefined,
+2025-12-12T19:48:52.754362301Z   column: undefined,
+2025-12-12T19:48:52.754364641Z   dataType: undefined,
+2025-12-12T19:48:52.754366691Z   constraint: undefined,
+2025-12-12T19:48:52.754368771Z   file: 'parse_relation.c',
+2025-12-12T19:48:52.754370881Z   line: '3822',
+2025-12-12T19:48:52.754372961Z   routine: 'errorMissingColumn'
+2025-12-12T19:48:52.754375021Z }
+2025-12-12T19:48:52.754376921Z 
+2025-12-12T19:48:52.754379201Z Node.js v25.2.1
+2025-12-12T19:49:19.069184491Z ==> Running 'npm run start'
+2025-12-12T19:49:20.079279197Z 
+2025-12-12T19:49:20.079307598Z > mnetifi-wifi-billing@1.0.0 start
+2025-12-12T19:49:20.079311828Z > NODE_ENV=production node dist/index.cjs
+2025-12-12T19:49:20.079314038Z 
+2025-12-12T19:49:21.96401584Z Error initializing default tenant: error: column "subscription_tier" does not exist
+2025-12-12T19:49:21.96404357Z     at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+2025-12-12T19:49:21.96404828Z     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+2025-12-12T19:49:21.96405275Z     at async /opt/render/project/src/dist/index.cjs:386:114358
+2025-12-12T19:49:21.96405717Z     at async Nf.getTenantBySubdomain (/opt/render/project/src/dist/index.cjs:386:117428)
+2025-12-12T19:49:21.9640611Z     at async uN (/opt/render/project/src/dist/index.cjs:568:101323)
+2025-12-12T19:49:21.964064841Z     at async X1 (/opt/render/project/src/dist/index.cjs:568:394)
+2025-12-12T19:49:21.96406859Z     at async /opt/render/project/src/dist/index.cjs:568:104295 {
+2025-12-12T19:49:21.96407245Z   length: 118,
+2025-12-12T19:49:21.964077351Z   severity: 'ERROR',
+2025-12-12T19:49:21.964081011Z   code: '42703',
+2025-12-12T19:49:21.964084801Z   detail: undefined,
+2025-12-12T19:49:21.964088591Z   hint: undefined,
+2025-12-12T19:49:21.964092671Z   position: '331',
+2025-12-12T19:49:21.964096911Z   internalPosition: undefined,
+2025-12-12T19:49:21.964100541Z   internalQuery: undefined,
+2025-12-12T19:49:21.964104151Z   where: undefined,
+2025-12-12T19:49:21.964107681Z   schema: undefined,
+2025-12-12T19:49:21.964111191Z   table: undefined,
+2025-12-12T19:49:21.964114741Z   column: undefined,
+2025-12-12T19:49:21.964118411Z   dataType: undefined,
+2025-12-12T19:49:21.964121991Z   constraint: undefined,
+2025-12-12T19:49:21.964125491Z   file: 'parse_relation.c',
+2025-12-12T19:49:21.964129051Z   line: '3822',
+2025-12-12T19:49:21.964132811Z   routine: 'errorMissingColumn'
+2025-12-12T19:49:21.964136571Z }
+2025-12-12T19:49:21.964414926Z node:internal/process/promises:332
+2025-12-12T19:49:21.964430336Z     triggerUncaughtException(err, true /* fromPromise */);
+2025-12-12T19:49:21.964436536Z     ^
+2025-12-12T19:49:21.964441727Z 
+2025-12-12T19:49:21.964446997Z error: column "subscription_tier" does not exist
+2025-12-12T19:49:21.964452687Z     at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+2025-12-12T19:49:21.964458307Z     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+2025-12-12T19:49:21.964463427Z     at async /opt/render/project/src/dist/index.cjs:386:114358
+2025-12-12T19:49:21.964468157Z     at async Nf.getTenantBySubdomain (/opt/render/project/src/dist/index.cjs:386:117428)
+2025-12-12T19:49:21.964475267Z     at async uN (/opt/render/project/src/dist/index.cjs:568:101323)
+2025-12-12T19:49:21.964480877Z     at async X1 (/opt/render/project/src/dist/index.cjs:568:394)
+2025-12-12T19:49:21.964486637Z     at async /opt/render/project/src/dist/index.cjs:568:104295 {
+2025-12-12T19:49:21.964506608Z   length: 118,
+2025-12-12T19:49:21.964513618Z   severity: 'ERROR',
+2025-12-12T19:49:21.964518888Z   code: '42703',
+2025-12-12T19:49:21.964524568Z   detail: undefined,
+2025-12-12T19:49:21.964530248Z   hint: undefined,
+2025-12-12T19:49:21.964535898Z   position: '331',
+2025-12-12T19:49:21.964541408Z   internalPosition: undefined,
+2025-12-12T19:49:21.964546178Z   internalQuery: undefined,
+2025-12-12T19:49:21.964550728Z   where: undefined,
+2025-12-12T19:49:21.964556029Z   schema: undefined,
+2025-12-12T19:49:21.964561098Z   table: undefined,
+2025-12-12T19:49:21.964579109Z   column: undefined,
+2025-12-12T19:49:21.964582329Z   dataType: undefined,
+2025-12-12T19:49:21.964585469Z   constraint: undefined,
+2025-12-12T19:49:21.964589379Z   file: 'parse_relation.c',
+2025-12-12T19:49:21.964592629Z   line: '3822',
+2025-12-12T19:49:21.964595589Z   routine: 'errorMissingColumn'
+2025-12-12T19:49:21.964598639Z }
+2025-12-12T19:49:21.964601759Z 
+2025-12-12T19:49:21.964604769Z Node.js v25.2.1
