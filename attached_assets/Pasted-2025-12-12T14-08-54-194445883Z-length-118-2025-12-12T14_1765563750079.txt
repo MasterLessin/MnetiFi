@@ -1,0 +1,50 @@
+2025-12-12T14:08:54.194445883Z   length: 118,
+2025-12-12T14:08:54.194448783Z   severity: 'ERROR',
+2025-12-12T14:08:54.194451053Z   code: '42703',
+2025-12-12T14:08:54.194453384Z   detail: undefined,
+2025-12-12T14:08:54.194455534Z   hint: undefined,
+2025-12-12T14:08:54.194457764Z   position: '331',
+2025-12-12T14:08:54.194461244Z   internalPosition: undefined,
+2025-12-12T14:08:54.194467155Z   internalQuery: undefined,
+2025-12-12T14:08:54.194469435Z   where: undefined,
+2025-12-12T14:08:54.194471665Z   schema: undefined,
+2025-12-12T14:08:54.194473845Z   table: undefined,
+2025-12-12T14:08:54.194475965Z   column: undefined,
+2025-12-12T14:08:54.194478155Z   dataType: undefined,
+2025-12-12T14:08:54.194480316Z   constraint: undefined,
+2025-12-12T14:08:54.194482526Z   file: 'parse_relation.c',
+2025-12-12T14:08:54.194484776Z   line: '3822',
+2025-12-12T14:08:54.194487006Z   routine: 'errorMissingColumn'
+2025-12-12T14:08:54.194489226Z }
+2025-12-12T14:08:54.194637917Z node:internal/process/promises:332
+2025-12-12T14:08:54.194664369Z     triggerUncaughtException(err, true /* fromPromise */);
+2025-12-12T14:08:54.194667159Z     ^
+2025-12-12T14:08:54.19466966Z 
+2025-12-12T14:08:54.19467215Z error: column "subscription_tier" does not exist
+2025-12-12T14:08:54.19467516Z     at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+2025-12-12T14:08:54.19467794Z     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+2025-12-12T14:08:54.19468016Z     at async /opt/render/project/src/dist/index.cjs:386:114358
+2025-12-12T14:08:54.19468241Z     at async Nf.getTenantBySubdomain (/opt/render/project/src/dist/index.cjs:386:117428)
+2025-12-12T14:08:54.194684661Z     at async uN (/opt/render/project/src/dist/index.cjs:568:101323)
+2025-12-12T14:08:54.194686771Z     at async X1 (/opt/render/project/src/dist/index.cjs:568:394)
+2025-12-12T14:08:54.194689121Z     at async /opt/render/project/src/dist/index.cjs:568:104295 {
+2025-12-12T14:08:54.194691321Z   length: 118,
+2025-12-12T14:08:54.194695191Z   severity: 'ERROR',
+2025-12-12T14:08:54.194697931Z   code: '42703',
+2025-12-12T14:08:54.194700432Z   detail: undefined,
+2025-12-12T14:08:54.194702882Z   hint: undefined,
+2025-12-12T14:08:54.194705342Z   position: '331',
+2025-12-12T14:08:54.194756316Z   internalPosition: undefined,
+2025-12-12T14:08:54.194760346Z   internalQuery: undefined,
+2025-12-12T14:08:54.194762606Z   where: undefined,
+2025-12-12T14:08:54.194764956Z   schema: undefined,
+2025-12-12T14:08:54.194767217Z   table: undefined,
+2025-12-12T14:08:54.194787218Z   column: undefined,
+2025-12-12T14:08:54.194789728Z   dataType: undefined,
+2025-12-12T14:08:54.194791958Z   constraint: undefined,
+2025-12-12T14:08:54.194794238Z   file: 'parse_relation.c',
+2025-12-12T14:08:54.194796469Z   line: '3822',
+2025-12-12T14:08:54.194798629Z   routine: 'errorMissingColumn'
+2025-12-12T14:08:54.194800879Z }
+2025-12-12T14:08:54.19481677Z 
+2025-12-12T14:08:54.19481984Z Node.js v25.2.1
