@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "NODE_ENV=development tsx server/index.ts",
     "build": "drizzle-kit push && npx tsx script/build.ts",
-    "start": "NODE_ENV=production node dist/index.cjs",
+    "start": "drizzle-kit push && NODE_ENV=production node dist/index.cjs",
     "check": "tsc",
     "db:push": "drizzle-kit push"
   },
