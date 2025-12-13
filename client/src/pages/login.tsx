@@ -11,16 +11,30 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useQuery } from "@tanstack/react-query";
+
+interface TenantOption {
+  id: string;
+  name: string;
+  subdomain: string;
+}
 
 export default function LoginPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [selectedTenantId, setSelectedTenantId] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [requires2FA, setRequires2FA] = useState(false);
   const [userId2FA, setUserId2FA] = useState<string | null>(null);
   const [twoFactorCode, setTwoFactorCode] = useState("");
+  
+  // Fetch available tenants for the dropdown
+  const { data: tenants = [] } = useQuery<TenantOption[]>({
+    queryKey: ["/api/auth/tenants"],
+  });
 
   useEffect(() => {
     const session = localStorage.getItem("admin_session");
@@ -50,7 +64,11 @@ export default function LoginPage() {
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ 
+          username, 
+          password,
+          tenantId: selectedTenantId || (tenants.length === 1 ? tenants[0].id : undefined)
+        }),
       });
 
       const data = await response.json();
@@ -245,6 +263,24 @@ export default function LoginPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              {tenants.length > 1 && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-white/80">Select Organization</label>
+                  <Select value={selectedTenantId} onValueChange={setSelectedTenantId}>
+                    <SelectTrigger className="bg-white/5 border-white/10 text-white" data-testid="select-tenant">
+                      <SelectValue placeholder="Select your organization" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {tenants.map((tenant) => (
+                        <SelectItem key={tenant.id} value={tenant.id}>
+                          {tenant.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              
               <GlassInput
                 label="Username"
                 placeholder="Enter your username"

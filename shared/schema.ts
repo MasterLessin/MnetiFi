@@ -298,10 +298,12 @@ export const walledGardensRelations = relations(walledGardens, ({ one }) => ({
 }));
 
 // Users - Admin users for dashboard access
+// Note: username is unique per tenant (not globally) - handled via application logic
+// Email is unique per tenant as well for multi-tenant isolation
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   tenantId: varchar("tenant_id").references(() => tenants.id),
-  username: text("username").notNull().unique(),
+  username: text("username").notNull(),
   password: text("password").notNull(),
   email: text("email"),
   role: text("role").notNull().default("admin"), // superadmin, admin, tech

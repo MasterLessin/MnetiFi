@@ -68,11 +68,13 @@ export interface IStorage {
 
   // User operations
   getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByUsername(username: string, tenantId?: string): Promise<User | undefined>;
+  getUserByEmail(email: string, tenantId?: string): Promise<User | undefined>;
+  getUserByEmailGlobal(email: string): Promise<User | undefined>;
   getUserByResetToken(token: string): Promise<User | undefined>;
   getUserByEmailVerificationToken(token: string): Promise<User | undefined>;
   getTechnicians(tenantId: string): Promise<User[]>;
+  getUsersByTenant(tenantId: string): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, data: Partial<InsertUser & { resetToken?: string | null; resetTokenExpiry?: Date | null; emailVerificationToken?: string | null; emailVerificationExpiry?: Date | null; emailVerified?: boolean }>): Promise<User | undefined>;
   getAllTenants(): Promise<Tenant[]>;
@@ -298,8 +300,17 @@ export class DatabaseStorage implements IStorage {
     return user || undefined;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
+  async getUserByUsername(username: string, tenantId?: string): Promise<User | undefined> {
+    if (tenantId) {
+      const [user] = await db.select().from(users).where(
+        and(eq(users.username, username), eq(users.tenantId, tenantId))
+      );
+      return user || undefined;
+    }
+    // For superadmin lookup (no tenantId) - look for users without tenant (superadmins)
+    const [user] = await db.select().from(users).where(
+      and(eq(users.username, username), sql`${users.tenantId} IS NULL`)
+    );
     return user || undefined;
   }
 
@@ -308,9 +319,28 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  async getUserByEmail(email: string): Promise<User | undefined> {
+  async getUserByEmail(email: string, tenantId?: string): Promise<User | undefined> {
+    if (tenantId) {
+      const [user] = await db.select().from(users).where(
+        and(eq(users.email, email), eq(users.tenantId, tenantId))
+      );
+      return user || undefined;
+    }
+    // For superadmin lookup (no tenantId) - look for users without tenant
+    const [user] = await db.select().from(users).where(
+      and(eq(users.email, email), sql`${users.tenantId} IS NULL`)
+    );
+    return user || undefined;
+  }
+
+  // Global email lookup - searches across ALL users (for password reset and registration uniqueness)
+  async getUserByEmailGlobal(email: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.email, email));
     return user || undefined;
+  }
+
+  async getUsersByTenant(tenantId: string): Promise<User[]> {
+    return db.select().from(users).where(eq(users.tenantId, tenantId));
   }
 
   async getUserByResetToken(token: string): Promise<User | undefined> {
@@ -830,11 +860,6 @@ export class DatabaseStorage implements IStorage {
   // Get users by role
   async getUsersByRole(role: string): Promise<User[]> {
     return db.select().from(users).where(eq(users.role, role));
-  }
-
-  // Get all users for a tenant
-  async getUsersByTenant(tenantId: string): Promise<User[]> {
-    return db.select().from(users).where(eq(users.tenantId, tenantId));
   }
 
   // Get customer details with transactions and stats

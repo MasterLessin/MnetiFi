@@ -279,16 +279,61 @@ export async function registerRoutes(
 
   // ============== AUTHENTICATION ROUTES ==============
   
+  // Public endpoint to list available tenants for login form
+  app.get("/api/auth/tenants", async (req, res) => {
+    try {
+      const allTenants = await storage.getAllTenants();
+      // Return only public info needed for login dropdown
+      const tenantList = allTenants
+        .filter(t => t.isActive)
+        .map(t => ({
+          id: t.id,
+          name: t.name,
+          subdomain: t.subdomain,
+        }));
+      res.json(tenantList);
+    } catch (error) {
+      console.error("Error fetching tenants for login:", error);
+      res.status(500).json({ error: "Failed to load tenants" });
+    }
+  });
+  
   // Login attempt rate limiting settings
   const MAX_FAILED_ATTEMPTS = 5;
   const LOCKOUT_DURATION_MINUTES = 15;
 
   app.post("/api/auth/login", async (req, res) => {
     try {
-      const { username, password } = req.body;
+      const { username, password, tenantId: requestTenantId, subdomain } = req.body;
       
       if (!username || !password) {
         return res.status(400).json({ error: "Username and password are required" });
+      }
+
+      // Resolve tenant context from request body or host header
+      let tenantId: string | undefined;
+      
+      // Priority 1: Explicit tenantId in request body
+      if (requestTenantId) {
+        tenantId = requestTenantId;
+      }
+      // Priority 2: Subdomain in request body (used by login form)
+      else if (subdomain) {
+        const tenant = await storage.getTenantBySubdomain(subdomain);
+        if (tenant) {
+          tenantId = tenant.id;
+        }
+      }
+      // Priority 3: Extract from host header using subdomain
+      else {
+        const host = req.get('host') || '';
+        const subdomain = host.split('.')[0];
+        if (subdomain && subdomain !== 'www' && subdomain !== 'localhost' && subdomain !== 'mnetifi') {
+          const tenant = await storage.getTenantBySubdomain(subdomain);
+          if (tenant) {
+            tenantId = tenant.id;
+          }
+        }
       }
 
       // Get client IP and user agent for logging
@@ -305,7 +350,17 @@ export async function registerRoutes(
         });
       }
 
-      const user = await storage.getUserByUsername(username);
+      // Look up user by username + tenant for proper multi-tenant isolation
+      // For regular users, tenantId is required; for superadmins, we check users without tenantId
+      let user = await storage.getUserByUsername(username, tenantId);
+      
+      // If not found with tenant, try superadmin lookup (user without tenantId)
+      if (!user && tenantId) {
+        const superadminUser = await storage.getUserByUsername(username);
+        if (superadminUser && superadminUser.role === 'superadmin') {
+          user = superadminUser;
+        }
+      }
       
       if (!user) {
         // Record failed attempt for non-existent user (prevents user enumeration timing attacks)
@@ -5673,8 +5728,8 @@ async function initializeDefaultTenant(): Promise<string> {
       console.log("Created sample walled garden entries");
     }
 
-    // Check if we have an admin user
-    const adminUser = await storage.getUserByUsername("admin");
+    // Check if we have an admin user for this tenant (tenant-scoped lookup)
+    const adminUser = await storage.getUserByUsername("admin", tenant.id);
     if (!adminUser) {
       await storage.createUser({
         tenantId: tenant.id,
